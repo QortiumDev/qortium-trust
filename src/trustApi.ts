@@ -1,0 +1,183 @@
+import { qdnRequest } from './qdnRequest';
+import type {
+  AccountData,
+  AccountRating,
+  AccountRatingCategory,
+  AccountTrustExplanation,
+  AccountTrustProfile,
+  NodeApiFetchResult,
+  NodeStatus,
+  ResourceRatingSummary,
+  TrustDerivation,
+  TrustPolicy,
+  TrustStatus,
+  TrustStatusChange,
+  TrustSummary,
+} from './types';
+
+const DEFAULT_MAX_BYTES = 5 * 1024 * 1024;
+const DEFAULT_DERIVATION_LIMIT = 250;
+const DEFAULT_RATING_LIMIT = 1000;
+
+function appendQueryValue(query: URLSearchParams, key: string, value: string | number | boolean | undefined | null) {
+  if (value === undefined || value === null || value === '') {
+    return;
+  }
+
+  query.set(key, String(value));
+}
+
+function assertOk<T>(result: NodeApiFetchResult<T>, label: string) {
+  if (!result.ok) {
+    throw new Error(result.body || `${label} failed with HTTP ${result.status}.`);
+  }
+
+  return result.data;
+}
+
+export async function fetchNodeApiData<T>(path: string, label: string, maxBytes = DEFAULT_MAX_BYTES) {
+  const result = await qdnRequest<NodeApiFetchResult<T>>({
+    action: 'FETCH_NODE_API',
+    maxBytes,
+    path,
+  });
+
+  return assertOk(result, label);
+}
+
+export function buildTrustDerivationPath(options: {
+  category?: AccountRatingCategory;
+  limit?: number;
+  live?: boolean;
+  minLevel?: number;
+  offset?: number;
+  reverse?: boolean;
+  seedMember?: boolean;
+  status?: TrustStatus;
+} = {}) {
+  const query = new URLSearchParams();
+
+  appendQueryValue(query, 'category', options.category);
+  appendQueryValue(query, 'limit', options.limit ?? DEFAULT_DERIVATION_LIMIT);
+  appendQueryValue(query, 'live', options.live);
+  appendQueryValue(query, 'minLevel', options.minLevel);
+  appendQueryValue(query, 'offset', options.offset);
+  appendQueryValue(query, 'reverse', options.reverse);
+  appendQueryValue(query, 'seedMember', options.seedMember);
+  appendQueryValue(query, 'status', options.status);
+
+  return `/account-ratings/trust-derivation?${query.toString()}`;
+}
+
+export function buildAccountRatingsPath(options: {
+  category?: AccountRatingCategory;
+  limit?: number;
+  offset?: number;
+  rater?: string;
+  reverse?: boolean;
+  target?: string;
+} = {}) {
+  const query = new URLSearchParams();
+
+  appendQueryValue(query, 'category', options.category);
+  appendQueryValue(query, 'limit', options.limit ?? DEFAULT_RATING_LIMIT);
+  appendQueryValue(query, 'offset', options.offset);
+  appendQueryValue(query, 'rater', options.rater);
+  appendQueryValue(query, 'reverse', options.reverse);
+  appendQueryValue(query, 'target', options.target);
+
+  return `/account-ratings?${query.toString()}`;
+}
+
+export function buildTrustChangesPath(options: {
+  category?: AccountRatingCategory;
+  limit?: number;
+  offset?: number;
+  reverse?: boolean;
+  account?: string;
+  previousStatus?: TrustStatus;
+  newStatus?: TrustStatus;
+} = {}) {
+  const query = new URLSearchParams();
+
+  appendQueryValue(query, 'account', options.account);
+  appendQueryValue(query, 'category', options.category);
+  appendQueryValue(query, 'limit', options.limit ?? 25);
+  appendQueryValue(query, 'newStatus', options.newStatus);
+  appendQueryValue(query, 'offset', options.offset);
+  appendQueryValue(query, 'previousStatus', options.previousStatus);
+  appendQueryValue(query, 'reverse', options.reverse);
+
+  return `/account-ratings/trust-changes?${query.toString()}`;
+}
+
+export function buildResourceRatingsPath(options: {
+  identifier?: string;
+  limit?: number;
+  name?: string;
+  offset?: number;
+  reverse?: boolean;
+  service?: string;
+} = {}) {
+  const query = new URLSearchParams();
+
+  appendQueryValue(query, 'identifier', options.identifier);
+  appendQueryValue(query, 'limit', options.limit ?? 25);
+  appendQueryValue(query, 'name', options.name);
+  appendQueryValue(query, 'offset', options.offset);
+  appendQueryValue(query, 'reverse', options.reverse);
+  appendQueryValue(query, 'service', options.service);
+
+  return `/resource-ratings?${query.toString()}`;
+}
+
+export function getNodeStatus() {
+  return fetchNodeApiData<NodeStatus>('/admin/status', 'Node status', 256 * 1024);
+}
+
+export function getAccountData(address: string) {
+  return fetchNodeApiData<AccountData>(`/addresses/${encodeURIComponent(address)}`, 'Account data', 256 * 1024);
+}
+
+export function getTrustSummary() {
+  return fetchNodeApiData<TrustSummary>('/account-ratings/trust-summary', 'Trust summary');
+}
+
+export function getTrustPolicy() {
+  return fetchNodeApiData<TrustPolicy>('/account-ratings/trust-policy', 'Trust policy');
+}
+
+export function getTrustDerivation(options?: Parameters<typeof buildTrustDerivationPath>[0]) {
+  return fetchNodeApiData<TrustDerivation[]>(buildTrustDerivationPath(options), 'Trust derivation');
+}
+
+export function getAccountRatings(options?: Parameters<typeof buildAccountRatingsPath>[0]) {
+  return fetchNodeApiData<AccountRating[]>(buildAccountRatingsPath(options), 'Account ratings');
+}
+
+export function getTrustChanges(options?: Parameters<typeof buildTrustChangesPath>[0]) {
+  return fetchNodeApiData<TrustStatusChange[]>(buildTrustChangesPath(options), 'Trust changes');
+}
+
+export function getResourceRatings(options?: Parameters<typeof buildResourceRatingsPath>[0]) {
+  return fetchNodeApiData<ResourceRatingSummary[]>(buildResourceRatingsPath(options), 'Resource ratings');
+}
+
+export function getTrustProfile(targetPublicKey: string) {
+  const query = new URLSearchParams({ target: targetPublicKey });
+
+  return fetchNodeApiData<AccountTrustProfile>(`/account-ratings/trust-profile?${query.toString()}`, 'Trust profile');
+}
+
+export function getTrustExplanation(targetPublicKey: string, live = false) {
+  const query = new URLSearchParams({ target: targetPublicKey });
+
+  if (live) {
+    query.set('live', 'true');
+  }
+
+  return fetchNodeApiData<AccountTrustExplanation>(
+    `/account-ratings/trust-explanation?${query.toString()}`,
+    'Trust explanation',
+  );
+}
