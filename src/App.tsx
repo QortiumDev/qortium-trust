@@ -7,11 +7,9 @@ import {
   ArrowLeft,
   ArrowUp,
   CircleDot,
-  GitBranch,
   Layers,
   RefreshCw,
   Search,
-  Table2,
   X,
 } from 'lucide-react';
 import trustIconUrl from './assets/qortium-trust-protoicon-black-transparent.png';
@@ -235,7 +233,9 @@ function getDefaultAccountSortDirection(key: AccountSortKey): SortDirection {
   return key === 'account' ? 'asc' : 'desc';
 }
 
-function CategorySelect({
+// The trust category (Minters/Voters/Guides/Designers) selector. A segmented tab switcher so the
+// four roles are visible at a glance; the per-role description renders alongside it in the toolbar.
+function CategoryTabs({
   category,
   onChange,
 }: {
@@ -243,51 +243,52 @@ function CategorySelect({
   onChange: (category: AccountRatingCategory) => void;
 }) {
   return (
-    <select
-      aria-label="Trust category"
-      onChange={(event) => onChange(event.target.value as AccountRatingCategory)}
-      value={category}
-    >
+    <div className="segmented-control" aria-label="Trust category">
       {TRUST_CATEGORIES.map((candidate) => (
-        <option key={candidate} value={candidate}>
-          {categoryLabel(candidate)}
-        </option>
-      ))}
-    </select>
-  );
-}
-
-function ViewTabs({
-  activeTabRef,
-  onChange,
-  view,
-}: {
-  activeTabRef?: React.RefObject<HTMLButtonElement | null>;
-  onChange: (view: ViewMode) => void;
-  view: ViewMode;
-}) {
-  const views: { icon: ReactNode; label: string; value: ViewMode }[] = [
-    { icon: <Table2 size={16} />, label: 'Accounts', value: 'accounts' },
-    { icon: <GitBranch size={16} />, label: 'Graph', value: 'graph' },
-    { icon: <ArrowDownUp size={16} />, label: 'Changes', value: 'changes' },
-    { icon: <Layers size={16} />, label: 'Resources', value: 'resources' },
-  ];
-
-  return (
-    <div className="view-tabs" aria-label="Explorer view">
-      {views.map((candidate) => (
         <button
-          className={candidate.value === view ? 'active' : ''}
-          key={candidate.value}
-          onClick={() => onChange(candidate.value)}
-          ref={candidate.value === view ? activeTabRef : undefined}
+          className={candidate === category ? 'active' : ''}
+          key={candidate}
+          onClick={() => onChange(candidate)}
           type="button"
         >
-          {candidate.icon}
-          {candidate.label}
+          {categoryLabel(candidate)}
         </button>
       ))}
     </div>
+  );
+}
+
+const VIEW_OPTIONS: { label: string; value: ViewMode }[] = [
+  { label: 'Accounts', value: 'accounts' },
+  { label: 'Graph', value: 'graph' },
+  { label: 'Changes', value: 'changes' },
+  { label: 'Resources', value: 'resources' },
+];
+
+// The explorer view (Accounts/Graph/Changes/Resources) as a dropdown that sits next to the status
+// filter, keeping all the list-shaping controls together on one row.
+function ViewSelect({
+  onChange,
+  selectRef,
+  view,
+}: {
+  onChange: (view: ViewMode) => void;
+  selectRef?: React.RefObject<HTMLSelectElement | null>;
+  view: ViewMode;
+}) {
+  return (
+    <select
+      aria-label="Explorer view"
+      onChange={(event) => onChange(event.target.value as ViewMode)}
+      ref={selectRef}
+      value={view}
+    >
+      {VIEW_OPTIONS.map((candidate) => (
+        <option key={candidate.value} value={candidate.value}>
+          {candidate.label}
+        </option>
+      ))}
+    </select>
   );
 }
 
@@ -1289,7 +1290,7 @@ function RowRatePopover({
   // Anchor the fixed-position popover to the trigger button's viewport rect, flipping it upward when
   // there is not enough room below (e.g. bottom rows). Recompute on scroll/resize so it tracks the
   // row while the table scrolls underneath.
-  const POPOVER_WIDTH = 240;
+  const POPOVER_WIDTH = 280;
 
   useEffect(() => {
     const updatePosition = () => {
@@ -1412,16 +1413,10 @@ function AccountDetail({
     </div>
   );
 
-  if (detail.loading) {
-    return (
-      <>
-        {backBar}
-        <div className="skeleton-block" />
-        <div className="skeleton-block short" />
-      </>
-    );
-  }
-
+  // Render the identity header and the rate section immediately — they only need props and the
+  // already-loaded derivation, not the detail fetch. This keeps the rating form (and any pending
+  // state) visible while the profile/explanation load, so reopening a just-rated account still shows
+  // its pending rating instead of a blank skeleton.
   const profileCategory = detail.profile?.categories.find((candidate) => candidate.category === category);
   const explanationCategory = detail.explanation?.categories.find((candidate) => candidate.category === category);
   const fallbackCategory = selectedDerivation.categories.find((candidate) => candidate.category === category);
@@ -1453,6 +1448,12 @@ function AccountDetail({
           targetPublicKey={selectedDerivation.accountPublicKey}
         />
       </div>
+      {detail.loading ? (
+        <div className="detail-columns-loading">
+          <div className="skeleton-block" />
+          <div className="skeleton-block short" />
+        </div>
+      ) : (
       <div className="detail-columns">
         <div className="detail-stats">
           <div className="detail-grid">
@@ -1527,6 +1528,7 @@ function AccountDetail({
           </div>
         </div>
       </div>
+      )}
     </>
   );
 }
@@ -1573,8 +1575,8 @@ export default function App() {
   const [view, setView] = useState<ViewMode>('accounts');
   const searchInputRef = useRef<HTMLInputElement>(null);
   const searchToggleRef = useRef<HTMLButtonElement>(null);
-  const activeTabRef = useRef<HTMLButtonElement>(null);
-  // Set when leaving the detail takeover so we restore focus to the active view tab once the list
+  const viewSelectRef = useRef<HTMLSelectElement>(null);
+  // Set when leaving the detail takeover so we restore focus to the view selector once the list
   // re-mounts (the AccountDetail Back button it lived on has been unmounted).
   const restoreListFocusRef = useRef(false);
 
@@ -1700,12 +1702,19 @@ export default function App() {
     setSelectedAddress(null);
   }, []);
 
-  // After Back returns to the list, move focus to the active view tab so keyboard focus is not lost
+  // Switching the view from the toolbar dropdown also exits any open detail takeover, so the chosen
+  // view's list/graph is what comes into focus.
+  const handleViewChange = useCallback((next: ViewMode) => {
+    setView(next);
+    setSelectedAddress(null);
+  }, []);
+
+  // After Back returns to the list, move focus to the view selector so keyboard focus is not lost
   // to <body>. Runs once per return; the flag prevents stealing focus on unrelated re-renders.
   useEffect(() => {
     if (!selectedAddress && restoreListFocusRef.current) {
       restoreListFocusRef.current = false;
-      activeTabRef.current?.focus();
+      viewSelectRef.current?.focus();
     }
   }, [selectedAddress]);
 
@@ -1957,6 +1966,16 @@ export default function App() {
       }
 
       if (confirmedKeys.length > 0) {
+        // Refresh the trust data first and only drop the optimistic pending entry once the confirmed
+        // value is in `data.ratings`. Clearing before the reload completes would briefly leave the
+        // "You rated" cell blank (pending gone, confirmed value not yet loaded).
+        setDetailReloadToken((token) => token + 1);
+        await loadDataRef.current({ silent: true });
+
+        if (cancelled) {
+          return;
+        }
+
         setPendingRatings((current) => {
           const next = { ...current };
 
@@ -1969,8 +1988,6 @@ export default function App() {
 
           return next;
         });
-        setDetailReloadToken((token) => token + 1);
-        void loadDataRef.current({ silent: true });
       }
 
       if (!cancelled) {
@@ -2030,42 +2047,43 @@ export default function App() {
 
       <section className="toolbar">
         <div className="toolbar__category">
-          <CategorySelect category={category} onChange={setCategory} />
+          <CategoryTabs category={category} onChange={setCategory} />
           <p className="category-description">{categoryDescription(category)}</p>
         </div>
-        {searchOpen ? (
-          <div className="search-field">
-            <Search size={17} />
-            <input
-              onChange={(event) => setQuery(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === 'Escape') {
-                  toggleSearch();
-                }
-              }}
-              placeholder="Search account or public key"
-              ref={searchInputRef}
-              value={query}
-            />
-            <button aria-label="Close search" className="search-field__close" onClick={toggleSearch} type="button">
-              <X size={15} />
-            </button>
-          </div>
-        ) : (
-          <div />
-        )}
-        <select
-          aria-label="Trust status"
-          onChange={(event) => setStatusFilter(event.target.value as TrustStatus | 'ALL')}
-          value={statusFilter}
-        >
-          <option value="ALL">All statuses</option>
-          {TRUST_STATUSES.map((status) => (
-            <option key={status} value={status}>
-              {statusLabel(status)}
-            </option>
-          ))}
-        </select>
+        <div className="toolbar__controls">
+          {searchOpen ? (
+            <div className="search-field">
+              <Search size={17} />
+              <input
+                onChange={(event) => setQuery(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Escape') {
+                    toggleSearch();
+                  }
+                }}
+                placeholder="Search account or public key"
+                ref={searchInputRef}
+                value={query}
+              />
+              <button aria-label="Close search" className="search-field__close" onClick={toggleSearch} type="button">
+                <X size={15} />
+              </button>
+            </div>
+          ) : null}
+          <ViewSelect onChange={handleViewChange} selectRef={viewSelectRef} view={view} />
+          <select
+            aria-label="Trust status"
+            onChange={(event) => setStatusFilter(event.target.value as TrustStatus | 'ALL')}
+            value={statusFilter}
+          >
+            <option value="ALL">All statuses</option>
+            {TRUST_STATUSES.map((status) => (
+              <option key={status} value={status}>
+                {statusLabel(status)}
+              </option>
+            ))}
+          </select>
+        </div>
       </section>
 
       {error ? (
@@ -2092,7 +2110,6 @@ export default function App() {
             />
           ) : (
             <>
-              <ViewTabs activeTabRef={activeTabRef} onChange={setView} view={view} />
               {loading ? (
                 <div className="loading-panel">
                   <div className="skeleton-block" />

@@ -429,36 +429,61 @@ h3 {
 }
 
 .toolbar {
-  align-items: start;
-  display: grid;
-  gap: 12px;
-  grid-template-columns: minmax(220px, auto) minmax(0, 1fr) 180px;
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 16px;
   margin: 0 0 14px;
 }
 
+/* Category tab switcher with its per-role description sitting to the right (wraps below on narrow). */
 .toolbar__category {
-  display: grid;
-  gap: 0;
+  align-items: center;
+  display: flex;
+  flex: 1 1 360px;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  min-width: 0;
 }
 
 .category-description {
   color: var(--muted);
+  flex: 1 1 220px;
   font-size: var(--font-size-small);
-  margin: 6px 0 0;
-  max-width: 60ch;
+  margin: 0;
+  min-width: 0;
 }
 
-.view-tabs {
+/* View + status dropdowns (and the search field when open), pushed to the trailing edge of the row. */
+.toolbar__controls {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.toolbar__controls .search-field {
+  flex: 1 1 220px;
+}
+
+.toolbar__controls select {
+  flex: 0 0 auto;
+}
+
+.segmented-control {
   align-items: center;
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 8px;
   display: inline-flex;
   gap: 4px;
+  max-width: 100%;
+  overflow-x: auto;
   padding: 4px;
 }
 
-.view-tabs button {
+.segmented-control button {
   align-items: center;
   background: transparent;
   border: 0;
@@ -470,9 +495,10 @@ h3 {
   gap: 7px;
   min-height: 34px;
   padding: 8px 11px;
+  white-space: nowrap;
 }
 
-.view-tabs button.active {
+.segmented-control button.active {
   background: var(--accent-soft);
   color: var(--accent-strong);
 }
@@ -542,10 +568,6 @@ select {
   padding: 14px;
 }
 
-.view-tabs {
-  margin-bottom: 14px;
-}
-
 .detail-back {
   margin-bottom: 14px;
 }
@@ -595,6 +617,11 @@ select {
   display: grid;
   gap: 18px;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.detail-columns-loading {
+  display: grid;
+  gap: 12px;
 }
 
 .graph-surface {
@@ -1194,14 +1221,23 @@ tbody tr:hover,
   box-shadow: var(--shadow);
   display: grid;
   gap: 8px;
+  max-width: calc(100vw - 16px);
   padding: 12px;
   position: fixed;
-  width: 240px;
+  width: 280px;
   z-index: 50;
+}
+
+/* Let the select and its label fill the popover so long rating labels are not clipped. */
+.rate-popover .rating-select {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .rate-popover select {
   background: var(--panel-strong);
+  max-width: 100%;
+  width: 100%;
 }
 
 .rate-popover .rating-submit {
@@ -1211,6 +1247,12 @@ tbody tr:hover,
 .rating-popover-body {
   display: grid;
   gap: 8px;
+  min-width: 0;
+}
+
+.rating-popover-body .rating-message {
+  margin-top: 0;
+  overflow-wrap: anywhere;
 }
 
 .rating-popover-status {
@@ -1227,8 +1269,9 @@ tbody tr:hover,
 }
 
 @media (max-width: 1100px) {
-  .toolbar {
-    grid-template-columns: 1fr;
+  .toolbar__controls {
+    margin-left: 0;
+    width: 100%;
   }
 
   .detail-columns {
@@ -1250,14 +1293,8 @@ tbody tr:hover,
     font-size: var(--font-size-title);
   }
 
-  .view-tabs {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .segmented-control {
     width: 100%;
-  }
-
-  .view-tabs button {
-    justify-content: center;
   }
 
   .detail-grid {
@@ -1265,7 +1302,7 @@ tbody tr:hover,
   }
 
   .rate-popover {
-    width: min(240px, calc(100vw - 16px));
+    width: min(280px, calc(100vw - 16px));
   }
 
   .trust-graph {
