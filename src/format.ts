@@ -4,6 +4,15 @@ export const TRUST_STATUSES: TrustStatus[] = ['SUSPICIOUS', 'UNVERIFIED', 'BRONZ
 
 export const TRUST_CATEGORIES: AccountRatingCategory[] = ['SUBJECT', 'PLAYER', 'TRAINER', 'MANAGER'];
 
+// Display labels only. The wire/API values stay 'SUBJECT' | 'PLAYER' | 'TRAINER' | 'MANAGER';
+// the Core API both accepts and returns those raw values, so we remap purely at render time.
+const CATEGORY_LABELS: Record<AccountRatingCategory, string> = {
+  SUBJECT: 'Minters',
+  PLAYER: 'Voters',
+  TRAINER: 'Guides',
+  MANAGER: 'Designers',
+};
+
 export function compactAddress(value: string | undefined, head = 7, tail = 5) {
   if (!value) {
     return 'Unknown';
@@ -48,7 +57,23 @@ export function statusLabel(status: TrustStatus) {
 }
 
 export function categoryLabel(category: AccountRatingCategory) {
-  return category.charAt(0) + category.slice(1).toLowerCase();
+  // Fall back to title-casing any unexpected wire value the API might return.
+  return CATEGORY_LABELS[category] ?? category.charAt(0) + category.slice(1).toLowerCase();
+}
+
+// One-line role descriptions surfaced under the category selector, in plain language.
+const CATEGORY_DESCRIPTIONS: Record<AccountRatingCategory, string> = {
+  SUBJECT: 'Whether you trust this account to be a block minter.',
+  PLAYER: 'Whether you trust this account to rate other accounts in the trust network.',
+  TRAINER:
+    'Whether you trust this account to understand the trust network well enough to explain it to others.',
+  MANAGER:
+    'Whether you trust this account to understand the trust network well enough to help vote on governance decisions.',
+};
+
+export function categoryDescription(category: AccountRatingCategory) {
+  // Unknown wire values have no description; return '' so callers can render-or-skip cleanly.
+  return CATEGORY_DESCRIPTIONS[category] ?? '';
 }
 
 export function ratingTone(rating: number) {

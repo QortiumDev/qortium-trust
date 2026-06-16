@@ -8,6 +8,9 @@ export type QdnAction =
   | 'IS_USING_PUBLIC_NODE'
   | 'SHOW_ACTIONS'
   | 'WHICH_UI'
+  | 'GET_SELECTED_ACCOUNT'
+  | 'GET_ACCOUNT_DATA'
+  | 'RATE_ACCOUNT'
   | string;
 
 export type BridgeState = {
@@ -269,6 +272,52 @@ export type AccountTrustExplanation = {
     topPositiveImpacts: TrustImpact[];
     topNegativeImpacts: TrustImpact[];
   }[];
+};
+
+/**
+ * The logged-in Qortium Home account acting as the rater. `publicKey` is null until the
+ * account has at least one on-chain transaction, in which case it cannot submit ratings yet.
+ */
+export type SelfAccount = {
+  address: string;
+  publicKey: string | null;
+  name: string | null;
+  isUnlocked?: boolean;
+};
+
+/** Mirrors Core `AccountRatingCooldownData` from GET /account-ratings/cooldown. */
+export type AccountRatingCooldown = {
+  targetPublicKey: string;
+  targetAddress: string;
+  raterPublicKey: string;
+  raterAddress: string;
+  category: AccountRatingCategory;
+  activeRating: number | null;
+  cooldownBlocks: number;
+  latestRatingChangeHeight: number | null;
+  currentHeight: number;
+  candidateChangeHeight: number;
+  earliestAllowedHeight: number;
+  blocksRemaining: number;
+  canChangeNow: boolean;
+};
+
+/** Payload the app hands to Qortium Home's RATE_ACCOUNT bridge action. */
+export type RateAccountRequest = {
+  targetPublicKey: string;
+  category: AccountRatingCategory;
+  rating: number;
+};
+
+/** Envelope Qortium Home returns after building, signing, and broadcasting the rating. */
+export type RateAccountResult = {
+  accepted?: boolean;
+  action?: string;
+  targetPublicKey?: string;
+  category?: AccountRatingCategory;
+  rating?: number;
+  result?: unknown;
+  transactionSignature?: string;
 };
 
 export type ResourceRatingSummary = {

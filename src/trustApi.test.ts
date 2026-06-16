@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildAccountRatingsPath,
+  buildRatingCooldownPath,
   buildResourceRatingsPath,
   buildTrustChangesPath,
   buildTrustDerivationPath,
@@ -45,6 +46,15 @@ describe('trust API path builders', () => {
     );
     expect(buildResourceRatingsPath({ service: 'APP', name: 'Trust', identifier: 'Trust' })).toBe(
       '/resource-ratings?identifier=Trust&limit=25&name=Trust&service=APP',
+    );
+  });
+
+  it('builds rating cooldown paths with raw wire category values', () => {
+    expect(buildRatingCooldownPath({ target: 'tPub', rater: 'rPub', category: 'MANAGER' })).toBe(
+      '/account-ratings/cooldown?target=tPub&rater=rPub&category=MANAGER',
+    );
+    expect(buildRatingCooldownPath({ target: 'tPub', rater: 'rPub' })).toBe(
+      '/account-ratings/cooldown?target=tPub&rater=rPub',
     );
   });
 });

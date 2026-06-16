@@ -1,13 +1,17 @@
-import { qdnRequest } from './qdnRequest';
+import { hasHomeBridge, qdnRequest } from './qdnRequest';
 import type {
   AccountData,
   AccountRating,
   AccountRatingCategory,
+  AccountRatingCooldown,
   AccountTrustExplanation,
   AccountTrustProfile,
   NodeApiFetchResult,
   NodeStatus,
+  RateAccountRequest,
+  RateAccountResult,
   ResourceRatingSummary,
+  SelfAccount,
   TrustDerivation,
   TrustPolicy,
   TrustStatus,
@@ -131,6 +135,20 @@ export function buildResourceRatingsPath(options: {
   return `/resource-ratings?${query.toString()}`;
 }
 
+export function buildRatingCooldownPath(options: {
+  target: string;
+  rater: string;
+  category?: AccountRatingCategory;
+}) {
+  const query = new URLSearchParams();
+
+  appendQueryValue(query, 'target', options.target);
+  appendQueryValue(query, 'rater', options.rater);
+  appendQueryValue(query, 'category', options.category);
+
+  return `/account-ratings/cooldown?${query.toString()}`;
+}
+
 export function getNodeStatus() {
   return fetchNodeApiData<NodeStatus>('/admin/status', 'Node status', 256 * 1024);
 }
@@ -180,4 +198,89 @@ export function getTrustExplanation(targetPublicKey: string, live = false) {
     `/account-ratings/trust-explanation?${query.toString()}`,
     'Trust explanation',
   );
+}
+
+export function getRatingCooldown(options: Parameters<typeof buildRatingCooldownPath>[0]) {
+  return fetchNodeApiData<AccountRatingCooldown>(buildRatingCooldownPath(options), 'Rating cooldown', 256 * 1024);
+}
+
+/**
+ * Resolve the current Qortium Home account (the rater). Home-only: the GET_SELECTED_ACCOUNT and
+ * RATE_ACCOUNT bridge actions have no browser-dev equivalent, so this returns null without a bridge.
+ * The selected-account action carries no public key, so we read it from /addresses/{address}, which
+ * is null until the account has an on-chain transaction.
+ */
+export async function resolveSelfAccount(): Promise<SelfAccount | null> {
+  if (!hasHomeBridge()) {
+    return null;
+  }
+
+  const selected = await qdnRequest<{ address?: string; name?: string | null; isUnlocked?: boolean } | null>({
+    action: 'GET_SELECTED_ACCOUNT',
+  });
+
+  const address = selected?.address;
+
+  if (!address) {
+    return null;
+  }
+
+  let publicKey: string | null = null;
+
+  try {
+    const accountData = await getAccountData(address);
+    publicKey = accountData.publicKey ?? null;
+  } catch {
+    publicKey = null;
+  }
+
+  return {
+    address,
+    isUnlocked: selected?.isUnlocked,
+    name: selected?.name ?? null,
+    publicKey,
+  };
+}
+
+/**
+ * Ask Qortium Home to unlock the selected account, prompting the user when it is locked.
+ * Returns the selected account with its refreshed lock state; if it is already unlocked Home
+ * returns immediately without a prompt. Home-only.
+ */
+export async function ensureAccountUnlocked(): Promise<SelfAccount | null> {
+  if (!hasHomeBridge()) {
+    return null;
+  }
+
+  const account = await qdnRequest<{ address?: string; name?: string | null; isUnlocked?: boolean } | null>({
+    action: 'UNLOCK_SELECTED_ACCOUNT',
+  });
+
+  if (!account?.address) {
+    return null;
+  }
+
+  return {
+    address: account.address,
+    isUnlocked: account.isUnlocked,
+    name: account.name ?? null,
+    publicKey: null,
+  };
+}
+
+/**
+ * Submit a trust rating through Qortium Home, which builds, signs, and broadcasts the
+ * RATE_ACCOUNT transaction. Home-only — there is no key to sign with in browser development.
+ */
+export async function submitRating(request: RateAccountRequest): Promise<RateAccountResult> {
+  if (!hasHomeBridge()) {
+    throw new Error('Submitting ratings requires Qortium Home.');
+  }
+
+  return qdnRequest<RateAccountResult>({
+    action: 'RATE_ACCOUNT',
+    category: request.category,
+    rating: request.rating,
+    targetPublicKey: request.targetPublicKey,
+  });
 }

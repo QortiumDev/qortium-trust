@@ -23,6 +23,8 @@ export type TrustGraphLink = {
 export type TrustGraphModel = {
   links: TrustGraphLink[];
   nodes: TrustGraphNode[];
+  width: number;
+  height: number;
 };
 
 const STATUS_ORDER: TrustStatus[] = ['SUSPICIOUS', 'UNVERIFIED', 'BRONZE', 'SILVER', 'GOLD'];
@@ -61,7 +63,14 @@ function addPlaceholderNode(nodesByAddress: Map<string, TrustGraphNode>, address
   }
 }
 
-function positionNodes(nodes: TrustGraphNode[], width: number, height: number) {
+// Vertical room reserved per node so an avatar plus its name label never collides with the
+// node beneath it (avatar diameter ~30 + label offset 32 + descenders). Lanes grow the canvas
+// height to fit their densest column rather than cramming nodes into a fixed 520px.
+const NODE_SLOT = 68;
+const LANE_TOP_PADDING = 52;
+const LANE_BOTTOM_PADDING = 24;
+
+function positionNodes(nodes: TrustGraphNode[], width: number, baseHeight: number) {
   const laneWidth = width / STATUS_ORDER.length;
   const grouped = new Map<TrustStatus, TrustGraphNode[]>();
 
@@ -73,18 +82,30 @@ function positionNodes(nodes: TrustGraphNode[], width: number, height: number) {
     grouped.get(node.status)?.push(node);
   }
 
+  let maxLaneCount = 0;
+  for (const status of STATUS_ORDER) {
+    maxLaneCount = Math.max(maxLaneCount, grouped.get(status)?.length ?? 0);
+  }
+
+  const contentHeight = LANE_TOP_PADDING + maxLaneCount * NODE_SLOT + LANE_BOTTOM_PADDING;
+  const height = Math.max(baseHeight, contentHeight);
+
   for (const [laneIndex, status] of STATUS_ORDER.entries()) {
     const laneNodes = grouped.get(status) ?? [];
     const x = laneIndex * laneWidth + laneWidth / 2;
+    const available = height - LANE_TOP_PADDING - LANE_BOTTOM_PADDING;
+    const blockHeight = laneNodes.length * NODE_SLOT;
+    const startY = LANE_TOP_PADDING + Math.max(0, (available - blockHeight) / 2);
 
     laneNodes
       .sort((left, right) => right.level - left.level || right.score - left.score || left.address.localeCompare(right.address))
       .forEach((node, index) => {
-        const spacing = height / Math.max(2, laneNodes.length + 1);
         node.x = x;
-        node.y = spacing * (index + 1);
+        node.y = startY + NODE_SLOT * index + NODE_SLOT / 2;
       });
   }
+
+  return height;
 }
 
 export function createTrustGraphModel(
@@ -92,7 +113,7 @@ export function createTrustGraphModel(
   ratings: AccountRating[],
   category: AccountRatingCategory,
   width = 960,
-  height = 520,
+  baseHeight = 520,
 ): TrustGraphModel {
   const nodesByAddress = new Map<string, TrustGraphNode>();
   const links: TrustGraphLink[] = [];
@@ -120,11 +141,13 @@ export function createTrustGraphModel(
   }
 
   const nodes = [...nodesByAddress.values()];
-  positionNodes(nodes, width, height);
+  const height = positionNodes(nodes, width, baseHeight);
 
   return {
     links,
     nodes,
+    width,
+    height,
   };
 }
 
