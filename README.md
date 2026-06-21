@@ -22,9 +22,10 @@ The browser fallback reads from `http://127.0.0.1:24891` by default. Set
 
 Qortium Home display settings are read on launch from `theme`/`accent`/`textSize`,
 `qdnTheme`/`qdnAccent`/`qdnTextSize`, or the injected `_qdnTheme`/`_qdnAccent`/
-`_qdnTextSize` globals. The app also listens for Home `THEME_CHANGED`,
-`ACCENT_CHANGED`, `TEXT_SIZE_CHANGED`, and `DISPLAY_SETTINGS_CHANGED` messages
-while it is running.
+`_qdnTextSize` globals. The app also listens for the discrete Home `THEME_CHANGED`,
+`ACCENT_CHANGED`, and `TEXT_SIZE_CHANGED` messages while it is running. (Home
+delivers these as separate events; it does not send a combined display-settings
+message.)
 
 ## QDN Publish
 

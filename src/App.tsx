@@ -20,6 +20,7 @@ import {
   loadIdentityProfile,
 } from './identityProfiles';
 import { getBridgeState } from './qdnRequest';
+import { resolveQdnAssetUrl } from './qdnAsset';
 import {
   ensureAccountUnlocked,
   getAccountData,
@@ -48,6 +49,7 @@ import {
   formatDate,
   formatNumber,
   formatPercent,
+  formatRuntimeLabel,
   ratingTone,
   statusLabel,
   statusTone,
@@ -151,25 +153,13 @@ function getQdnAssetUrl(assetUrl: string) {
 
   const qdnWindow = window as QdnRenderWindow;
 
-  if (qdnWindow._qdnContext !== 'render' && !window.location.pathname.includes('/render/')) {
-    return assetUrl;
-  }
-
-  const identifier =
-    new URLSearchParams(window.location.search).get('identifier') ??
-    (typeof qdnWindow._qdnIdentifier === 'string' ? qdnWindow._qdnIdentifier : '');
-
-  if (!identifier) {
-    return assetUrl;
-  }
-
-  const url = new URL(assetUrl, window.location.href);
-
-  if (!url.searchParams.has('identifier')) {
-    url.searchParams.set('identifier', identifier);
-  }
-
-  return url.toString();
+  return resolveQdnAssetUrl(assetUrl, {
+    context: qdnWindow._qdnContext,
+    identifier: qdnWindow._qdnIdentifier,
+    origin: window.location.origin,
+    pathname: window.location.pathname,
+    search: window.location.search,
+  });
 }
 
 function IdentityAvatar({ address, profile, size = 'normal' }: IdentityProps & { size?: 'small' | 'normal' | 'large' }) {
@@ -2038,7 +2028,7 @@ export default function App() {
           >
             <Search size={18} />
           </button>
-          <span className="runtime-pill">{data.bridge?.ui ?? 'Loading'}</span>
+          <span className="runtime-pill">{formatRuntimeLabel(data.bridge?.ui)}</span>
           <button className="icon-button" disabled={loading} onClick={() => void loadData()} title="Refresh" type="button">
             <RefreshCw size={18} />
           </button>

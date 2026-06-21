@@ -13,6 +13,24 @@ const CATEGORY_LABELS: Record<AccountRatingCategory, string> = {
   MANAGER: 'Designers',
 };
 
+// Friendly labels for the WHICH_UI runtime string the bridge reports. Home returns environment
+// tokens ('QORTIUM_HOME_ELECTRON' on desktop, 'QORTIUM_HOME_ANDROID' on Android); collapse those to
+// a single readable name, and surface anything unrecognized verbatim so new runtimes still show.
+const RUNTIME_LABELS: Record<string, string> = {
+  BROWSER_DEV: 'Browser dev',
+  QORTIUM_HOME: 'Qortium Home',
+  QORTIUM_HOME_ANDROID: 'Qortium Home',
+  QORTIUM_HOME_ELECTRON: 'Qortium Home',
+};
+
+export function formatRuntimeLabel(ui: string | null | undefined) {
+  if (!ui) {
+    return 'Loading';
+  }
+
+  return RUNTIME_LABELS[ui.trim().toUpperCase()] ?? ui;
+}
+
 export function compactAddress(value: string | undefined, head = 7, tail = 5) {
   if (!value) {
     return 'Unknown';

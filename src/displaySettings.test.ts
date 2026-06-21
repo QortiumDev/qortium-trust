@@ -81,22 +81,9 @@ describe('QDN display settings helpers', () => {
     });
   });
 
-  it('updates batched settings and ignores invalid messages', () => {
-    expect(
-      getDisplaySettingsUpdateFromMessage(
-        {
-          accent: 'pink',
-          action: 'DISPLAY_SETTINGS_CHANGED',
-          textSize: 'small',
-          theme: 'dark',
-        },
-        current,
-      ),
-    ).toEqual({
-      accent: 'pink',
-      textSize: 'small',
-      theme: 'dark',
-    });
+  it('ignores invalid and unknown messages', () => {
+    // Home delivers discrete *_CHANGED events only; there is no combined DISPLAY_SETTINGS_CHANGED.
+    expect(getDisplaySettingsUpdateFromMessage({ action: 'DISPLAY_SETTINGS_CHANGED', theme: 'dark' }, current)).toBeNull();
     expect(getDisplaySettingsUpdateFromMessage({ action: 'THEME_CHANGED', theme: 'system' }, current)).toBeNull();
     expect(getDisplaySettingsUpdateFromMessage({ action: 'ACCENT_CHANGED', accent: 'neon' }, current)).toBeNull();
     expect(getDisplaySettingsUpdateFromMessage({ action: 'TEXT_SIZE_CHANGED', textSize: 'tiny' }, current)).toBeNull();

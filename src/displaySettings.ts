@@ -112,14 +112,6 @@ export function getDisplaySettingsUpdateFromMessage(
       return textSize ? { ...current, textSize } : null;
     }
 
-    case 'DISPLAY_SETTINGS_CHANGED': {
-      const accent = normalizeAccent(data.accent ?? data.qdnAccent) ?? current.accent;
-      const textSize = normalizeTextSize(data.textSize ?? data.qdnTextSize) ?? current.textSize;
-      const theme = normalizeTheme(data.theme ?? data.qdnTheme) ?? current.theme;
-
-      return { accent, textSize, theme };
-    }
-
     default:
       return null;
   }
