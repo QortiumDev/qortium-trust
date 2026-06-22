@@ -1,6 +1,17 @@
+import {
+  forceCenter,
+  forceCollide,
+  forceLink,
+  forceManyBody,
+  forceSimulation,
+  forceX,
+  forceY,
+  type SimulationLinkDatum,
+  type SimulationNodeDatum,
+} from 'd3-force';
 import type { AccountRating, AccountRatingCategory, TrustDerivation, TrustStatus } from './types';
 
-export type TrustGraphNode = {
+export type TrustGraphNode = SimulationNodeDatum & {
   address: string;
   publicKey?: string;
   status: TrustStatus;
@@ -11,7 +22,9 @@ export type TrustGraphNode = {
   y: number;
 };
 
-export type TrustGraphLink = {
+// d3-force mutates `source`/`target` from address strings into node references while it runs.
+// We resolve them back to addresses before returning, so consumers always see plain strings.
+export type TrustGraphLink = SimulationLinkDatum<TrustGraphNode> & {
   id: string;
   source: string;
   target: string;
@@ -26,8 +39,6 @@ export type TrustGraphModel = {
   width: number;
   height: number;
 };
-
-const STATUS_ORDER: TrustStatus[] = ['SUSPICIOUS', 'UNVERIFIED', 'BRONZE', 'SILVER', 'GOLD'];
 
 function getCategory(derivation: TrustDerivation, category: AccountRatingCategory) {
   return derivation.categories.find((candidate) => candidate.category === category);
@@ -63,49 +74,100 @@ function addPlaceholderNode(nodesByAddress: Map<string, TrustGraphNode>, address
   }
 }
 
-// Vertical room reserved per node so an avatar plus its name label never collides with the
-// node beneath it (avatar diameter ~30 + label offset 32 + descenders). Lanes grow the canvas
-// height to fit their densest column rather than cramming nodes into a fixed 520px.
-const NODE_SLOT = 68;
-const LANE_TOP_PADDING = 52;
-const LANE_BOTTOM_PADDING = 24;
+// Space reserved around a node so its avatar plus name label clears its neighbours. The avatar
+// radius is 15 (seed) / 12, and the label sits ~32px below, so a collision radius of ~36 keeps
+// labels from stacking while still letting connected clusters draw close together.
+const NODE_RADIUS = (node: TrustGraphNode) => (node.seedMember ? 15 : 12);
+const COLLIDE_RADIUS = (node: TrustGraphNode) => NODE_RADIUS(node) + 24;
+const CANVAS_PADDING = 56;
 
-function positionNodes(nodes: TrustGraphNode[], width: number, baseHeight: number) {
-  const laneWidth = width / STATUS_ORDER.length;
-  const grouped = new Map<TrustStatus, TrustGraphNode[]>();
+// Number of simulation steps run synchronously up front. d3-force is deterministic given fixed
+// initial positions and no RNG, so a fixed tick count yields the same layout on every reload.
+const SIMULATION_TICKS = 320;
 
-  for (const status of STATUS_ORDER) {
-    grouped.set(status, []);
+// Deterministic per-address seed in [0, 1). A stable starting position (rather than d3's
+// index-based phyllotaxis) keeps the layout independent of node insertion order, so the same
+// trust data always settles into the same picture.
+function hashUnit(value: string, salt: number) {
+  let hash = salt | 0;
+  for (let index = 0; index < value.length; index += 1) {
+    hash = (Math.imul(hash, 31) + value.charCodeAt(index)) | 0;
+  }
+  return ((hash >>> 0) % 100000) / 100000;
+}
+
+// Runs a force-directed layout in place: nodes repel, rating edges act as springs pulling rated
+// pairs together, and collision keeps avatars/labels from overlapping. Returns the framed canvas
+// size (bounding box of the settled nodes plus padding) so the SVG viewBox shows the whole graph.
+function positionNodes(nodes: TrustGraphNode[], links: TrustGraphLink[], width: number, baseHeight: number) {
+  if (nodes.length === 0) {
+    return { width, height: baseHeight };
+  }
+
+  // Seed positions inside a box that grows with node count so dense graphs don't start overlapped.
+  const spread = Math.max(width, Math.sqrt(nodes.length) * 90);
+  for (const node of nodes) {
+    node.x = (hashUnit(node.address, 1) - 0.5) * spread;
+    node.y = (hashUnit(node.address, 2) - 0.5) * spread;
+    node.vx = 0;
+    node.vy = 0;
+  }
+
+  const simulation = forceSimulation(nodes)
+    .force('charge', forceManyBody().strength(-220).distanceMax(spread))
+    .force(
+      'link',
+      forceLink<TrustGraphNode, TrustGraphLink>(links)
+        .id((node) => node.address)
+        .distance(80)
+        .strength((link) => 0.15 + 0.1 * Math.min(1, (link.confidence ?? 1) / 3)),
+    )
+    .force('collide', forceCollide<TrustGraphNode>().radius(COLLIDE_RADIUS).iterations(2))
+    .force('center', forceCenter(0, 0))
+    // Gentle pull toward the origin so disconnected nodes/components don't drift off to infinity.
+    .force('x', forceX(0).strength(0.04))
+    .force('y', forceY(0).strength(0.04))
+    .stop();
+
+  for (let tick = 0; tick < SIMULATION_TICKS; tick += 1) {
+    simulation.tick();
+  }
+
+  // d3-force replaced each link's source/target with node references and tagged each with an
+  // `index` while ticking. Resolve endpoints back to plain addresses and drop the index so the
+  // rendered model never leaks mutable simulation internals.
+  for (const link of links) {
+    if (typeof link.source === 'object') {
+      link.source = (link.source as TrustGraphNode).address;
+    }
+    if (typeof link.target === 'object') {
+      link.target = (link.target as TrustGraphNode).address;
+    }
+    delete link.index;
+  }
+
+  // Normalize coordinates into a positive, padded box that exactly frames the settled layout.
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  for (const node of nodes) {
+    const radius = COLLIDE_RADIUS(node);
+    minX = Math.min(minX, node.x - radius);
+    minY = Math.min(minY, node.y - radius);
+    maxX = Math.max(maxX, node.x + radius);
+    maxY = Math.max(maxY, node.y + radius);
   }
 
   for (const node of nodes) {
-    grouped.get(node.status)?.push(node);
+    node.x = node.x - minX + CANVAS_PADDING;
+    node.y = node.y - minY + CANVAS_PADDING;
   }
 
-  let maxLaneCount = 0;
-  for (const status of STATUS_ORDER) {
-    maxLaneCount = Math.max(maxLaneCount, grouped.get(status)?.length ?? 0);
-  }
-
-  const contentHeight = LANE_TOP_PADDING + maxLaneCount * NODE_SLOT + LANE_BOTTOM_PADDING;
-  const height = Math.max(baseHeight, contentHeight);
-
-  for (const [laneIndex, status] of STATUS_ORDER.entries()) {
-    const laneNodes = grouped.get(status) ?? [];
-    const x = laneIndex * laneWidth + laneWidth / 2;
-    const available = height - LANE_TOP_PADDING - LANE_BOTTOM_PADDING;
-    const blockHeight = laneNodes.length * NODE_SLOT;
-    const startY = LANE_TOP_PADDING + Math.max(0, (available - blockHeight) / 2);
-
-    laneNodes
-      .sort((left, right) => right.level - left.level || right.score - left.score || left.address.localeCompare(right.address))
-      .forEach((node, index) => {
-        node.x = x;
-        node.y = startY + NODE_SLOT * index + NODE_SLOT / 2;
-      });
-  }
-
-  return height;
+  return {
+    width: Math.max(width, Math.round(maxX - minX + CANVAS_PADDING * 2)),
+    height: Math.max(baseHeight, Math.round(maxY - minY + CANVAS_PADDING * 2)),
+  };
 }
 
 export function createTrustGraphModel(
@@ -141,13 +203,13 @@ export function createTrustGraphModel(
   }
 
   const nodes = [...nodesByAddress.values()];
-  const height = positionNodes(nodes, width, baseHeight);
+  const layout = positionNodes(nodes, links, width, baseHeight);
 
   return {
     links,
     nodes,
-    width,
-    height,
+    width: layout.width,
+    height: layout.height,
   };
 }
 

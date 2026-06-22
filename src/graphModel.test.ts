@@ -54,11 +54,17 @@ const ratings: AccountRating[] = [
   },
 ];
 
+function distance(a: { x: number; y: number }, b: { x: number; y: number }) {
+  return Math.hypot(a.x - b.x, a.y - b.y);
+}
+
 describe('trust graph model', () => {
   it('creates nodes from derivations and rating endpoints', () => {
     const graph = createTrustGraphModel(derivations, ratings, 'SUBJECT');
 
     expect(graph.nodes.map((node) => node.address).sort()).toEqual(['Qalice', 'Qbob']);
+    // Links keep their identity/metadata and resolve back to plain address strings after the
+    // force simulation (which temporarily swaps source/target for node references).
     expect(graph.links).toEqual([
       {
         category: 'SUBJECT',
@@ -69,6 +75,51 @@ describe('trust graph model', () => {
         target: 'Qalice',
       },
     ]);
+  });
+
+  it('frames every node inside the reported canvas bounds', () => {
+    const graph = createTrustGraphModel(derivations, ratings, 'SUBJECT');
+
+    for (const node of graph.nodes) {
+      expect(node.x).toBeGreaterThanOrEqual(0);
+      expect(node.y).toBeGreaterThanOrEqual(0);
+      expect(node.x).toBeLessThanOrEqual(graph.width);
+      expect(node.y).toBeLessThanOrEqual(graph.height);
+    }
+  });
+
+  it('is deterministic for the same input', () => {
+    const first = createTrustGraphModel(derivations, ratings, 'SUBJECT');
+    const second = createTrustGraphModel(derivations, ratings, 'SUBJECT');
+
+    expect(second.width).toBe(first.width);
+    expect(second.height).toBe(first.height);
+    expect(second.nodes.map((node) => [node.address, node.x, node.y])).toEqual(
+      first.nodes.map((node) => [node.address, node.x, node.y]),
+    );
+  });
+
+  it('separates unrelated nodes instead of stacking them in one column', () => {
+    // Three accounts with no ratings between them: the old lane layout placed them at one shared x;
+    // the force layout must spread them apart in two dimensions.
+    const isolated: TrustDerivation[] = ['Qone', 'Qtwo', 'Qthree'].map((address) => ({
+      ...derivations[0],
+      accountAddress: address,
+      accountPublicKey: `${address}-public`,
+    }));
+
+    const graph = createTrustGraphModel(isolated, [], 'SUBJECT');
+    const xs = new Set(graph.nodes.map((node) => Math.round(node.x)));
+    const pairwise = [
+      distance(graph.nodes[0], graph.nodes[1]),
+      distance(graph.nodes[0], graph.nodes[2]),
+      distance(graph.nodes[1], graph.nodes[2]),
+    ];
+
+    expect(xs.size).toBeGreaterThan(1);
+    for (const gap of pairwise) {
+      expect(gap).toBeGreaterThan(0);
+    }
   });
 
   it('filters derivations by address or public key', () => {

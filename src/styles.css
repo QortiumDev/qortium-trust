@@ -628,32 +628,67 @@ select {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 8px;
-  max-height: 640px;
   min-height: 520px;
-  overflow: auto;
+  overflow: hidden;
   position: relative;
 }
 
 .trust-graph {
+  cursor: grab;
   display: block;
   height: auto;
+  touch-action: none;
+  user-select: none;
   width: 100%;
 }
 
-.graph-lanes rect {
-  fill: transparent;
-  stroke: var(--line);
-  stroke-width: 1;
+.trust-graph:active {
+  cursor: grabbing;
 }
 
-.graph-lanes text {
-  fill: var(--muted);
-  font-size: var(--font-size-small);
-  font-weight: 800;
+.graph-zoom-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  position: absolute;
+  right: 12px;
+  top: 12px;
+}
+
+.graph-zoom-controls button {
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  font-size: 16px;
+  height: 30px;
+  justify-content: center;
+  line-height: 1;
+  padding: 0;
+  width: 30px;
+}
+
+.graph-zoom-controls button:hover {
+  border-color: var(--accent-strong);
+  color: var(--accent-strong);
 }
 
 .graph-link {
   opacity: 0.55;
+  transition: opacity 0.15s ease;
+}
+
+/* When a node is focused (hovered/selected), fade everything not connected to it so the
+   neighbourhood stands out, mirroring the BrightID explorer's click-to-focus behaviour. */
+.graph-link.dimmed {
+  opacity: 0.06;
+}
+
+.graph-node.dimmed {
+  opacity: 0.18;
 }
 
 .graph-link-positive {
@@ -669,7 +704,9 @@ select {
 }
 
 .graph-node {
+  cursor: pointer;
   outline: 0;
+  transition: opacity 0.15s ease;
 }
 
 .graph-node circle {
@@ -1305,11 +1342,7 @@ tbody tr:hover,
     width: min(280px, calc(100vw - 16px));
   }
 
-  .trust-graph {
-    min-width: 760px;
-  }
-
   .graph-surface {
-    overflow-x: auto;
+    min-height: 420px;
   }
 }
