@@ -10,6 +10,7 @@ import type {
   NodeStatus,
   RateAccountRequest,
   RateAccountResult,
+  RatingImpactPreview,
   ResourceRatingSummary,
   SelfAccount,
   TrustDerivation,
@@ -202,6 +203,28 @@ export function getTrustExplanation(targetPublicKey: string, live = false) {
 
 export function getRatingCooldown(options: Parameters<typeof buildRatingCooldownPath>[0]) {
   return fetchNodeApiData<AccountRatingCooldown>(buildRatingCooldownPath(options), 'Rating cooldown', 256 * 1024);
+}
+
+// Live preview of a proposed rating's validity and trust impact (#33). Lets the UI block a submit
+// Core would reject (cooldown, self, unchanged…) and show the resulting trust delta before signing.
+export function getRatingPreview(options: {
+  category: AccountRatingCategory;
+  rater: string;
+  rating: number;
+  target: string;
+}) {
+  const query = new URLSearchParams();
+
+  appendQueryValue(query, 'category', options.category);
+  appendQueryValue(query, 'rater', options.rater);
+  appendQueryValue(query, 'rating', options.rating);
+  appendQueryValue(query, 'target', options.target);
+
+  return fetchNodeApiData<RatingImpactPreview>(
+    `/account-ratings/preview?${query.toString()}`,
+    'Rating preview',
+    256 * 1024,
+  );
 }
 
 /**

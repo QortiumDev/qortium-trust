@@ -471,6 +471,31 @@ h3 {
   flex: 0 0 auto;
 }
 
+.live-toggle {
+  align-items: center;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--muted);
+  cursor: pointer;
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: 6px;
+  padding: 7px 10px;
+  user-select: none;
+}
+
+.live-toggle input {
+  accent-color: var(--accent);
+  cursor: pointer;
+  margin: 0;
+}
+
+.live-toggle--on {
+  border-color: var(--accent);
+  color: var(--accent-strong);
+}
+
 .segmented-control {
   align-items: center;
   background: var(--panel);

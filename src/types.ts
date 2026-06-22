@@ -162,6 +162,20 @@ export type TrustDerivation = {
   categories: TrustCategory[];
 };
 
+// Response of GET /account-ratings/preview (#33). Only the fields the UI consumes are typed; Core
+// returns more (cooldown, per-category trust, direction/confidence). `canSubmit` is Core's own
+// gate (validationResult === OK), and current/previewTrust let us show the resulting status delta.
+export type RatingImpactPreview = {
+  validationResult: string;
+  validationResultValue: number;
+  canSubmit: boolean;
+  candidateRating: number;
+  activeRating: number | null;
+  trustStatusChanged: boolean;
+  currentTrust: TrustDerivation;
+  previewTrust: TrustDerivation;
+};
+
 export type AccountRating = {
   targetPublicKey: string;
   targetAddress: string;

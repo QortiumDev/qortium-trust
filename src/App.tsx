@@ -198,6 +198,7 @@ export default function App() {
   const [detailReloadToken, setDetailReloadToken] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [identityProfiles, setIdentityProfiles] = useState<IdentityProfilesByAddress>({});
+  const [live, setLive] = useState(false);
   const [loading, setLoading] = useState(true);
   const [openRateAddress, setOpenRateAddress] = useState<string | null>(null);
   const [pendingRatings, setPendingRatings] = useState<PendingRatingsByKey>({});
@@ -242,7 +243,7 @@ export default function App() {
         getNodeStatus(),
         getTrustSummary(),
         getTrustPolicy(),
-        getTrustDerivation({ category, limit: 250 }),
+        getTrustDerivation({ category, limit: 250, live }),
         getAccountRatings({ category, limit: 1000 }),
         getTrustChanges({ category, limit: 25 }),
         getResourceRatings({ limit: 25, reverse: true }),
@@ -274,7 +275,7 @@ export default function App() {
         setLoading(false);
       }
     }
-  }, [category]);
+  }, [category, live]);
 
   // Refetch only the slices a new rating changes — the category derivations and ratings — and merge
   // them into state so the other arrays (changes/resources/summary/policy) keep stable references
@@ -283,7 +284,7 @@ export default function App() {
     const token = ++loadTokenRef.current;
 
     const [derivations, ratings] = await Promise.all([
-      getTrustDerivation({ category, limit: 250 }),
+      getTrustDerivation({ category, limit: 250, live }),
       getAccountRatings({ category, limit: 1000 }),
     ]);
 
@@ -292,7 +293,7 @@ export default function App() {
     }
 
     setData((current) => ({ ...current, derivations, ratings }));
-  }, [category]);
+  }, [category, live]);
 
   // Rater-scoped fetch of the current user's own ratings (#2): independent of the capped edge fetch
   // so the "You rated" column / default sort / pending-clear stay correct past 1000 active ratings.
@@ -389,6 +390,14 @@ export default function App() {
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
+      // Only honour display-setting messages from the embedding Home frame (#31). When standalone
+      // (BROWSER_DEV) window.parent === window, so same-window posts still pass; cross-frame posts
+      // from other embedded apps are ignored. The parser already whitelists values, so this is
+      // defence-in-depth matching Home's origin model.
+      if (event.source && event.source !== window.parent) {
+        return;
+      }
+
       setDisplaySettings((current) => getDisplaySettingsUpdateFromMessage(event.data, current) ?? current);
     };
 
@@ -646,7 +655,7 @@ export default function App() {
       publicKey,
     }));
 
-    Promise.all([getTrustProfile(publicKey), getTrustExplanation(publicKey)])
+    Promise.all([getTrustProfile(publicKey), getTrustExplanation(publicKey, live)])
       .then(([profile, explanation]) => {
         if (!cancelled) {
           setDetail({ explanation, loading: false, profile, publicKey });
@@ -661,7 +670,7 @@ export default function App() {
     return () => {
       cancelled = true;
     };
-  }, [detailReloadToken, selectedDerivation?.accountPublicKey]);
+  }, [detailReloadToken, live, selectedDerivation?.accountPublicKey]);
 
   const handleRatingSubmitted = useCallback((entry: PendingRatingEntry) => {
     setPendingRatings((current) => ({
@@ -854,6 +863,13 @@ export default function App() {
             </div>
           ) : null}
           <ViewSelect onChange={handleViewChange} selectRef={viewSelectRef} view={view} />
+          <label
+            className={`live-toggle ${live ? 'live-toggle--on' : ''}`}
+            title="Show trust derived live from current active ratings instead of the latest on-chain snapshot"
+          >
+            <input checked={live} onChange={(event) => setLive(event.target.checked)} type="checkbox" />
+            <span>Live</span>
+          </label>
           <select
             aria-label="Trust status"
             onChange={(event) => setStatusFilter(event.target.value as TrustStatus | 'ALL')}

@@ -1,15 +1,49 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { categoryLabel, compactAddress, formatNumber } from '../format';
+import { categoryLabel, compactAddress, formatNumber, statusLabel } from '../format';
 import type { AccountRatingCategory, SelfAccount, TrustDerivation } from '../types';
 import type { PendingRatingEntry } from '../viewTypes';
 import {
+  mapRatingError,
   RATING_VALUES,
   ratingOptionLabel,
   useRatingControl,
   type RatingControl,
   type RatingControlArgs,
 } from '../ratingControl';
+
+// One-line preview of the selected rating's validity + trust impact (#33). Blocks reasons reuse the
+// same error mapping as a failed submit; an accepted change shows the resulting trust-status delta.
+function RatingPreviewNote({ control }: { control: RatingControl }) {
+  const { isPending, preview, previewInvalid, previewLoading } = control;
+
+  if (isPending) {
+    return null;
+  }
+
+  if (previewLoading) {
+    return <p className="muted rating-preview">Checking rating impact…</p>;
+  }
+
+  if (!preview) {
+    return null;
+  }
+
+  if (previewInvalid) {
+    return <p className="rating-message negative">{mapRatingError(preview.validationResult)}</p>;
+  }
+
+  if (preview.trustStatusChanged) {
+    return (
+      <p className="rating-message positive">
+        Trust status would change: {statusLabel(preview.currentTrust.derivedTrustStatus)} →{' '}
+        {statusLabel(preview.previewTrust.derivedTrustStatus)}
+      </p>
+    );
+  }
+
+  return <p className="muted rating-preview">Valid — no trust-status change for this account.</p>;
+}
 
 // Full-mode rating surface (detail view). Thin renderer over useRatingControl.
 export function RatingForm(props: RatingControlArgs) {
@@ -97,6 +131,7 @@ export function RatingForm(props: RatingControlArgs) {
             : 'Choose a different rating, or 0 to remove your existing one.'}
         </p>
       ) : null}
+      <RatingPreviewNote control={control} />
       {message ? <p className={`rating-message ${message.tone}`}>{message.text}</p> : null}
     </div>
   );
@@ -170,6 +205,7 @@ export function RatingPopover({
                 ? 'You have not rated this account yet.'
                 : `Your current rating is ${activeRating > 0 ? '+' : ''}${activeRating}.`}
       </p>
+      <RatingPreviewNote control={control} />
       {message ? <p className={`rating-message ${message.tone}`}>{message.text}</p> : null}
     </div>
   );

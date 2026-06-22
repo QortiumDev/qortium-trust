@@ -56,6 +56,8 @@ describe('rating predicates (pure)', () => {
     expect(isSubmitDisabled({ ...clear, onCooldown: true })).toBe(true);
     expect(isSubmitDisabled({ ...clear, unchanged: true })).toBe(true);
     expect(isSubmitDisabled({ ...clear, isPending: true })).toBe(true);
+    expect(isSubmitDisabled({ ...clear, previewInvalid: true })).toBe(true);
+    expect(isSubmitDisabled({ ...clear, previewInvalid: false })).toBe(false);
   });
 });
 

@@ -1,7 +1,16 @@
 import { useEffect, useState } from 'react';
-import { ensureAccountUnlocked, getRatingCooldown, resolveSelfAccount, submitRating } from './trustApi';
-import type { AccountRatingCategory, AccountRatingCooldown, SelfAccount } from './types';
+import {
+  ensureAccountUnlocked,
+  getRatingCooldown,
+  getRatingPreview,
+  resolveSelfAccount,
+  submitRating,
+} from './trustApi';
+import type { AccountRatingCategory, AccountRatingCooldown, RatingImpactPreview, SelfAccount } from './types';
 import type { PendingRatingEntry } from './viewTypes';
+
+// Debounce preview requests so scrubbing through the rating selector doesn't fire a request per step.
+const PREVIEW_DEBOUNCE_MS = 400;
 
 export const RATING_VALUES = [4, 3, 2, 1, 0, -1, -2, -3, -4];
 export const RATING_MAGNITUDES = ['', 'Low', 'Medium', 'High', 'Very high'];
@@ -53,10 +62,18 @@ export function isSubmitDisabled(args: {
   cooldownLoading: boolean;
   isPending: boolean;
   onCooldown: boolean;
+  previewInvalid?: boolean;
   submitting: boolean;
   unchanged: boolean;
 }) {
-  return args.submitting || args.cooldownLoading || args.onCooldown || args.unchanged || args.isPending;
+  return (
+    args.submitting ||
+    args.cooldownLoading ||
+    args.onCooldown ||
+    args.unchanged ||
+    args.isPending ||
+    !!args.previewInvalid
+  );
 }
 
 export type RatingControlArgs = {
@@ -92,6 +109,10 @@ export function useRatingControl({
   const [cooldownLoading, setCooldownLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<{ text: string; tone: 'positive' | 'negative' } | null>(null);
+  // Live preview of the selected rating's validity + trust impact (#33). Null while loading or when
+  // the selection is a no-op, so it only ever reflects the latest settled fetch for the current rating.
+  const [preview, setPreview] = useState<RatingImpactPreview | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
 
   // Refetch cooldown on mount and whenever this account's pending state flips, so that once the
   // rating confirms (pendingRating clears) "your current rating" reflects the new on-chain value.
@@ -145,7 +166,58 @@ export function useRatingControl({
   const unchanged = isRatingUnchanged(rating, activeRating);
   const onCooldown = cooldown ? !cooldown.canChangeNow : false;
   const accountLocked = self?.isUnlocked === false;
-  const submitDisabled = isSubmitDisabled({ cooldownLoading, isPending, onCooldown, submitting, unchanged });
+
+  // Preview the selected rating before signing. Only for a real, submittable-shaped change; cleared
+  // immediately when the selection changes so `preview` never reflects a stale rating value.
+  useEffect(() => {
+    if (!canInteract || !raterPublicKey || unchanged || isPending) {
+      setPreview(null);
+      setPreviewLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setPreview(null);
+    setPreviewLoading(true);
+
+    const timer = setTimeout(() => {
+      getRatingPreview({ category, rater: raterPublicKey, rating, target: targetPublicKey })
+        .then((result) => {
+          if (!cancelled) {
+            setPreview(result);
+          }
+        })
+        .catch(() => {
+          // A failed preview must never block submission — fall back to the existing gates + Home's
+          // own pre-broadcast validation.
+          if (!cancelled) {
+            setPreview(null);
+          }
+        })
+        .finally(() => {
+          if (!cancelled) {
+            setPreviewLoading(false);
+          }
+        });
+    }, PREVIEW_DEBOUNCE_MS);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [canInteract, category, isPending, raterPublicKey, rating, targetPublicKey, unchanged]);
+
+  // Only a settled preview for the current rating gates submit; while loading/absent we defer to the
+  // other gates and Home's validation, so preview latency never blocks an otherwise-valid rating.
+  const previewInvalid = !!preview && !preview.canSubmit;
+  const submitDisabled = isSubmitDisabled({
+    cooldownLoading,
+    isPending,
+    onCooldown,
+    previewInvalid,
+    submitting,
+    unchanged,
+  });
 
   // Returns true only on a successful broadcast so callers (the quick-rate popover) get a reliable
   // success signal: reading `message` after the await would see the stale render-time value.
@@ -228,6 +300,9 @@ export function useRatingControl({
     message,
     note,
     onCooldown,
+    preview,
+    previewInvalid,
+    previewLoading,
     rating,
     setRating,
     submitDisabled,
