@@ -2,7 +2,8 @@ export type TrustStatus = 'SUSPICIOUS' | 'UNVERIFIED' | 'BRONZE' | 'SILVER' | 'G
 
 export type AccountRatingCategory = 'SUBJECT' | 'PLAYER' | 'TRAINER' | 'MANAGER';
 
-export type QdnAction =
+/** Bridge actions the app explicitly knows about. Keeps autocomplete + typo-safety. */
+export type KnownQdnAction =
   | 'FETCH_NODE_API'
   | 'GET_NODE_STATUS'
   | 'IS_USING_PUBLIC_NODE'
@@ -10,8 +11,13 @@ export type QdnAction =
   | 'WHICH_UI'
   | 'GET_SELECTED_ACCOUNT'
   | 'GET_ACCOUNT_DATA'
-  | 'RATE_ACCOUNT'
-  | string;
+  | 'RATE_ACCOUNT';
+
+/**
+ * Branded open union: known action literals still autocomplete and catch typos, while
+ * `string & {}` keeps the type open to actions Home may add without widening to plain `string`.
+ */
+export type QdnAction = KnownQdnAction | (string & {});
 
 export type BridgeState = {
   actions: QdnAction[];
@@ -199,10 +205,11 @@ export type TrustPolicy = {
     category: AccountRatingCategory;
     levels: {
       level: number;
-      mappedStatus: TrustStatus;
-      voteWeightPercent: number;
+      mappedTrustStatus: TrustStatus;
+      mappedTrustStatusValue: number;
+      mappedTrustWeightPercent: number;
       threshold: number;
-      scoreCap: number;
+      levelScoreCap: number;
     }[];
     suspiciousThreshold: number;
     suspiciousLevelScoreCap: number;

@@ -6,17 +6,21 @@ import {
   loadIdentityProfile,
   normalizeRegisteredName,
 } from './identityProfiles';
-import { qdnRequest } from './qdnRequest';
+import { hasHomeBridge, qdnRequest } from './qdnRequest';
 
 vi.mock('./qdnRequest', () => ({
   qdnRequest: vi.fn(),
+  hasHomeBridge: vi.fn(),
 }));
 
 describe('identity profile helpers', () => {
   const qdnRequestMock = vi.mocked(qdnRequest);
+  const hasHomeBridgeMock = vi.mocked(hasHomeBridge);
 
   beforeEach(() => {
     qdnRequestMock.mockReset();
+    hasHomeBridgeMock.mockReset();
+    hasHomeBridgeMock.mockReturnValue(true);
   });
 
   it('normalizes registered names and fallback initials', () => {
@@ -24,45 +28,74 @@ describe('identity profile helpers', () => {
     expect(normalizeRegisteredName('')).toBeNull();
     expect(getAvatarFallbackCharacter('alice', 'Qabc')).toBe('a');
     expect(getAvatarFallbackCharacter('Bob', 'Qabc')).toBe('B');
-    expect(getAvatarFallbackCharacter(null, 'Qabc')).toBe('?');
   });
 
-  it('fetches avatar images from THUMBNAIL avatar resources through Home actions', async () => {
-    qdnRequestMock
-      .mockResolvedValueOnce({ filename: 'avatar.png', mimeType: 'image/png', size: 128 })
-      .mockResolvedValueOnce('iVBORw0KGgo=');
+  it('uses the first base58 address character as the fallback for unnamed accounts', () => {
+    expect(getAvatarFallbackCharacter(null, 'Qabc')).toBe('Q');
+    expect(getAvatarFallbackCharacter('', 'Z9foo')).toBe('Z');
+    // Leading non-base58 characters (e.g. 0, O, I, l) are skipped.
+    expect(getAvatarFallbackCharacter(null, '0OIlQ7')).toBe('Q');
+    expect(getAvatarFallbackCharacter(null, '')).toBe('?');
+  });
 
-    await expect(fetchAvatarImage('alice', ['GET_QDN_RESOURCE_PROPERTIES', 'FETCH_QDN_RESOURCE'])).resolves.toBe(
-      'data:image/png;base64,iVBORw0KGgo=',
+  it('resolves avatar render URLs through the GET_QDN_RESOURCE_URL bridge action', async () => {
+    qdnRequestMock.mockResolvedValueOnce('http://127.0.0.1:24891/render/THUMBNAIL/alice/avatar');
+
+    await expect(fetchAvatarImage('alice', ['GET_QDN_RESOURCE_URL'])).resolves.toBe(
+      'http://127.0.0.1:24891/render/THUMBNAIL/alice/avatar',
     );
-    expect(qdnRequestMock).toHaveBeenNthCalledWith(1, {
-      action: 'GET_QDN_RESOURCE_PROPERTIES',
+    expect(qdnRequestMock).toHaveBeenCalledWith({
+      action: 'GET_QDN_RESOURCE_URL',
       service: 'THUMBNAIL',
       name: 'alice',
       identifier: 'avatar',
-      path: '',
-    });
-    expect(qdnRequestMock).toHaveBeenNthCalledWith(2, {
-      action: 'FETCH_QDN_RESOURCE',
-      service: 'THUMBNAIL',
-      name: 'alice',
-      identifier: 'avatar',
-      path: '',
-      encoding: 'base64',
-      rebuild: true,
-      maxBytes: 500 * 1024,
     });
   });
 
-  it('loads the first registered name and keeps it if avatar loading fails', async () => {
+  it('throws when the bridge returns no render URL', async () => {
+    qdnRequestMock.mockResolvedValueOnce('');
+
+    await expect(fetchAvatarImage('alice', ['GET_QDN_RESOURCE_URL'])).rejects.toThrow(/render URL/);
+  });
+
+  it('loads the first registered name and keeps it if avatar resolution fails', async () => {
     qdnRequestMock
-      .mockResolvedValueOnce([{ name: null, owner: 'Qabc' }, { name: 'bob', owner: 'Qabc' }])
+      .mockResolvedValueOnce([
+        { name: null, owner: 'Qabc' },
+        { name: 'bob', owner: 'Qabc' },
+      ])
       .mockRejectedValueOnce(new Error('No avatar'));
 
-    await expect(loadIdentityProfile('Qabc', ['GET_ACCOUNT_NAMES', 'GET_QDN_RESOURCE_PROPERTIES'])).resolves.toEqual({
+    await expect(
+      loadIdentityProfile('Qabc', ['GET_ACCOUNT_NAMES', 'GET_QDN_RESOURCE_URL']),
+    ).resolves.toEqual({
       address: 'Qabc',
       avatarSrc: null,
       name: 'bob',
+    });
+  });
+
+  it('resolves to a nameless record when the name lookup itself fails', async () => {
+    qdnRequestMock.mockRejectedValueOnce(new Error('names endpoint down'));
+
+    await expect(loadIdentityProfile('Qdead', ['GET_ACCOUNT_NAMES'])).resolves.toEqual({
+      address: 'Qdead',
+      avatarSrc: null,
+      name: null,
+    });
+  });
+
+  it('sets the bridge render URL straight onto the resolved profile', async () => {
+    qdnRequestMock
+      .mockResolvedValueOnce([{ name: 'alice', owner: 'Qalice' }])
+      .mockResolvedValueOnce('http://127.0.0.1:24891/render/THUMBNAIL/alice/avatar');
+
+    await expect(
+      loadIdentityProfile('Qalice', ['GET_ACCOUNT_NAMES', 'GET_QDN_RESOURCE_URL']),
+    ).resolves.toEqual({
+      address: 'Qalice',
+      avatarSrc: 'http://127.0.0.1:24891/render/THUMBNAIL/alice/avatar',
+      name: 'alice',
     });
   });
 

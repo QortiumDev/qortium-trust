@@ -1,18 +1,49 @@
-import { qdnRequest } from './qdnRequest';
+import { hasHomeBridge, qdnRequest } from './qdnRequest';
 import { fetchNodeApiData } from './trustApi';
 import type { IdentityProfile, NameSummary, QdnAction } from './types';
 
 const AVATAR_MAX_BYTES = 500 * 1024;
 const NAME_MAX_BYTES = 2 * 1024 * 1024;
 
+// How long a failed avatar/name resolution is remembered before it is retried.
+// Mirrors Home's `useAccountAvatar` cooldown so a not-yet-published avatar is not
+// permanently null for the lifetime of the session.
+const NEGATIVE_CACHE_COOLDOWN_MS = 5 * 60 * 1000;
+
+// Raster image types we are willing to assemble into a data URI in the dev fallback.
+// SVG/XML are intentionally excluded (#30 hardening).
+const RASTER_IMAGE_MIME_TYPES = new Set(['image/png', 'image/jpeg', 'image/gif', 'image/webp']);
+
+type NegativeCacheEntry = { at: number };
+
+// Module-level caches keyed by address. The negative cache records failed avatar
+// resolutions (so they are not retried on every churn within the cooldown window),
+// and the in-flight map de-dups concurrent resolutions of the same address.
+const avatarNegativeCache = new Map<string, NegativeCacheEntry>();
+const inFlightProfiles = new Map<string, Promise<IdentityProfile>>();
+
 export function normalizeRegisteredName(name: string | null | undefined) {
   return typeof name === 'string' && name.length > 0 ? name : null;
 }
 
+const BASE58_ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+
 export function getAvatarFallbackCharacter(name: string | null | undefined, address: string) {
   const registeredName = normalizeRegisteredName(name);
 
-  return registeredName ? (Array.from(registeredName)[0] ?? '?') : '?';
+  if (registeredName) {
+    return Array.from(registeredName)[0] ?? '?';
+  }
+
+  // Unnamed accounts get a distinguishable initial from the first base58 character
+  // of their address so different accounts do not all collapse to the same glyph.
+  for (const character of address ?? '') {
+    if (BASE58_ALPHABET.includes(character)) {
+      return character;
+    }
+  }
+
+  return '?';
 }
 
 function hasBridgeAction(actions: QdnAction[] | undefined, action: string) {
@@ -33,16 +64,6 @@ function getStringProperty(value: unknown, key: string) {
   return typeof property === 'string' ? property : undefined;
 }
 
-function getNumberProperty(value: unknown, key: string) {
-  if (!isRecord(value)) {
-    return undefined;
-  }
-
-  const property = value[key];
-
-  return typeof property === 'number' ? property : undefined;
-}
-
 function getFirstRegisteredName(names: NameSummary[]) {
   for (const summary of names) {
     const name = normalizeRegisteredName(summary.name);
@@ -55,13 +76,7 @@ function getFirstRegisteredName(names: NameSummary[]) {
   return null;
 }
 
-function getImageMimeType(properties: unknown, base64: string) {
-  const mimeType = getStringProperty(properties, 'mimeType');
-
-  if (mimeType?.toLowerCase().startsWith('image/')) {
-    return mimeType;
-  }
-
+function sniffRasterMimeType(base64: string) {
   if (base64.startsWith('iVBORw0KGgo')) {
     return 'image/png';
   }
@@ -79,6 +94,17 @@ function getImageMimeType(properties: unknown, base64: string) {
   }
 
   return 'image/png';
+}
+
+function getRasterMimeType(properties: unknown, base64: string) {
+  const mimeType = getStringProperty(properties, 'mimeType')?.toLowerCase();
+
+  if (mimeType && RASTER_IMAGE_MIME_TYPES.has(mimeType)) {
+    return mimeType;
+  }
+
+  // Ignore non-raster (e.g. svg/xml) or missing mimeTypes and sniff the payload instead.
+  return sniffRasterMimeType(base64);
 }
 
 function getBase64Payload(value: unknown) {
@@ -110,71 +136,98 @@ async function resolveRegisteredName(address: string, actions?: QdnAction[]) {
   return getFirstRegisteredName(await getAccountNames(address, actions));
 }
 
-async function getAvatarProperties(name: string, actions?: QdnAction[]) {
-  const request = {
+/**
+ * Resolve an avatar render URL via Home's `GET_QDN_RESOURCE_URL` bridge action.
+ * Home performs a status check first and returns a ready-to-use `renderUrl` string
+ * (or throws when the resource is not published), so the URL is set straight onto
+ * the `<img src>` without any base64/data-URI assembly on the app side.
+ */
+async function fetchAvatarRenderUrl(name: string) {
+  const renderUrl = await qdnRequest<unknown>({
+    action: 'GET_QDN_RESOURCE_URL',
     service: 'THUMBNAIL',
     name,
     identifier: 'avatar',
-    path: '',
-  };
+  });
 
-  if (hasBridgeAction(actions, 'GET_QDN_RESOURCE_PROPERTIES')) {
-    return qdnRequest<unknown>({
-      action: 'GET_QDN_RESOURCE_PROPERTIES',
-      ...request,
-    });
+  if (typeof renderUrl !== 'string' || !renderUrl) {
+    throw new Error('Avatar resource did not return a render URL.');
   }
 
-  return fetchNodeApiData<unknown>(
-    `/arbitrary/resource/properties/THUMBNAIL/${encodeURIComponent(name)}/avatar`,
-    'Avatar properties',
+  return renderUrl;
+}
+
+/**
+ * Dev/browser fallback (no Home bridge): fetch the avatar from the local Core node
+ * as base64 and assemble a data URI. Status-first via the resource status endpoint
+ * (no forced rebuild — #7) so an unbuilt/not-yet-published THUMBNAIL is skipped
+ * cheaply instead of triggering an expensive rebuild on every cold list load.
+ */
+async function fetchAvatarDataUri(name: string) {
+  const status = await fetchNodeApiData<unknown>(
+    `/arbitrary/resource/status/THUMBNAIL/${encodeURIComponent(name)}/avatar`,
+    'Avatar status',
     64 * 1024,
   );
-}
 
-async function getAvatarBase64(name: string, actions?: QdnAction[]) {
-  const request = {
-    service: 'THUMBNAIL',
-    name,
-    identifier: 'avatar',
-    path: '',
-  };
+  const statusValue = getStringProperty(status, 'status');
 
-  if (hasBridgeAction(actions, 'FETCH_QDN_RESOURCE')) {
-    return getBase64Payload(
-      await qdnRequest<unknown>({
-        action: 'FETCH_QDN_RESOURCE',
-        ...request,
-        encoding: 'base64',
-        rebuild: true,
-        maxBytes: AVATAR_MAX_BYTES,
-      }),
-    );
+  if (!statusValue || statusValue === 'NOT_PUBLISHED') {
+    throw new Error('Avatar resource does not exist.');
   }
 
-  return fetchNodeApiData<string>(
-    `/arbitrary/THUMBNAIL/${encodeURIComponent(name)}/avatar?encoding=base64&rebuild=true`,
-    'Avatar image',
-    AVATAR_MAX_BYTES,
+  const base64 = getBase64Payload(
+    await fetchNodeApiData<string>(
+      `/arbitrary/THUMBNAIL/${encodeURIComponent(name)}/avatar?encoding=base64`,
+      'Avatar image',
+      AVATAR_MAX_BYTES,
+    ),
   );
-}
-
-export async function fetchAvatarImage(name: string, actions?: QdnAction[]) {
-  const properties = await getAvatarProperties(name, actions);
-  const size = getNumberProperty(properties, 'size');
-
-  if (typeof size === 'number' && size > AVATAR_MAX_BYTES) {
-    throw new Error('Avatar exceeds the thumbnail size limit.');
-  }
-
-  const base64 = getBase64Payload(await getAvatarBase64(name, actions));
-  const mimeType = getImageMimeType(properties, base64);
+  const mimeType = getRasterMimeType(status, base64);
 
   return `data:${mimeType};base64,${base64}`;
 }
 
-export async function loadIdentityProfile(address: string, actions?: QdnAction[]): Promise<IdentityProfile> {
-  const name = await resolveRegisteredName(address, actions);
+export async function fetchAvatarImage(name: string, actions?: QdnAction[]): Promise<string> {
+  if (hasHomeBridge() && hasBridgeAction(actions, 'GET_QDN_RESOURCE_URL')) {
+    return fetchAvatarRenderUrl(name);
+  }
+
+  return fetchAvatarDataUri(name);
+}
+
+async function resolveAvatarSrc(name: string, address: string, actions?: QdnAction[]) {
+  const cooled = avatarNegativeCache.get(address);
+
+  if (cooled && Date.now() - cooled.at < NEGATIVE_CACHE_COOLDOWN_MS) {
+    return null;
+  }
+
+  try {
+    const avatarSrc = await fetchAvatarImage(name, actions);
+
+    avatarNegativeCache.delete(address);
+
+    return avatarSrc;
+  } catch {
+    // Record the failure so an unpublished/unbuilt avatar is not retried on every
+    // profile churn, but is retried once the cooldown elapses (#11).
+    avatarNegativeCache.set(address, { at: Date.now() });
+
+    return null;
+  }
+}
+
+async function resolveIdentityProfile(address: string, actions?: QdnAction[]): Promise<IdentityProfile> {
+  let name: string | null = null;
+
+  try {
+    name = await resolveRegisteredName(address, actions);
+  } catch {
+    // A failed name lookup resolves to a nameless record (negative cache via the
+    // returned record itself) rather than rejecting and retrying forever (#10).
+    name = null;
+  }
 
   if (!name) {
     return {
@@ -184,19 +237,32 @@ export async function loadIdentityProfile(address: string, actions?: QdnAction[]
     };
   }
 
-  try {
-    return {
-      address,
-      avatarSrc: await fetchAvatarImage(name, actions),
-      name,
-    };
-  } catch {
-    return {
-      address,
-      avatarSrc: null,
-      name,
-    };
+  return {
+    address,
+    avatarSrc: await resolveAvatarSrc(name, address, actions),
+    name,
+  };
+}
+
+/**
+ * Always resolves to an {@link IdentityProfile} record (never rejects), so a failed
+ * lookup is recorded once per data-epoch rather than retried forever. Concurrent
+ * resolutions of the same address are de-duped via a module-level in-flight map.
+ */
+export async function loadIdentityProfile(address: string, actions?: QdnAction[]): Promise<IdentityProfile> {
+  const inFlight = inFlightProfiles.get(address);
+
+  if (inFlight) {
+    return inFlight;
   }
+
+  const pending = resolveIdentityProfile(address, actions).finally(() => {
+    inFlightProfiles.delete(address);
+  });
+
+  inFlightProfiles.set(address, pending);
+
+  return pending;
 }
 
 export function getIdentityLabel(profile: IdentityProfile | undefined, address: string) {

@@ -676,6 +676,212 @@ select {
   color: var(--accent-strong);
 }
 
+/* One-line discoverability hint for the pan/zoom/hover affordances, pinned top-left clear of the
+   zoom controls (top-right) and legend (bottom-left). */
+.graph-hint {
+  background: var(--empty-overlay-bg);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: var(--font-size-small);
+  left: 12px;
+  margin: 0;
+  max-width: calc(100% - 70px);
+  padding: 5px 12px;
+  pointer-events: none;
+  position: absolute;
+  top: 12px;
+  z-index: 2;
+}
+
+/* Always-visible legend mapping status-ring colours and edge colours/styles, anchored bottom-left. */
+.graph-legend {
+  background: var(--empty-overlay-bg);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  left: 12px;
+  max-width: calc(100% - 24px);
+  padding: 8px 10px;
+  position: absolute;
+  z-index: 2;
+}
+
+.graph-legend__group {
+  align-items: center;
+  column-gap: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  row-gap: 4px;
+}
+
+.graph-legend__heading {
+  color: var(--muted);
+  font-size: var(--font-size-small);
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.graph-legend__item {
+  align-items: center;
+  color: var(--text);
+  display: inline-flex;
+  font-size: var(--font-size-small);
+  font-weight: 700;
+  gap: 6px;
+}
+
+.graph-legend__ring {
+  border-radius: 999px;
+  border-style: solid;
+  border-width: 3px;
+  box-sizing: border-box;
+  flex: 0 0 auto;
+  height: 16px;
+  width: 16px;
+}
+
+.graph-legend__ring--gold {
+  border-color: var(--gold);
+}
+
+.graph-legend__ring--silver {
+  border-color: var(--silver);
+}
+
+.graph-legend__ring--bronze {
+  border-color: var(--bronze);
+}
+
+.graph-legend__ring--neutral {
+  border-color: var(--muted);
+}
+
+.graph-legend__ring--negative {
+  border-color: var(--negative);
+}
+
+.graph-legend__edge {
+  flex: 0 0 auto;
+  height: 8px;
+  width: 24px;
+}
+
+.graph-legend__line {
+  stroke-width: 2.5;
+}
+
+.graph-legend__line--positive {
+  stroke: var(--positive);
+}
+
+.graph-legend__line--negative {
+  stroke: var(--negative);
+  stroke-dasharray: 5 4;
+}
+
+.graph-legend__line--neutral {
+  stroke: var(--silver);
+  stroke-dasharray: 2 4;
+}
+
+/* Graph-shaped loading placeholder sized to the surface (matches .graph-surface min-height) shown
+   while the graph view's dataset is (re)loading, instead of the generic table skeleton. */
+.graph-surface--loading {
+  align-items: center;
+  display: flex;
+  justify-content: center;
+}
+
+.graph-loading {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.graph-loading__orbit {
+  height: 140px;
+  position: relative;
+  width: 140px;
+}
+
+.graph-loading__node {
+  animation: graph-loading-pulse 1.4s ease-in-out infinite;
+  background: var(--skeleton-b);
+  border: 3px solid var(--line-strong);
+  border-radius: 999px;
+  height: 22px;
+  margin: -11px 0 0 -11px;
+  position: absolute;
+  width: 22px;
+}
+
+.graph-loading__node--center {
+  height: 30px;
+  left: 50%;
+  margin: -15px 0 0 -15px;
+  top: 50%;
+  width: 30px;
+}
+
+.graph-loading__node:nth-child(2) {
+  left: 50%;
+  top: 8%;
+  animation-delay: 0.1s;
+}
+
+.graph-loading__node:nth-child(3) {
+  left: 90%;
+  top: 38%;
+  animation-delay: 0.2s;
+}
+
+.graph-loading__node:nth-child(4) {
+  left: 78%;
+  top: 86%;
+  animation-delay: 0.3s;
+}
+
+.graph-loading__node:nth-child(5) {
+  left: 22%;
+  top: 86%;
+  animation-delay: 0.4s;
+}
+
+.graph-loading__node:nth-child(6) {
+  left: 10%;
+  top: 38%;
+  animation-delay: 0.5s;
+}
+
+.graph-loading__label {
+  color: var(--muted);
+  font-size: var(--font-size-small);
+  font-weight: 700;
+}
+
+@keyframes graph-loading-pulse {
+  0%,
+  100% {
+    opacity: 0.4;
+    transform: scale(0.9);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .graph-loading__node {
+    animation: none;
+  }
+}
+
 .graph-link {
   opacity: 0.55;
   transition: opacity 0.15s ease;
@@ -695,18 +901,33 @@ select {
   stroke: var(--positive);
 }
 
+/* Dashed stroke is a non-colour cue distinguishing negative edges from solid positive ones, so the
+   sign of a rating is legible without relying on the red/green hue difference. */
 .graph-link-negative {
   stroke: var(--negative);
+  stroke-dasharray: 5 4;
 }
 
 .graph-link-neutral {
   stroke: var(--silver);
+  stroke-dasharray: 2 4;
 }
 
 .graph-node {
   cursor: pointer;
   outline: 0;
   transition: opacity 0.15s ease;
+}
+
+/* Visible keyboard focus ring (WCAG 2.4.7). Thickening the ring stroke mirrors the hover/selected
+   affordance, and the accent halo makes the focused node obvious against any status colour. */
+.graph-node:focus-visible {
+  outline: 0;
+}
+
+.graph-node:focus-visible circle {
+  stroke-width: 5;
+  filter: drop-shadow(0 0 3px var(--accent-strong));
 }
 
 .graph-node circle {
@@ -984,11 +1205,25 @@ tbody tr:hover,
   background: var(--accent-soft);
   border-radius: 999px;
   color: var(--accent-strong);
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 800;
   line-height: 1;
   margin-left: 3px;
   padding: 2px 5px;
+}
+
+/* Visually-hidden but screen-reader-available text (e.g. sort priority announcements). */
+.sr-only {
+  border: 0;
+  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
 }
 
 .you-rated {
@@ -1192,6 +1427,50 @@ tbody tr:hover,
   padding: 20px;
 }
 
+/* #19: empty-results state with an inline "reset search and filter" affordance. */
+.empty-state-stack {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 180px;
+  justify-content: center;
+  padding: 20px;
+}
+
+.empty-state-stack .empty-state {
+  min-height: 0;
+  padding: 0;
+}
+
+.empty-state-reset {
+  background: var(--panel-strong);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  color: var(--text);
+  font-weight: 700;
+  min-height: 34px;
+  padding: 7px 14px;
+}
+
+.empty-state-reset:hover {
+  border-color: var(--accent-strong);
+  color: var(--accent-strong);
+}
+
+/* Account-detail column wrappers (children of the .detail-columns 2-col grid). */
+.detail-stats,
+.detail-impacts {
+  min-width: 0;
+}
+
+.detail-stats > .mini-section:first-child,
+.detail-impacts > .mini-section:first-child {
+  border-top: 0;
+  margin-top: 0;
+  padding-top: 0;
+}
+
 .loading-panel {
   align-items: stretch;
   display: grid;
@@ -1344,5 +1623,50 @@ tbody tr:hover,
 
   .graph-surface {
     min-height: 420px;
+  }
+
+  .graph-hint {
+    max-width: calc(100% - 24px);
+  }
+
+  /* #22: on narrow viewports the 1020px-min-width table relies on silent horizontal scroll. Collapse
+     the four lowest-priority columns — Blocks minted (4), Score (5), Vote weight (8), Seed (9) —
+     keeping identity, status, level, ratings, you-rated and Rate. This lets the remaining columns fit
+     without horizontal scroll on phones. Column order is fixed in AccountsTable. */
+  table {
+    min-width: 0;
+  }
+
+  th:nth-child(4),
+  td:nth-child(4),
+  th:nth-child(5),
+  td:nth-child(5),
+  th:nth-child(8),
+  td:nth-child(8),
+  th:nth-child(9),
+  td:nth-child(9) {
+    display: none;
+  }
+
+  th,
+  td {
+    padding: 10px 9px;
+  }
+}
+
+/* #22: between the stacked-card breakpoint and the desktop layout the table can still overflow; a
+   right-edge fade cues that more columns are scrollable. Uses the background-attachment:local shadow
+   technique so the cue appears only while content is scrollable and fades out at the right edge — no
+   extra markup or JS needed. */
+@media (min-width: 641px) and (max-width: 1100px) {
+  .table-wrap {
+    background:
+      linear-gradient(to right, var(--panel), transparent 12px) left center / 24px 100% no-repeat,
+      linear-gradient(to left, var(--panel), transparent 12px) right center / 24px 100% no-repeat,
+      radial-gradient(farthest-side at 0 50%, rgba(27, 45, 52, 0.16), transparent) left center / 12px 100%
+        no-repeat,
+      radial-gradient(farthest-side at 100% 50%, rgba(27, 45, 52, 0.16), transparent) right center / 12px 100%
+        no-repeat;
+    background-attachment: local, local, scroll, scroll;
   }
 }

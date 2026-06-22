@@ -1,28 +1,16 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { createPortal } from 'react-dom';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertTriangle,
-  ArrowDown,
-  ArrowDownUp,
-  ArrowLeft,
-  ArrowUp,
-  CircleDot,
-  Layers,
   RefreshCw,
   Search,
   X,
 } from 'lucide-react';
 import trustIconUrl from './assets/qortium-trust-protoicon-black-transparent.png';
-import { createTrustGraphModel, filterDerivations, type TrustGraphModel, type TrustGraphNode } from './graphModel';
-import {
-  getAvatarFallbackCharacter,
-  getIdentityLabel,
-  loadIdentityProfile,
-} from './identityProfiles';
+import { createTrustGraphModel, filterDerivations, type TrustGraphNode } from './graphModel';
+import { loadIdentityProfile } from './identityProfiles';
 import { getBridgeState } from './qdnRequest';
 import { resolveQdnAssetUrl } from './qdnAsset';
 import {
-  ensureAccountUnlocked,
   getAccountData,
   getAccountRatings,
   getNodeStatus,
@@ -35,7 +23,6 @@ import {
   getTrustProfile,
   getTrustSummary,
   resolveSelfAccount,
-  submitRating,
 } from './trustApi';
 import {
   applyDisplaySettings,
@@ -45,36 +32,42 @@ import {
 import {
   categoryDescription,
   categoryLabel,
-  compactAddress,
   formatDate,
   formatNumber,
-  formatPercent,
   formatRuntimeLabel,
-  ratingTone,
   statusLabel,
-  statusTone,
   TRUST_CATEGORIES,
   TRUST_STATUSES,
 } from './format';
 import type {
-  AccountData,
   AccountRating,
   AccountRatingCategory,
-  AccountRatingCooldown,
-  AccountTrustExplanation,
-  AccountTrustProfile,
-  BridgeState,
-  IdentityProfile,
   IdentityProfilesByAddress,
-  NodeStatus,
-  ResourceRatingSummary,
   SelfAccount,
   TrustDerivation,
   TrustPolicy,
   TrustStatus,
-  TrustStatusChange,
   TrustSummary,
 } from './types';
+import type {
+  AccountDataByAddress,
+  AccountDetailState,
+  AccountSortKey,
+  AccountSortState,
+  ExplorerState,
+  PendingRatingEntry,
+  PendingRatingsByKey,
+  RatingsByAddress,
+  ViewMode,
+} from './viewTypes';
+import { changeAccountSortState } from './accountSort';
+import { PENDING_CONFIRM_POLL_MS, pendingRatingKey } from './ratingControl';
+import { NodeSyncPill } from './components/Identity';
+import { TrustGraph } from './components/TrustGraph';
+import { AccountsTable } from './components/AccountsTable';
+import { ChangesTable } from './components/ChangesTable';
+import { ResourceRatingsTable } from './components/ResourceRatingsTable';
+import { AccountDetail } from './components/AccountDetail';
 
 type QdnRenderWindow = Window &
   typeof globalThis & {
@@ -82,58 +75,11 @@ type QdnRenderWindow = Window &
     _qdnIdentifier?: unknown;
   };
 
-type ViewMode = 'accounts' | 'graph' | 'changes' | 'resources';
-type AccountSortKey =
-  | 'account'
-  | 'status'
-  | 'level'
-  | 'blocksMinted'
-  | 'score'
-  | 'ratings'
-  | 'youRated'
-  | 'voteWeight'
-  | 'seed';
-type SortDirection = 'asc' | 'desc';
-type AccountSortEntry = {
-  direction: SortDirection;
-  key: AccountSortKey;
-};
-// Ordered by priority, front = primary. Clicking a column promotes it to the front and keeps the
-// previous columns as tiebreakers, so users can stack their own sort (e.g. name, then rating).
-type AccountSortState = AccountSortEntry[];
-type AccountDataByAddress = Record<string, AccountData>;
-type RatingsByAddress = Record<string, number>;
-
 // Default view: the accounts you have rated highest first, then most blocks minted.
 const DEFAULT_ACCOUNT_SORT: AccountSortState = [
   { direction: 'desc', key: 'youRated' },
   { direction: 'desc', key: 'blocksMinted' },
 ];
-// Sentinel below the -4..+4 rating range so accounts you have not rated sort to the bottom.
-const UNRATED_SORT_VALUE = -5;
-
-type ExplorerState = {
-  bridge: BridgeState | null;
-  changes: TrustStatusChange[];
-  derivations: TrustDerivation[];
-  nodeStatus: NodeStatus | null;
-  policy: TrustPolicy | null;
-  ratings: AccountRating[];
-  resources: ResourceRatingSummary[];
-  summary: TrustSummary | null;
-};
-
-type IdentityProps = {
-  address: string;
-  profile?: IdentityProfile;
-};
-
-type AccountDetailState = {
-  explanation: AccountTrustExplanation | null;
-  loading: boolean;
-  profile: AccountTrustProfile | null;
-  publicKey: string | null;
-};
 
 const EMPTY_EXPLORER_STATE: ExplorerState = {
   bridge: null,
@@ -160,67 +106,6 @@ function getQdnAssetUrl(assetUrl: string) {
     pathname: window.location.pathname,
     search: window.location.search,
   });
-}
-
-function IdentityAvatar({ address, profile, size = 'normal' }: IdentityProps & { size?: 'small' | 'normal' | 'large' }) {
-  const label = getIdentityLabel(profile, address);
-
-  if (profile?.avatarSrc) {
-    return <img alt="" className={`identity-avatar identity-avatar-${size}`} src={profile.avatarSrc} title={label} />;
-  }
-
-  return (
-    <span aria-hidden="true" className={`identity-avatar identity-avatar-${size} identity-avatar-fallback`}>
-      {getAvatarFallbackCharacter(profile?.name, address)}
-    </span>
-  );
-}
-
-function IdentityLabel({ address, profile }: IdentityProps) {
-  const label = getIdentityLabel(profile, address);
-
-  return (
-    <span className="identity-label">
-      <span className="identity-name">{label}</span>
-      {label !== address ? <span className="mono identity-address">{compactAddress(address, 10, 7)}</span> : null}
-    </span>
-  );
-}
-
-function compactIdentityGraphLabel(profile: IdentityProfile | undefined, address: string) {
-  const label = getIdentityLabel(profile, address);
-
-  if (label === address) {
-    return compactAddress(address, 5, 4);
-  }
-
-  return label.length > 14 ? `${label.slice(0, 13)}...` : label;
-}
-
-function StatusBadge({ status }: { status: TrustStatus }) {
-  return <span className={`badge badge-${statusTone(status)}`}>{statusLabel(status)}</span>;
-}
-
-function NodeSyncPill({ nodeStatus }: { nodeStatus: NodeStatus | null }) {
-  const synced = !!nodeStatus && !nodeStatus.isSynchronizing;
-  const label = !nodeStatus
-    ? 'Connecting'
-    : nodeStatus.isSynchronizing
-      ? `Syncing ${formatPercent(nodeStatus.syncPercent)}`
-      : 'Synced';
-  const title =
-    nodeStatus?.height !== undefined ? `Block height ${formatNumber(nodeStatus.height)}` : 'Node status';
-
-  return (
-    <span className={`node-pill ${synced ? 'node-pill--ok' : 'node-pill--busy'}`} title={title}>
-      <span aria-hidden="true" className="node-pill__dot" />
-      {label}
-    </span>
-  );
-}
-
-function getDefaultAccountSortDirection(key: AccountSortKey): SortDirection {
-  return key === 'account' ? 'asc' : 'desc';
 }
 
 // The trust category (Minters/Voters/Guides/Designers) selector. A segmented tab switcher so the
@@ -282,1409 +167,6 @@ function ViewSelect({
   );
 }
 
-function getDerivationCategory(derivation: TrustDerivation, category: AccountRatingCategory) {
-  return derivation.categories.find((candidate) => candidate.category === category);
-}
-
-function getInboundRatingCount(derivation: TrustDerivation, category: AccountRatingCategory) {
-  const inbound = getDerivationCategory(derivation, category)?.inboundRatings;
-
-  return (inbound?.positiveRatingCount ?? 0) + (inbound?.negativeRatingCount ?? 0);
-}
-
-function getAccountSortLabel(derivation: TrustDerivation, profiles: IdentityProfilesByAddress) {
-  return getIdentityLabel(profiles[derivation.accountAddress], derivation.accountAddress);
-}
-
-function getAccountMintingLevel(accountData: AccountData | undefined) {
-  return accountData?.level;
-}
-
-function getAccountBlocksMinted(accountData: AccountData | undefined) {
-  return accountData?.blocksMinted;
-}
-
-function compareAccountLabels(
-  left: TrustDerivation,
-  right: TrustDerivation,
-  profiles: IdentityProfilesByAddress,
-) {
-  const labelSort = getAccountSortLabel(left, profiles).localeCompare(getAccountSortLabel(right, profiles), undefined, {
-    numeric: true,
-    sensitivity: 'base',
-  });
-
-  return labelSort || left.accountAddress.localeCompare(right.accountAddress);
-}
-
-function compareAccountRows(
-  left: TrustDerivation,
-  right: TrustDerivation,
-  sortKey: AccountSortKey,
-  category: AccountRatingCategory,
-  profiles: IdentityProfilesByAddress,
-  accountDataByAddress: AccountDataByAddress,
-  youRatedByAddress: RatingsByAddress,
-) {
-  const leftCategory = getDerivationCategory(left, category);
-  const rightCategory = getDerivationCategory(right, category);
-
-  switch (sortKey) {
-    case 'account':
-      return compareAccountLabels(left, right, profiles);
-    case 'status':
-      return left.derivedTrustStatusValue - right.derivedTrustStatusValue;
-    case 'level':
-      return (getAccountMintingLevel(accountDataByAddress[left.accountAddress]) ?? -1) -
-        (getAccountMintingLevel(accountDataByAddress[right.accountAddress]) ?? -1);
-    case 'blocksMinted':
-      return (getAccountBlocksMinted(accountDataByAddress[left.accountAddress]) ?? -1) -
-        (getAccountBlocksMinted(accountDataByAddress[right.accountAddress]) ?? -1);
-    case 'score':
-      return (leftCategory?.score ?? 0) - (rightCategory?.score ?? 0);
-    case 'ratings': {
-      const ratingSort = getInboundRatingCount(left, category) - getInboundRatingCount(right, category);
-
-      if (ratingSort !== 0) {
-        return ratingSort;
-      }
-
-      return (leftCategory?.inboundRatings.positiveRatingCount ?? 0) -
-        (rightCategory?.inboundRatings.positiveRatingCount ?? 0);
-    }
-    case 'youRated':
-      return (youRatedByAddress[left.accountAddress] ?? UNRATED_SORT_VALUE) -
-        (youRatedByAddress[right.accountAddress] ?? UNRATED_SORT_VALUE);
-    case 'voteWeight':
-      return left.derivedTrustWeightPercent - right.derivedTrustWeightPercent;
-    case 'seed':
-      return Number(left.mintingSeedMember) - Number(right.mintingSeedMember);
-    default:
-      return 0;
-  }
-}
-
-function getAriaSort(sort: AccountSortState, key: AccountSortKey) {
-  const entry = sort.find((candidate) => candidate.key === key);
-
-  if (!entry) {
-    return 'none';
-  }
-
-  return entry.direction === 'asc' ? 'ascending' : 'descending';
-}
-
-function SortHeader({
-  label,
-  onSort,
-  sort,
-  sortKey,
-}: {
-  label: string;
-  onSort: (key: AccountSortKey) => void;
-  sort: AccountSortState;
-  sortKey: AccountSortKey;
-}) {
-  const rank = sort.findIndex((entry) => entry.key === sortKey);
-  const active = rank >= 0;
-  const Icon = active ? (sort[rank].direction === 'asc' ? ArrowUp : ArrowDown) : ArrowDownUp;
-
-  return (
-    <button
-      className={`sort-header ${active ? 'active' : ''}`}
-      onClick={() => onSort(sortKey)}
-      title={`Sort by ${label}`}
-      type="button"
-    >
-      <span>{label}</span>
-      <Icon aria-hidden="true" size={13} />
-      {active && sort.length > 1 ? <span className="sort-rank">{rank + 1}</span> : null}
-    </button>
-  );
-}
-
-// View transform applied to the graph contents: translate(x, y) scale(k). The SVG viewBox already
-// frames the whole settled layout at identity, so {x:0, y:0, k:1} shows everything; pan/zoom layer
-// on top of that.
-type GraphView = { x: number; y: number; k: number };
-
-const IDENTITY_VIEW: GraphView = { x: 0, y: 0, k: 1 };
-const MIN_ZOOM = 0.3;
-const MAX_ZOOM = 5;
-// Treat a press that moves less than this (in screen px) as a click, not a pan, so node selection
-// still fires when the user taps a node without dragging.
-const PAN_CLICK_THRESHOLD = 4;
-
-function TrustGraph({
-  graph,
-  onSelect,
-  profiles,
-  selectedAddress,
-}: {
-  graph: TrustGraphModel;
-  onSelect: (node: TrustGraphNode) => void;
-  profiles: IdentityProfilesByAddress;
-  selectedAddress?: string;
-}) {
-  const svgRef = useRef<SVGSVGElement | null>(null);
-  const [view, setView] = useState<GraphView>(IDENTITY_VIEW);
-  const [hoveredAddress, setHoveredAddress] = useState<string | undefined>(undefined);
-  // Tracks an in-progress pan: the pointer origin and whether it has moved past the click threshold.
-  const panRef = useRef<{ pointerId: number; startX: number; startY: number; moved: boolean } | null>(
-    null,
-  );
-
-  const nodeByAddress = useMemo(
-    () => new Map(graph.nodes.map((node) => [node.address, node] as const)),
-    [graph.nodes],
-  );
-
-  // Neighbours of the active (hovered, else selected) node, so we can spotlight its edges and dim
-  // the rest — the same focus affordance the BrightID explorer uses on node click.
-  const activeAddress = hoveredAddress ?? selectedAddress;
-  const adjacency = useMemo(() => {
-    if (!activeAddress) {
-      return null;
-    }
-    const neighbours = new Set<string>([activeAddress]);
-    for (const link of graph.links) {
-      if (link.source === activeAddress) {
-        neighbours.add(link.target);
-      } else if (link.target === activeAddress) {
-        neighbours.add(link.source);
-      }
-    }
-    return neighbours;
-  }, [activeAddress, graph.links]);
-
-  // Reset the view whenever the graph identity changes (category switch, search, data refresh) so a
-  // new layout starts fully framed instead of inheriting the previous pan/zoom.
-  useEffect(() => {
-    setView(IDENTITY_VIEW);
-  }, [graph]);
-
-  // Maps a screen pointer to graph user-space (viewBox units, before the view transform). The CSS
-  // aspect-ratio matches the viewBox, so x and y scale uniformly with no letterboxing.
-  const toUserSpace = useCallback(
-    (clientX: number, clientY: number) => {
-      const svg = svgRef.current;
-      if (!svg) {
-        return { x: 0, y: 0 };
-      }
-      const rect = svg.getBoundingClientRect();
-      return {
-        x: ((clientX - rect.left) / rect.width) * graph.width,
-        y: ((clientY - rect.top) / rect.height) * graph.height,
-      };
-    },
-    [graph.width, graph.height],
-  );
-
-  const zoomBy = useCallback(
-    (factor: number, focusClientX?: number, focusClientY?: number) => {
-      setView((current) => {
-        const k = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, current.k * factor));
-        if (k === current.k) {
-          return current;
-        }
-        // Default the zoom focus to the canvas centre when no pointer is given (button zoom).
-        const svg = svgRef.current;
-        const rect = svg?.getBoundingClientRect();
-        const focus =
-          focusClientX !== undefined && focusClientY !== undefined
-            ? toUserSpace(focusClientX, focusClientY)
-            : rect
-              ? toUserSpace(rect.left + rect.width / 2, rect.top + rect.height / 2)
-              : { x: graph.width / 2, y: graph.height / 2 };
-        // Keep the focus point pinned under the cursor as scale changes.
-        return {
-          k,
-          x: focus.x - ((focus.x - current.x) * k) / current.k,
-          y: focus.y - ((focus.y - current.y) * k) / current.k,
-        };
-      });
-    },
-    [graph.width, graph.height, toUserSpace],
-  );
-
-  const handleWheel = useCallback(
-    (event: React.WheelEvent<SVGSVGElement>) => {
-      event.preventDefault();
-      zoomBy(event.deltaY < 0 ? 1.12 : 1 / 1.12, event.clientX, event.clientY);
-    },
-    [zoomBy],
-  );
-
-  const handlePointerDown = useCallback((event: React.PointerEvent<SVGSVGElement>) => {
-    if (event.button !== 0) {
-      return;
-    }
-    panRef.current = { pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, moved: false };
-    event.currentTarget.setPointerCapture(event.pointerId);
-  }, []);
-
-  const handlePointerMove = useCallback(
-    (event: React.PointerEvent<SVGSVGElement>) => {
-      const pan = panRef.current;
-      if (!pan || pan.pointerId !== event.pointerId) {
-        return;
-      }
-      const svg = svgRef.current;
-      if (!svg) {
-        return;
-      }
-      const rect = svg.getBoundingClientRect();
-      // Convert the screen delta into user-space units (independent of the current scale, because
-      // the transform's translate is in pre-scale viewBox units).
-      const dx = ((event.clientX - pan.startX) / rect.width) * graph.width;
-      const dy = ((event.clientY - pan.startY) / rect.height) * graph.height;
-      if (!pan.moved && Math.hypot(event.clientX - pan.startX, event.clientY - pan.startY) > PAN_CLICK_THRESHOLD) {
-        pan.moved = true;
-      }
-      pan.startX = event.clientX;
-      pan.startY = event.clientY;
-      setView((current) => ({ ...current, x: current.x + dx, y: current.y + dy }));
-    },
-    [graph.width, graph.height],
-  );
-
-  const endPan = useCallback((event: React.PointerEvent<SVGSVGElement>) => {
-    const pan = panRef.current;
-    if (pan && pan.pointerId === event.pointerId) {
-      if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-        event.currentTarget.releasePointerCapture(event.pointerId);
-      }
-      panRef.current = null;
-    }
-  }, []);
-
-  // Suppress the synthetic click that follows a pan so dragging across a node doesn't select it.
-  const handleNodeActivate = useCallback(
-    (node: TrustGraphNode) => {
-      if (panRef.current?.moved) {
-        return;
-      }
-      onSelect(node);
-    },
-    [onSelect],
-  );
-
-  return (
-    <div className="graph-surface">
-      <svg
-        aria-label="Trust graph"
-        className={`trust-graph ${adjacency ? 'has-focus' : ''}`}
-        onPointerCancel={endPan}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={endPan}
-        onWheel={handleWheel}
-        ref={svgRef}
-        role="img"
-        style={{ aspectRatio: `${graph.width} / ${graph.height}` }}
-        viewBox={`0 0 ${graph.width} ${graph.height}`}
-      >
-        <g transform={`translate(${view.x} ${view.y}) scale(${view.k})`}>
-          <g className="graph-links">
-            {graph.links.map((link) => {
-              const source = nodeByAddress.get(link.source);
-              const target = nodeByAddress.get(link.target);
-
-              if (!source || !target) {
-                return null;
-              }
-
-              const focused = !adjacency || (adjacency.has(link.source) && adjacency.has(link.target));
-
-              return (
-                <line
-                  className={`graph-link graph-link-${ratingTone(link.rating)} ${focused ? '' : 'dimmed'}`}
-                  key={link.id}
-                  strokeWidth={Math.max(1, link.confidence)}
-                  x1={source.x}
-                  x2={target.x}
-                  y1={source.y}
-                  y2={target.y}
-                >
-                  <title>
-                    {compactAddress(link.source)}
-                    {' -> '}
-                    {compactAddress(link.target)} ({link.rating})
-                  </title>
-                </line>
-              );
-            })}
-          </g>
-          <g className="graph-nodes">
-            {graph.nodes.map((node, index) => {
-              const profile = profiles[node.address];
-              const label = getIdentityLabel(profile, node.address);
-              const radius = node.seedMember ? 15 : 12;
-              const clipId = `avatar-clip-${index}`;
-              const focused = !adjacency || adjacency.has(node.address);
-
-              return (
-                <g
-                  className={`graph-node graph-node-${statusTone(node.status)} ${
-                    node.address === selectedAddress ? 'selected' : ''
-                  } ${focused ? '' : 'dimmed'}`}
-                  key={node.address}
-                  onClick={() => handleNodeActivate(node)}
-                  onPointerEnter={() => setHoveredAddress(node.address)}
-                  onPointerLeave={() => setHoveredAddress((current) => (current === node.address ? undefined : current))}
-                  role="button"
-                  tabIndex={0}
-                >
-                  <defs>
-                    <clipPath id={clipId}>
-                      <circle cx={node.x} cy={node.y} r={radius - 2} />
-                    </clipPath>
-                  </defs>
-                  <circle cx={node.x} cy={node.y} r={radius} />
-                  {profile?.avatarSrc ? (
-                    <image
-                      clipPath={`url(#${clipId})`}
-                      height={(radius - 2) * 2}
-                      href={profile.avatarSrc}
-                      preserveAspectRatio="xMidYMid slice"
-                      width={(radius - 2) * 2}
-                      x={node.x - radius + 2}
-                      y={node.y - radius + 2}
-                    />
-                  ) : (
-                    <text className="graph-node-initial" x={node.x} y={node.y + 4}>
-                      {getAvatarFallbackCharacter(profile?.name, node.address)}
-                    </text>
-                  )}
-                  <text className="graph-node-label" x={node.x} y={node.y + 32}>
-                    {compactIdentityGraphLabel(profile, node.address)}
-                  </text>
-                  <title>
-                    {label} - {node.address} - {statusLabel(node.status)} L{node.level}
-                  </title>
-                </g>
-              );
-            })}
-          </g>
-        </g>
-      </svg>
-      <div className="graph-zoom-controls">
-        <button aria-label="Zoom in" onClick={() => zoomBy(1.3)} type="button">
-          +
-        </button>
-        <button aria-label="Zoom out" onClick={() => zoomBy(1 / 1.3)} type="button">
-          −
-        </button>
-        <button aria-label="Reset view" onClick={() => setView(IDENTITY_VIEW)} type="button">
-          ⤾
-        </button>
-      </div>
-      {graph.links.length === 0 ? (
-        <div className="empty-overlay">
-          <CircleDot size={18} />
-          <span>No active rating edges in this category yet.</span>
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
-function AccountsTable({
-  accountDataByAddress,
-  category,
-  derivations,
-  onRate,
-  onRatingSubmitted,
-  onSelect,
-  onSort,
-  openRateAddress,
-  pendingByAddress,
-  profiles,
-  ratingActionAvailable,
-  self,
-  selectedAddress,
-  sort,
-  youRatedByAddress,
-}: {
-  accountDataByAddress: AccountDataByAddress;
-  category: AccountRatingCategory;
-  derivations: TrustDerivation[];
-  onRate: (address: string | null) => void;
-  onRatingSubmitted: (entry: PendingRatingEntry) => void;
-  onSelect: (derivation: TrustDerivation) => void;
-  onSort: (key: AccountSortKey) => void;
-  openRateAddress: string | null;
-  pendingByAddress: RatingsByAddress;
-  profiles: IdentityProfilesByAddress;
-  ratingActionAvailable: boolean;
-  self: SelfAccount | null;
-  selectedAddress?: string;
-  sort: AccountSortState;
-  youRatedByAddress: RatingsByAddress;
-}) {
-  // Close any open quick-rate popover when the sort or category changes, since the row it was
-  // anchored to may move or its cooldown context may change. onRate is setOpenRateAddress (stable).
-  useEffect(() => {
-    onRate(null);
-  }, [category, sort, onRate]);
-
-  // A pending (unconfirmed) rating optimistically overrides the confirmed value for sorting, so a
-  // freshly-rated account jumps to its new position immediately.
-  const effectiveYouRated = useMemo<RatingsByAddress>(
-    () => ({ ...youRatedByAddress, ...pendingByAddress }),
-    [pendingByAddress, youRatedByAddress],
-  );
-
-  const sortedDerivations = useMemo(
-    () =>
-      derivations
-        .map((derivation, index) => ({ derivation, index }))
-        .sort((left, right) => {
-          // Apply each sort column in priority order; the first to break the tie wins.
-          for (const { direction, key } of sort) {
-            const comparison = compareAccountRows(
-              left.derivation,
-              right.derivation,
-              key,
-              category,
-              profiles,
-              accountDataByAddress,
-              effectiveYouRated,
-            );
-
-            if (comparison !== 0) {
-              return direction === 'asc' ? comparison : -comparison;
-            }
-          }
-
-          return compareAccountLabels(left.derivation, right.derivation, profiles) || left.index - right.index;
-        })
-        .map(({ derivation }) => derivation),
-    [accountDataByAddress, category, derivations, effectiveYouRated, profiles, sort],
-  );
-
-  return (
-    <div className="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th aria-sort={getAriaSort(sort, 'account')}>
-              <SortHeader label="Account" onSort={onSort} sort={sort} sortKey="account" />
-            </th>
-            <th aria-sort={getAriaSort(sort, 'status')}>
-              <SortHeader label="Status" onSort={onSort} sort={sort} sortKey="status" />
-            </th>
-            <th aria-sort={getAriaSort(sort, 'level')}>
-              <SortHeader label="Level" onSort={onSort} sort={sort} sortKey="level" />
-            </th>
-            <th aria-sort={getAriaSort(sort, 'blocksMinted')}>
-              <SortHeader label="Blocks minted" onSort={onSort} sort={sort} sortKey="blocksMinted" />
-            </th>
-            <th aria-sort={getAriaSort(sort, 'score')}>
-              <SortHeader label="Score" onSort={onSort} sort={sort} sortKey="score" />
-            </th>
-            <th aria-sort={getAriaSort(sort, 'ratings')}>
-              <SortHeader label="Ratings" onSort={onSort} sort={sort} sortKey="ratings" />
-            </th>
-            <th aria-sort={getAriaSort(sort, 'youRated')}>
-              <SortHeader label="You rated" onSort={onSort} sort={sort} sortKey="youRated" />
-            </th>
-            <th aria-sort={getAriaSort(sort, 'voteWeight')}>
-              <SortHeader label="Vote weight" onSort={onSort} sort={sort} sortKey="voteWeight" />
-            </th>
-            <th aria-sort={getAriaSort(sort, 'seed')}>
-              <SortHeader label="Seed" onSort={onSort} sort={sort} sortKey="seed" />
-            </th>
-            <th>Rate</th>
-          </tr>
-        </thead>
-        <tbody>
-          {sortedDerivations.map((derivation) => {
-            const categoryData = getDerivationCategory(derivation, category);
-            const inbound = categoryData?.inboundRatings;
-            const profile = profiles[derivation.accountAddress];
-            const accountData = accountDataByAddress[derivation.accountAddress];
-            const youRated = youRatedByAddress[derivation.accountAddress];
-            const pendingRating = pendingByAddress[derivation.accountAddress];
-
-            return (
-              <tr
-                className={selectedAddress === derivation.accountAddress ? 'selected-row' : ''}
-                key={derivation.accountAddress}
-                onClick={() => onSelect(derivation)}
-              >
-                <td>
-                  <div className="identity-cell">
-                    <IdentityAvatar address={derivation.accountAddress} profile={profile} size="small" />
-                    <IdentityLabel address={derivation.accountAddress} profile={profile} />
-                  </div>
-                </td>
-                <td>
-                  <StatusBadge status={derivation.derivedTrustStatus} />
-                </td>
-                <td>{formatNumber(getAccountMintingLevel(accountData))}</td>
-                <td>{formatNumber(getAccountBlocksMinted(accountData))}</td>
-                <td>{formatNumber(categoryData?.score ?? 0)}</td>
-                <td>
-                  {formatNumber(inbound?.positiveRatingCount ?? 0)} / {formatNumber(inbound?.negativeRatingCount ?? 0)}
-                </td>
-                <td>
-                  {pendingRating !== undefined ? (
-                    <span className="you-rated-pending" title="Submitted — waiting for confirmation">
-                      <span className="you-rated-spinner" aria-hidden="true" />
-                      {pendingRating !== 0 ? (
-                        <span className={`you-rated ${ratingTone(pendingRating)}`}>
-                          {pendingRating > 0 ? `+${pendingRating}` : pendingRating}
-                        </span>
-                      ) : null}
-                    </span>
-                  ) : youRated === undefined ? (
-                    <span className="muted">—</span>
-                  ) : (
-                    <span className={`you-rated ${ratingTone(youRated)}`}>
-                      {youRated > 0 ? `+${youRated}` : youRated}
-                    </span>
-                  )}
-                </td>
-                <td>{formatPercent(derivation.derivedTrustWeightPercent)}</td>
-                <td>{derivation.mintingSeedMember ? 'Yes' : 'No'}</td>
-                <RateCell
-                  category={category}
-                  derivation={derivation}
-                  onRate={onRate}
-                  onRatingSubmitted={onRatingSubmitted}
-                  open={openRateAddress === derivation.accountAddress}
-                  pendingRating={pendingByAddress[derivation.accountAddress]}
-                  ratingActionAvailable={ratingActionAvailable}
-                  self={self}
-                />
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-function ChangesTable({ changes, profiles }: { changes: TrustStatusChange[]; profiles: IdentityProfilesByAddress }) {
-  if (changes.length === 0) {
-    return <EmptyState icon={<ArrowDownUp size={18} />} text="No trust status changes are recorded yet." />;
-  }
-
-  return (
-    <div className="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Account</th>
-            <th>Category</th>
-            <th>Previous</th>
-            <th>New</th>
-            <th>Score</th>
-            <th>Height</th>
-            <th>Time</th>
-          </tr>
-        </thead>
-        <tbody>
-          {changes.map((change) => {
-            const profile = profiles[change.accountAddress];
-
-            return (
-              <tr key={`${change.accountAddress}-${change.category}-${change.snapshotHeight}`}>
-                <td>
-                  <div className="identity-cell">
-                    <IdentityAvatar address={change.accountAddress} profile={profile} size="small" />
-                    <IdentityLabel address={change.accountAddress} profile={profile} />
-                  </div>
-                </td>
-                <td>{categoryLabel(change.category)}</td>
-                <td>
-                  <StatusBadge status={change.previousTrustStatus} />
-                </td>
-                <td>
-                  <StatusBadge status={change.newTrustStatus} />
-                </td>
-                <td>
-                  {formatNumber(change.previousScore)}
-                  {' -> '}
-                  {formatNumber(change.newScore)}
-                </td>
-                <td>{formatNumber(change.snapshotHeight)}</td>
-                <td>{formatDate(change.snapshotTimestamp)}</td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-function ResourceRatingsTable({ resources }: { resources: ResourceRatingSummary[] }) {
-  if (resources.length === 0) {
-    return <EmptyState icon={<Layers size={18} />} text="No resource ratings are recorded yet." />;
-  }
-
-  return (
-    <div className="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Resource</th>
-            <th>Service</th>
-            <th>Count</th>
-            <th>Average</th>
-            <th>Weighted</th>
-            <th>Total weight</th>
-          </tr>
-        </thead>
-        <tbody>
-          {resources.map((resource) => (
-            <tr key={`${resource.service}-${resource.name}-${resource.identifier}`}>
-              <td>
-                <span className="resource-name">{resource.name}</span>
-                <span className="muted">{resource.identifier || 'default'}</span>
-              </td>
-              <td>{resource.service}</td>
-              <td>{formatNumber(resource.ratingCount)}</td>
-              <td>{formatNumber(resource.averageRating)}</td>
-              <td>{formatNumber(resource.weightedAverageRating)}</td>
-              <td>{formatNumber(resource.totalWeight)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-function EmptyState({ icon, text }: { icon: ReactNode; text: string }) {
-  return (
-    <div className="empty-state">
-      {icon}
-      <span>{text}</span>
-    </div>
-  );
-}
-
-const RATING_VALUES = [4, 3, 2, 1, 0, -1, -2, -3, -4];
-const RATING_MAGNITUDES = ['', 'Low', 'Medium', 'High', 'Very high'];
-const PENDING_CONFIRM_POLL_MS = 8000;
-
-// A submitted-but-unconfirmed rating, tracked at the app level so several can be in flight at once
-// and the "You rated" column can show a per-account spinner without blocking new submissions.
-type PendingRatingEntry = {
-  category: AccountRatingCategory;
-  rating: number;
-  raterPublicKey: string;
-  targetAddress: string;
-  targetPublicKey: string;
-};
-type PendingRatingsByKey = Record<string, PendingRatingEntry>;
-
-function pendingRatingKey(category: AccountRatingCategory, targetAddress: string) {
-  return `${category}:${targetAddress}`;
-}
-
-function ratingOptionLabel(value: number) {
-  if (value === 0) {
-    return '0 · Remove rating';
-  }
-
-  const tone = value > 0 ? 'Positive' : 'Negative';
-
-  return `${value > 0 ? '+' : ''}${value} · ${tone} (${RATING_MAGNITUDES[Math.abs(value)]})`;
-}
-
-function mapRatingError(message: string) {
-  const checks: [RegExp, string][] = [
-    [/TOO_SOON/i, 'You rated this account too recently. Wait for the cooldown to clear before changing it.'],
-    [/CANNOT_RATE_SELF/i, 'You cannot rate your own account.'],
-    [/PUBLIC_KEY_UNKNOWN/i, 'This account has no on-chain history yet, so it cannot be rated.'],
-    [/UNCHANGED/i, 'That rating matches your current rating — nothing to change.'],
-    [/INVALID_ACCOUNT_RATING/i, 'Rating must be a whole number between -4 and +4.'],
-    [/NO_BALANCE/i, 'Your account has insufficient balance to cover the transaction fee.'],
-    [/NEEDS_SYNC|SYNCHRONIZ/i, 'Your node is still syncing. Try again once it has caught up.'],
-  ];
-
-  for (const [pattern, text] of checks) {
-    if (pattern.test(message)) {
-      return text;
-    }
-  }
-
-  return message;
-}
-
-type RatingControlArgs = {
-  category: AccountRatingCategory;
-  onSubmitted: (entry: PendingRatingEntry) => void;
-  pendingRating: number | undefined;
-  ratingActionAvailable: boolean;
-  self: SelfAccount | null;
-  targetAddress: string;
-  targetPublicKey: string;
-};
-
-// Single source of truth for rating cooldown/unlock/submit/gating logic, shared by the full-mode
-// RatingForm (detail view) and the compact RatingPopover (inline quick-rate). All hooks run
-// unconditionally — the cooldown effect internally no-ops when !canInteract — so consumers must
-// render the unavailable state from `canInteract`/`note` rather than the hook short-circuiting.
-function useRatingControl({
-  category,
-  onSubmitted,
-  pendingRating,
-  ratingActionAvailable,
-  self,
-  targetAddress,
-  targetPublicKey,
-}: RatingControlArgs) {
-  const isSelf = !!self && self.address === targetAddress;
-  const raterPublicKey = self?.publicKey ?? null;
-  const canInteract = ratingActionAvailable && !!self && !!raterPublicKey && !isSelf;
-  const isPending = pendingRating !== undefined;
-
-  const [rating, setRating] = useState(0);
-  const [cooldown, setCooldown] = useState<AccountRatingCooldown | null>(null);
-  const [cooldownLoading, setCooldownLoading] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [message, setMessage] = useState<{ text: string; tone: 'positive' | 'negative' } | null>(null);
-
-  // Refetch cooldown on mount and whenever this account's pending state flips, so that once the
-  // rating confirms (pendingRating clears) "your current rating" reflects the new on-chain value.
-  useEffect(() => {
-    if (!canInteract || !raterPublicKey) {
-      setCooldown(null);
-      return;
-    }
-
-    let cancelled = false;
-    setCooldownLoading(true);
-
-    getRatingCooldown({ category, rater: raterPublicKey, target: targetPublicKey })
-      .then((result) => {
-        if (cancelled) {
-          return;
-        }
-
-        setCooldown(result);
-        setRating(result.activeRating ?? 0);
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setCooldown(null);
-          // Without cooldown data we cannot trust a carried-over selection; reset to a no-op.
-          setRating(0);
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setCooldownLoading(false);
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [canInteract, category, pendingRating, raterPublicKey, targetPublicKey]);
-
-  let note = 'Open this app in Qortium Home to submit trust ratings.';
-
-  if (ratingActionAvailable && !self) {
-    note = 'Sign in to a Qortium Home account to submit trust ratings.';
-  } else if (ratingActionAvailable && isSelf) {
-    note = 'You cannot rate your own account.';
-  } else if (ratingActionAvailable && self && !raterPublicKey) {
-    note = 'Your account needs at least one on-chain transaction before it can submit ratings.';
-  }
-
-  const activeRating = cooldown?.activeRating ?? null;
-  const unchanged = activeRating === null ? rating === 0 : rating === activeRating;
-  const onCooldown = cooldown ? !cooldown.canChangeNow : false;
-  const accountLocked = self?.isUnlocked === false;
-  const submitDisabled = submitting || cooldownLoading || onCooldown || unchanged || isPending;
-
-  // Returns true only on a successful broadcast so callers (the quick-rate popover) get a reliable
-  // success signal: reading `message` after the await would see the stale render-time value.
-  const handleSubmit = async (): Promise<boolean> => {
-    if (!raterPublicKey) {
-      return false;
-    }
-
-    const submittedRating = rating;
-    setSubmitting(true);
-    setMessage(null);
-
-    try {
-      // Signing needs an unlocked account; ask Home to unlock (prompts the user only when locked).
-      // UNLOCK_SELECTED_ACCOUNT resolves (never rejects) on cancel/timeout with isUnlocked false,
-      // so we drive entirely off the returned lock state.
-      const unlocked = await ensureAccountUnlocked();
-
-      if (!unlocked) {
-        setMessage({ text: 'Qortium Home could not confirm your account is unlocked. Try again.', tone: 'negative' });
-        return false;
-      }
-
-      if (unlocked.isUnlocked === false) {
-        setMessage({ text: 'Unlock your account in Qortium Home to submit a rating.', tone: 'negative' });
-        return false;
-      }
-
-      // submitRating resolves once Home has broadcast (accepted) the transaction. We hand the
-      // pending entry up to the app, which tracks confirmation — neither surface blocks afterward, so
-      // the user can immediately rate other accounts.
-      await submitRating({ category, rating: submittedRating, targetPublicKey });
-      onSubmitted({ category, rating: submittedRating, raterPublicKey, targetAddress, targetPublicKey });
-      return true;
-    } catch (submitError) {
-      setMessage({
-        text: mapRatingError(submitError instanceof Error ? submitError.message : String(submitError)),
-        tone: 'negative',
-      });
-      return false;
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  return {
-    accountLocked,
-    activeRating,
-    canInteract,
-    cooldown,
-    cooldownLoading,
-    handleSubmit,
-    isPending,
-    message,
-    note,
-    onCooldown,
-    rating,
-    setRating,
-    submitDisabled,
-    submitting,
-    unchanged,
-  };
-}
-
-type RatingControl = ReturnType<typeof useRatingControl>;
-
-// Full-mode rating surface (detail view). Thin renderer over useRatingControl.
-function RatingForm(props: RatingControlArgs) {
-  const { category, pendingRating, self } = props;
-  const control = useRatingControl(props);
-
-  if (!control.canInteract) {
-    return (
-      <div className="mini-section">
-        <h3>Rate this account</h3>
-        <p className="muted">{control.note}</p>
-      </div>
-    );
-  }
-
-  const { accountLocked, activeRating, cooldown, cooldownLoading, isPending, message, onCooldown, rating, submitDisabled, submitting, unchanged } =
-    control;
-
-  return (
-    <div className="mini-section">
-      <h3>Rate this account</h3>
-      <p className="muted rating-context">
-        Rating as {self?.name ?? compactAddress(self?.address, 8, 6)} in the {categoryLabel(category)} category.
-      </p>
-      <div className="rating-form">
-        <label className="rating-select">
-          <span>Rating</span>
-          <select
-            disabled={submitting || cooldownLoading || isPending}
-            onChange={(event) => control.setRating(Number(event.target.value))}
-            value={rating}
-          >
-            {RATING_VALUES.map((value) => (
-              <option key={value} value={value}>
-                {ratingOptionLabel(value)}
-              </option>
-            ))}
-          </select>
-        </label>
-        <button
-          className="rating-submit"
-          disabled={submitDisabled}
-          onClick={() => void control.handleSubmit()}
-          type="button"
-        >
-          {submitting ? 'Submitting...' : isPending ? 'Pending...' : rating === 0 ? 'Remove rating' : 'Submit rating'}
-        </button>
-      </div>
-      {isPending ? (
-        <div className="rating-pending">
-          <span className="rating-pending__spinner" aria-hidden="true" />
-          <div>
-            <strong>
-              {pendingRating === 0
-                ? 'Removing your rating — pending confirmation'
-                : `Your ${pendingRating! > 0 ? '+' : ''}${pendingRating} rating is pending confirmation`}
-            </strong>
-            <p className="muted">
-              Waiting for the transaction to be included in a block
-              {cooldown?.candidateChangeHeight
-                ? ` — applies around block ${formatNumber(cooldown.candidateChangeHeight)}`
-                : ''}
-              . You can rate other accounts while you wait.
-            </p>
-          </div>
-        </div>
-      ) : (
-        <p className="muted rating-status">
-          {cooldownLoading
-            ? 'Checking rating cooldown...'
-            : onCooldown
-              ? `On cooldown — ${formatNumber(cooldown?.blocksRemaining)} block(s) remaining.`
-              : activeRating === null
-                ? 'You have not rated this account yet.'
-                : `Your current rating is ${activeRating > 0 ? '+' : ''}${activeRating}.`}
-        </p>
-      )}
-      {!isPending && accountLocked ? (
-        <p className="muted">Your account is locked — submitting will prompt you to unlock it.</p>
-      ) : null}
-      {!isPending && unchanged && !cooldownLoading && !onCooldown ? (
-        <p className="muted">
-          {activeRating === null
-            ? 'Choose a non-zero rating to submit.'
-            : 'Choose a different rating, or 0 to remove your existing one.'}
-        </p>
-      ) : null}
-      {message ? <p className={`rating-message ${message.tone}`}>{message.text}</p> : null}
-    </div>
-  );
-}
-
-// Compact rating surface (inline quick-rate popover): select + Submit + one-line status. Presents an
-// already-built control, so the underlying cooldown/unlock/submit logic is shared with RatingForm.
-function RatingPopover({
-  control,
-  onClose,
-  selectRef,
-}: {
-  control: RatingControl;
-  onClose: () => void;
-  selectRef?: React.RefObject<HTMLSelectElement | null>;
-}) {
-  const {
-    activeRating,
-    cooldown,
-    cooldownLoading,
-    isPending,
-    message,
-    onCooldown,
-    rating,
-    submitDisabled,
-    submitting,
-  } = control;
-
-  const handleSubmit = async () => {
-    // Close only on success — an error leaves `message` set so the user can read it and retry.
-    // We use the boolean return rather than reading `control.message`, which is captured at render
-    // time and so would still hold the pre-submit (stale) value here.
-    if (await control.handleSubmit()) {
-      onClose();
-    }
-  };
-
-  return (
-    <div className="rating-popover-body">
-      <label className="rating-select">
-        <span>Rating</span>
-        <select
-          disabled={submitting || cooldownLoading || isPending}
-          onChange={(event) => control.setRating(Number(event.target.value))}
-          ref={selectRef}
-          value={rating}
-        >
-          {RATING_VALUES.map((value) => (
-            <option key={value} value={value}>
-              {ratingOptionLabel(value)}
-            </option>
-          ))}
-        </select>
-      </label>
-      <button
-        className="rating-submit"
-        disabled={submitDisabled}
-        onClick={() => void handleSubmit()}
-        type="button"
-      >
-        {submitting ? 'Submitting...' : isPending ? 'Pending...' : rating === 0 ? 'Remove rating' : 'Submit rating'}
-      </button>
-      <p className="muted rating-popover-status">
-        {isPending
-          ? 'Rating pending confirmation.'
-          : cooldownLoading
-            ? 'Checking rating cooldown...'
-            : onCooldown
-              ? `On cooldown — ${formatNumber(cooldown?.blocksRemaining)} block(s) remaining.`
-              : activeRating === null
-                ? 'You have not rated this account yet.'
-                : `Your current rating is ${activeRating > 0 ? '+' : ''}${activeRating}.`}
-      </p>
-      {message ? <p className={`rating-message ${message.tone}`}>{message.text}</p> : null}
-    </div>
-  );
-}
-
-// A single Accounts-table rate cell: the Rate trigger button (whose ref anchors the popover) plus the
-// popover itself when open. Extracted so each row owns a stable button ref for portal positioning.
-function RateCell({
-  category,
-  derivation,
-  onRate,
-  onRatingSubmitted,
-  open,
-  pendingRating,
-  ratingActionAvailable,
-  self,
-}: {
-  category: AccountRatingCategory;
-  derivation: TrustDerivation;
-  onRate: (address: string | null) => void;
-  onRatingSubmitted: (entry: PendingRatingEntry) => void;
-  open: boolean;
-  pendingRating: number | undefined;
-  ratingActionAvailable: boolean;
-  self: SelfAccount | null;
-}) {
-  const buttonRef = useRef<HTMLButtonElement>(null);
-  const rowIsSelf = !!self && self.address === derivation.accountAddress;
-  const rowDisabled = !ratingActionAvailable || !self || !self.publicKey || rowIsSelf;
-  const rowNote = !ratingActionAvailable
-    ? 'Open this app in Qortium Home to submit trust ratings.'
-    : !self
-      ? 'Sign in to a Qortium Home account to submit trust ratings.'
-      : rowIsSelf
-        ? 'You cannot rate your own account.'
-        : !self.publicKey
-          ? 'Your account needs at least one on-chain transaction before it can submit ratings.'
-          : 'Rate this account';
-
-  return (
-    <td className="rate-cell" onClick={(event) => event.stopPropagation()}>
-      <button
-        aria-expanded={open}
-        className="rate-button"
-        disabled={rowDisabled}
-        onClick={(event) => {
-          event.stopPropagation();
-          onRate(open ? null : derivation.accountAddress);
-        }}
-        ref={buttonRef}
-        title={rowNote}
-        type="button"
-      >
-        Rate
-      </button>
-      {open ? (
-        <RowRatePopover
-          anchorRef={buttonRef}
-          category={category}
-          onClose={() => onRate(null)}
-          onRatingSubmitted={onRatingSubmitted}
-          pendingRating={pendingRating}
-          ratingActionAvailable={ratingActionAvailable}
-          self={self}
-          targetAddress={derivation.accountAddress}
-          targetPublicKey={derivation.accountPublicKey}
-        />
-      ) : null}
-    </td>
-  );
-}
-
-// Owns the rating control for a single open row so the hook lives exactly as long as the popover is
-// open, and closes the popover on outside pointer-down / Escape. Rendered into a portal with fixed
-// positioning anchored to the trigger button so the scrollable `.table-wrap` (overflow:auto) never
-// clips it, regardless of scroll position or how far down the row is.
-function RowRatePopover({
-  anchorRef,
-  category,
-  onClose,
-  onRatingSubmitted,
-  pendingRating,
-  ratingActionAvailable,
-  self,
-  targetAddress,
-  targetPublicKey,
-}: {
-  anchorRef: React.RefObject<HTMLButtonElement | null>;
-  category: AccountRatingCategory;
-  onClose: () => void;
-  onRatingSubmitted: (entry: PendingRatingEntry) => void;
-  pendingRating: number | undefined;
-  ratingActionAvailable: boolean;
-  self: SelfAccount | null;
-  targetAddress: string;
-  targetPublicKey: string;
-}) {
-  const ref = useRef<HTMLDivElement>(null);
-  const selectRef = useRef<HTMLSelectElement>(null);
-  const [position, setPosition] = useState<{ left: number; top: number } | null>(null);
-  const control = useRatingControl({
-    category,
-    onSubmitted: onRatingSubmitted,
-    pendingRating,
-    ratingActionAvailable,
-    self,
-    targetAddress,
-    targetPublicKey,
-  });
-
-  // Anchor the fixed-position popover to the trigger button's viewport rect, flipping it upward when
-  // there is not enough room below (e.g. bottom rows). Recompute on scroll/resize so it tracks the
-  // row while the table scrolls underneath.
-  const POPOVER_WIDTH = 280;
-
-  useEffect(() => {
-    const updatePosition = () => {
-      const anchor = anchorRef.current;
-
-      if (!anchor) {
-        return;
-      }
-
-      const rect = anchor.getBoundingClientRect();
-      const popoverHeight = ref.current?.offsetHeight ?? 0;
-      const spaceBelow = window.innerHeight - rect.bottom;
-      const openUpward = popoverHeight > 0 && spaceBelow < popoverHeight + 12 && rect.top > popoverHeight + 12;
-      const top = openUpward ? rect.top - popoverHeight - 6 : rect.bottom + 6;
-      // Right-align to the trigger, then clamp to the viewport so it never runs off either edge.
-      const left = Math.max(8, Math.min(rect.right - POPOVER_WIDTH, window.innerWidth - POPOVER_WIDTH - 8));
-
-      setPosition({ left, top });
-    };
-
-    updatePosition();
-    window.addEventListener('scroll', updatePosition, true);
-    window.addEventListener('resize', updatePosition);
-
-    return () => {
-      window.removeEventListener('scroll', updatePosition, true);
-      window.removeEventListener('resize', updatePosition);
-    };
-  }, [anchorRef]);
-
-  // Move focus into the popover so Escape works from the keyboard (focus would otherwise stay on the
-  // trigger button, outside this subtree) and screen-reader users land on the controls.
-  useEffect(() => {
-    selectRef.current?.focus();
-  }, []);
-
-  // Depend on the stable onClose (setOpenRateAddress) rather than the whole props bag to avoid
-  // re-subscribing every render. pointerdown fires before the row's click handler; the trigger button
-  // is excluded so its toggle handler (not this listener) governs a click on the button itself.
-  // The keydown listener is on the document so Escape closes even while focus is on the trigger.
-  useEffect(() => {
-    const onPointerDown = (event: PointerEvent) => {
-      const target = event.target as Node;
-
-      if (ref.current?.contains(target) || anchorRef.current?.contains(target)) {
-        return;
-      }
-
-      onClose();
-    };
-
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        onClose();
-        anchorRef.current?.focus();
-      }
-    };
-
-    document.addEventListener('pointerdown', onPointerDown);
-    document.addEventListener('keydown', onKeyDown);
-
-    return () => {
-      document.removeEventListener('pointerdown', onPointerDown);
-      document.removeEventListener('keydown', onKeyDown);
-    };
-  }, [anchorRef, onClose]);
-
-  return createPortal(
-    <div
-      className="rate-popover"
-      onClick={(event) => event.stopPropagation()}
-      ref={ref}
-      style={{ left: position?.left ?? 0, top: position?.top ?? 0, visibility: position ? 'visible' : 'hidden' }}
-    >
-      <RatingPopover control={control} onClose={onClose} selectRef={selectRef} />
-    </div>,
-    document.body,
-  );
-}
-
-// Full-width detail takeover: identity header, prominent rate section (primary action, above the
-// fold), then a two-column stats + impacts grid. Only mounted when an account is selected, so
-// selectedDerivation is guaranteed non-null.
-function AccountDetail({
-  category,
-  detail,
-  onBack,
-  onRatingSubmitted,
-  pendingRating,
-  profile,
-  profiles,
-  ratingActionAvailable,
-  self,
-  selectedDerivation,
-}: {
-  category: AccountRatingCategory;
-  detail: AccountDetailState;
-  onBack: () => void;
-  onRatingSubmitted: (entry: PendingRatingEntry) => void;
-  pendingRating: number | undefined;
-  profile?: IdentityProfile;
-  profiles: IdentityProfilesByAddress;
-  ratingActionAvailable: boolean;
-  self: SelfAccount | null;
-  selectedDerivation: TrustDerivation;
-}) {
-  const backButtonRef = useRef<HTMLButtonElement>(null);
-
-  // Move focus to Back when the takeover mounts so keyboard/screen-reader users land on a control
-  // (the clicked row that triggered the takeover has been unmounted, dropping focus to <body>).
-  useEffect(() => {
-    backButtonRef.current?.focus();
-  }, []);
-
-  const backBar = (
-    <div className="detail-back">
-      <button aria-label="Back to list" className="back-button" onClick={onBack} ref={backButtonRef} type="button">
-        <ArrowLeft size={16} /> Back
-      </button>
-    </div>
-  );
-
-  // Render the identity header and the rate section immediately — they only need props and the
-  // already-loaded derivation, not the detail fetch. This keeps the rating form (and any pending
-  // state) visible while the profile/explanation load, so reopening a just-rated account still shows
-  // its pending rating instead of a blank skeleton.
-  const profileCategory = detail.profile?.categories.find((candidate) => candidate.category === category);
-  const explanationCategory = detail.explanation?.categories.find((candidate) => candidate.category === category);
-  const fallbackCategory = selectedDerivation.categories.find((candidate) => candidate.category === category);
-  const label = getIdentityLabel(profile, selectedDerivation.accountAddress);
-
-  return (
-    <>
-      {backBar}
-      <div className="detail-header">
-        <IdentityAvatar address={selectedDerivation.accountAddress} profile={profile} size="large" />
-        <div>
-          <StatusBadge status={detail.profile?.trustStatus ?? selectedDerivation.derivedTrustStatus} />
-          <h2>{label}</h2>
-        </div>
-        {label !== selectedDerivation.accountAddress ? (
-          <span className="mono">{compactAddress(selectedDerivation.accountAddress, 12, 8)}</span>
-        ) : null}
-        <span className="mono">{compactAddress(selectedDerivation.accountPublicKey, 9, 8)}</span>
-      </div>
-      <div className="detail-rate">
-        <RatingForm
-          category={category}
-          key={`${selectedDerivation.accountPublicKey}:${category}`}
-          onSubmitted={onRatingSubmitted}
-          pendingRating={pendingRating}
-          ratingActionAvailable={ratingActionAvailable}
-          self={self}
-          targetAddress={selectedDerivation.accountAddress}
-          targetPublicKey={selectedDerivation.accountPublicKey}
-        />
-      </div>
-      {detail.loading ? (
-        <div className="detail-columns-loading">
-          <div className="skeleton-block" />
-          <div className="skeleton-block short" />
-        </div>
-      ) : (
-      <div className="detail-columns">
-        <div className="detail-stats">
-          <div className="detail-grid">
-            <div>
-              <span>Category</span>
-              <strong>{categoryLabel(category)}</strong>
-            </div>
-            <div>
-              <span>Level</span>
-              <strong>{formatNumber(profileCategory?.level ?? fallbackCategory?.level ?? 0)}</strong>
-            </div>
-            <div>
-              <span>Score</span>
-              <strong>{formatNumber(profileCategory?.score ?? fallbackCategory?.score ?? 0)}</strong>
-            </div>
-            <div>
-              <span>Weight</span>
-              <strong>
-                {formatPercent(detail.profile?.trustWeightPercent ?? selectedDerivation.derivedTrustWeightPercent)}
-              </strong>
-            </div>
-            <div>
-              <span>Blocks minted</span>
-              <strong>{formatNumber(detail.profile?.blocksMinted)}</strong>
-            </div>
-            <div>
-              <span>Effective vote</span>
-              <strong>{formatNumber(detail.profile?.effectiveVoteWeight)}</strong>
-            </div>
-          </div>
-          <div className="mini-section">
-            <h3>Rating Counts</h3>
-            <div className="rating-counts">
-              <span className="positive">
-                +{formatNumber(profileCategory?.inboundRatings.positiveRatingCount ?? 0)}
-              </span>
-              <span className="negative">
-                -{formatNumber(profileCategory?.inboundRatings.negativeRatingCount ?? 0)}
-              </span>
-              <span>{formatNumber(profileCategory?.outboundRatings.totalRatingCount ?? 0)} outbound</span>
-            </div>
-          </div>
-        </div>
-        <div className="detail-impacts">
-          <div className="mini-section">
-            <h3>Top Impacts</h3>
-            {(explanationCategory?.topPositiveImpacts.length ?? 0) +
-              (explanationCategory?.topNegativeImpacts.length ?? 0) ===
-            0 ? (
-              <p className="muted">No impact rows for this category.</p>
-            ) : (
-              <ul className="impact-list">
-                {[
-                  ...(explanationCategory?.topPositiveImpacts ?? []),
-                  ...(explanationCategory?.topNegativeImpacts ?? []),
-                ].map((impact) => {
-                  const impactProfile = profiles[impact.raterAddress];
-
-                  return (
-                    <li key={`${impact.raterAddress}-${impact.category}-${impact.rating}`}>
-                      <span className={`impact-dot ${ratingTone(impact.rating)}`} />
-                      <div className="identity-cell compact">
-                        <IdentityAvatar address={impact.raterAddress} profile={impactProfile} size="small" />
-                        <IdentityLabel address={impact.raterAddress} profile={impactProfile} />
-                      </div>
-                      <strong>{formatNumber(impact.impact)}</strong>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </div>
-        </div>
-      </div>
-      )}
-    </>
-  );
-}
-
 function PolicyFooter({ policy, summary }: { policy: TrustPolicy | null; summary: TrustSummary | null }) {
   if (!policy && !summary) {
     return null;
@@ -1734,11 +216,25 @@ export default function App() {
 
   const ratingActionAvailable = (data.bridge?.actions ?? []).includes('RATE_ACCOUNT');
 
+  // Monotonic token shared by every loadData/confirmation refresh. A slow earlier load can resolve
+  // after a newer one (e.g. category switch mid-flight); only the latest invocation commits state.
+  const loadTokenRef = useRef(0);
+  // The rater-scoped ratings map ("You rated") is fetched independently of the capped global edge
+  // fetch (#2) so it stays complete past the 1000-edge cap. Keyed by self address + category epoch.
+  const [youRatedRatings, setYouRatedRatings] = useState<AccountRating[]>([]);
+
   const loadData = useCallback(async ({ silent = false }: { silent?: boolean } = {}) => {
+    const token = ++loadTokenRef.current;
+    const isLatest = () => loadTokenRef.current === token;
+
     if (!silent) {
       setLoading(true);
     }
-    setError(null);
+    // Only a foreground load owns the error banner; a background poll must not clear a banner the
+    // user is reading (#4). Persistent failures still resurface on the next foreground load.
+    if (!silent) {
+      setError(null);
+    }
 
     try {
       const [bridge, nodeStatus, summary, policy, derivations, ratings, changes, resources] = await Promise.all([
@@ -1752,6 +248,10 @@ export default function App() {
         getResourceRatings({ limit: 25, reverse: true }),
       ]);
 
+      if (!isLatest()) {
+        return;
+      }
+
       setData({
         bridge,
         changes,
@@ -1763,20 +263,76 @@ export default function App() {
         summary,
       });
     } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : 'Trust data could not be loaded.');
+      if (isLatest() && !silent) {
+        setError(loadError instanceof Error ? loadError.message : 'Trust data could not be loaded.');
+      } else if (silent) {
+        // Swallowed so a transient poll failure can't clobber the banner; surfaced on next foreground load.
+        console.warn('Silent Trust refresh failed', loadError);
+      }
     } finally {
-      if (!silent) {
+      if (isLatest() && !silent) {
         setLoading(false);
       }
     }
   }, [category]);
 
-  // Hold the latest loadData so the confirmation poll can refresh without depending on its identity
-  // (loadData changes on category/account switches, which would otherwise reset the poll timer).
-  const loadDataRef = useRef(loadData);
+  // Refetch only the slices a new rating changes — the category derivations and ratings — and merge
+  // them into state so the other arrays (changes/resources/summary/policy) keep stable references
+  // (#12), avoiding a full 8-call reload and downstream re-derivation per confirmation.
+  const refreshRatingSlices = useCallback(async () => {
+    const token = ++loadTokenRef.current;
+
+    const [derivations, ratings] = await Promise.all([
+      getTrustDerivation({ category, limit: 250 }),
+      getAccountRatings({ category, limit: 1000 }),
+    ]);
+
+    if (loadTokenRef.current !== token) {
+      return;
+    }
+
+    setData((current) => ({ ...current, derivations, ratings }));
+  }, [category]);
+
+  // Rater-scoped fetch of the current user's own ratings (#2): independent of the capped edge fetch
+  // so the "You rated" column / default sort / pending-clear stay correct past 1000 active ratings.
+  const refreshYouRated = useCallback(async () => {
+    const publicKey = self?.publicKey;
+    const raterAddress = self?.address;
+
+    if (!publicKey || !raterAddress) {
+      setYouRatedRatings([]);
+      return;
+    }
+
+    try {
+      const ratings = await getAccountRatings({ category, rater: publicKey });
+      setYouRatedRatings(ratings);
+    } catch (youRatedError) {
+      console.warn('Failed to load your ratings', youRatedError);
+    }
+  }, [category, self?.address, self?.publicKey]);
+
   useEffect(() => {
-    loadDataRef.current = loadData;
-  }, [loadData]);
+    void refreshYouRated();
+  }, [refreshYouRated]);
+
+  // Latest slice-refresh + self/category, read by the confirmation poll (keyed only on pendingRatings)
+  // so it merges fresh slices without resetting the poll timer on every category/account switch.
+  const refreshRatingSlicesRef = useRef(refreshRatingSlices);
+  useEffect(() => {
+    refreshRatingSlicesRef.current = refreshRatingSlices;
+  }, [refreshRatingSlices]);
+
+  const selfRef = useRef(self);
+  useEffect(() => {
+    selfRef.current = self;
+  }, [self]);
+
+  const categoryRef = useRef(category);
+  useEffect(() => {
+    categoryRef.current = category;
+  }, [category]);
 
   useEffect(() => {
     void loadData();
@@ -1811,6 +367,21 @@ export default function App() {
     // Depend on the primitive, not the bridge object: getBridgeState() returns a fresh object on
     // every loadData, which would otherwise re-resolve identity on every refresh.
   }, [data.bridge?.isHomeBridge]);
+
+  // Deep link (#23): Home forwards its query string onto the iframe URL, so an `account`/`target`
+  // param (a base58 address) lands here on mount. Open that account's detail takeover once.
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    const deepLinkAddress = params.get('account') ?? params.get('target');
+
+    if (deepLinkAddress) {
+      setSelectedAddress(deepLinkAddress);
+    }
+  }, []);
 
   useEffect(() => {
     applyDisplaySettings(displaySettings);
@@ -1871,35 +442,29 @@ export default function App() {
   }, [selectedAddress]);
 
   const changeAccountSort = useCallback((key: AccountSortKey) => {
-    setAccountSort((current) => {
-      const existingIndex = current.findIndex((entry) => entry.key === key);
-
-      // Already the primary column: just flip its direction.
-      if (existingIndex === 0) {
-        const [primary, ...rest] = current;
-        return [{ direction: primary.direction === 'asc' ? 'desc' : 'asc', key }, ...rest];
-      }
-
-      // Already a tiebreaker: promote it to primary, preserving its direction.
-      if (existingIndex > 0) {
-        return [current[existingIndex], ...current.filter((entry) => entry.key !== key)];
-      }
-
-      // New column: make it primary and keep the previous columns as tiebreakers.
-      return [{ direction: getDefaultAccountSortDirection(key), key }, ...current];
-    });
+    setAccountSort((current) => changeAccountSortState(current, key));
   }, []);
 
+  const normalizedQuery = query.trim().toLowerCase();
+
   const filteredDerivations = useMemo(() => {
-    const normalizedQuery = query.trim().toLowerCase();
-    const searched = normalizedQuery
-      ? filterDerivations(data.derivations, query).concat(
-          data.derivations.filter((derivation) => {
-            const profile = identityProfiles[derivation.accountAddress];
-            return profile?.name?.toLowerCase().includes(normalizedQuery);
-          }),
-        )
-      : data.derivations;
+    // Empty-query short-circuit (#13): data.derivations is already unique by address, so apply only
+    // the status filter and skip the Map de-dupe + identityProfiles dependency. This keeps profile
+    // batches from invalidating the list (and the downstream graph memo).
+    if (!normalizedQuery) {
+      if (statusFilter === 'ALL') {
+        return data.derivations;
+      }
+
+      return data.derivations.filter((derivation) => derivation.derivedTrustStatus === statusFilter);
+    }
+
+    const searched = filterDerivations(data.derivations, query).concat(
+      data.derivations.filter((derivation) => {
+        const profile = identityProfiles[derivation.accountAddress];
+        return profile?.name?.toLowerCase().includes(normalizedQuery);
+      }),
+    );
     const uniqueSearched = [...new Map(searched.map((derivation) => [derivation.accountAddress, derivation])).values()];
 
     if (statusFilter === 'ALL') {
@@ -1907,7 +472,7 @@ export default function App() {
     }
 
     return uniqueSearched.filter((derivation) => derivation.derivedTrustStatus === statusFilter);
-  }, [data.derivations, identityProfiles, query, statusFilter]);
+  }, [data.derivations, identityProfiles, normalizedQuery, query, statusFilter]);
 
   // Derive from the unfiltered list so the full-width detail survives search/status-filter changes
   // and search close. The table row highlight and graph still key off filteredDerivations.
@@ -1916,13 +481,32 @@ export default function App() {
     [data.derivations, selectedAddress],
   );
 
-  const graph = useMemo(
-    () => createTrustGraphModel(filteredDerivations, data.ratings, category),
+  // Stable signature of the inputs to the (expensive, 320-tick) graph sim: it depends only on the
+  // displayed addresses, the rating edges, and the category — never on identityProfiles. Memoizing on
+  // this string instead of array identity stops identity-profile batches / silent polls from re-running
+  // the sim when nothing graph-relevant changed (#6).
+  const graphSignature = useMemo(
+    () =>
+      JSON.stringify([
+        category,
+        filteredDerivations.map((derivation) => derivation.accountAddress),
+        data.ratings.map((rating) => [rating.raterAddress, rating.targetAddress, rating.rating]),
+      ]),
     [category, data.ratings, filteredDerivations],
   );
 
-  // What the current user has rated each account in the selected category (the loaded ratings are
-  // already category-scoped). Drives the "You rated" column and the default sort.
+  const graph = useMemo(
+    // Only build the graph model when the graph view is active; an empty graph otherwise so the sim
+    // never runs on the Accounts/Changes/Resources views (#6).
+    () => (view === 'graph' ? createTrustGraphModel(filteredDerivations, data.ratings, category) : createTrustGraphModel([], [], category)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- gated on graphSignature (stable input
+    // signature) + view rather than the array identities folded into the signature.
+    [view, graphSignature],
+  );
+
+  // What the current user has rated each account in the selected category. Built from the dedicated
+  // rater-scoped fetch (#2) so it stays complete past the global 1000-edge cap. Drives the "You rated"
+  // column, the default sort, and the confirmation-poll pending-clear.
   const youRatedByAddress = useMemo<RatingsByAddress>(() => {
     if (!self) {
       return {};
@@ -1930,14 +514,22 @@ export default function App() {
 
     const byAddress: RatingsByAddress = {};
 
-    for (const rating of data.ratings) {
-      if (rating.raterAddress === self.address && rating.category === category) {
-        byAddress[rating.targetAddress] = rating.rating;
+    for (const rating of youRatedRatings) {
+      if (rating.raterAddress !== self.address || rating.category !== category) {
+        continue;
       }
+
+      // 0 means "no active rating" — skip it so it never renders as a "0" badge or leaks into the
+      // sort key / pending map (#20).
+      if (rating.rating === 0) {
+        continue;
+      }
+
+      byAddress[rating.targetAddress] = rating.rating;
     }
 
     return byAddress;
-  }, [category, data.ratings, self]);
+  }, [category, self, youRatedRatings]);
 
   // Pending (submitted-but-unconfirmed) ratings for the selected category, keyed by target address.
   const pendingByAddress = useMemo<RatingsByAddress>(() => {
@@ -2118,22 +710,61 @@ export default function App() {
       }
 
       if (confirmedKeys.length > 0) {
-        // Refresh the trust data first and only drop the optimistic pending entry once the confirmed
-        // value is in `data.ratings`. Clearing before the reload completes would briefly leave the
-        // "You rated" cell blank (pending gone, confirmed value not yet loaded).
+        // Refresh the changed slices (derivations + ratings) and the rater-scoped "You rated" map, then
+        // drop each optimistic pending entry only once its confirmed value is actually present in the
+        // reloaded data (#3). Refetching just the slices keeps unrelated arrays stable (#12), and the
+        // rater-scoped map (#2) is the reliable source past the global edge cap. If a confirmed value
+        // isn't visible yet, keep the optimistic value and re-verify on the next poll.
         setDetailReloadToken((token) => token + 1);
-        await loadDataRef.current({ silent: true });
+
+        let confirmedYouRated: AccountRating[] = [];
+        await Promise.all([
+          refreshRatingSlicesRef.current(),
+          (async () => {
+            const publicKey = selfRef.current?.publicKey;
+
+            if (!publicKey) {
+              return;
+            }
+
+            try {
+              confirmedYouRated = await getAccountRatings({ category: categoryRef.current, rater: publicKey });
+              setYouRatedRatings(confirmedYouRated);
+            } catch (youRatedError) {
+              console.warn('Failed to refresh your ratings during confirmation', youRatedError);
+            }
+          })(),
+        ]);
 
         if (cancelled) {
           return;
         }
 
+        const selfAddress = selfRef.current?.address ?? null;
+        const ratingPresent = (entry: PendingRatingEntry) => {
+          // 0 means "rating cleared" — confirmed when no active rating remains for that target.
+          const active = confirmedYouRated.find(
+            (rating) =>
+              rating.raterAddress === selfAddress &&
+              rating.category === entry.category &&
+              rating.targetAddress === entry.targetAddress &&
+              rating.rating !== 0,
+          );
+
+          if (entry.rating === 0) {
+            return !active;
+          }
+
+          return active?.rating === entry.rating;
+        };
+
         setPendingRatings((current) => {
           const next = { ...current };
 
           for (const key of confirmedKeys) {
-            // Only clear if the value still matches — the user may have re-rated while we polled.
-            if (next[key] && next[key].rating === pendingRatings[key].rating) {
+            // Only clear if the value still matches (user may have re-rated while we polled) AND the
+            // confirmed rating is actually present in the reloaded data; otherwise keep optimistic.
+            if (next[key] && next[key].rating === pendingRatings[key].rating && ratingPresent(next[key])) {
               delete next[key];
             }
           }
@@ -2262,7 +893,15 @@ export default function App() {
             />
           ) : (
             <>
-              {loading ? (
+              {loading && view === 'graph' ? (
+                <TrustGraph
+                  graph={graph}
+                  isLoading
+                  onSelect={selectNode}
+                  profiles={identityProfiles}
+                  selectedAddress={selectedAddress ?? undefined}
+                />
+              ) : loading ? (
                 <div className="loading-panel">
                   <div className="skeleton-block" />
                   <div className="skeleton-block short" />
@@ -2275,15 +914,21 @@ export default function App() {
                   derivations={filteredDerivations}
                   onRate={setOpenRateAddress}
                   onRatingSubmitted={handleRatingSubmitted}
+                  onResetFilters={() => {
+                    setQuery('');
+                    setStatusFilter('ALL');
+                  }}
                   onSelect={selectDerivation}
                   onSort={changeAccountSort}
                   openRateAddress={openRateAddress}
                   pendingByAddress={pendingByAddress}
                   profiles={identityProfiles}
+                  query={query}
                   ratingActionAvailable={ratingActionAvailable}
                   self={self}
                   selectedAddress={selectedAddress ?? undefined}
                   sort={accountSort}
+                  statusFilter={statusFilter}
                   youRatedByAddress={youRatedByAddress}
                 />
               ) : view === 'graph' ? (

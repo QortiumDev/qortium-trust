@@ -26,7 +26,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === 'object' && !Array.isArray(value);
 }
 
-function parseResponseData(body: string, contentType: string) {
+/** @internal exported for unit tests; not part of the module's public surface. */
+export function parseResponseData(body: string, contentType: string) {
   if (!body) {
     return null;
   }
@@ -42,7 +43,8 @@ function parseResponseData(body: string, contentType: string) {
   return body;
 }
 
-function sanitizeNodePath(path: unknown) {
+/** @internal exported for unit tests; not part of the module's public surface. */
+export function sanitizeNodePath(path: unknown) {
   if (typeof path !== 'string' || !path.startsWith('/') || path.startsWith('//')) {
     throw new Error('Node API paths must start with /.');
   }
@@ -56,7 +58,8 @@ function sanitizeNodePath(path: unknown) {
   return `${url.pathname}${url.search}`;
 }
 
-function sanitizeReadMethod(method: unknown) {
+/** @internal exported for unit tests; not part of the module's public surface. */
+export function sanitizeReadMethod(method: unknown) {
   const normalizedMethod = typeof method === 'string' && method.trim() ? method.trim().toUpperCase() : 'GET';
 
   if (normalizedMethod !== 'GET' && normalizedMethod !== 'HEAD') {
@@ -86,6 +89,8 @@ async function fetchLocalNodeApi(request: QdnRequest): Promise<NodeApiFetchResul
     throw new Error(`Node API response exceeded the ${maxBytes.toLocaleString()} byte limit.`);
   }
 
+  // `headers` is intentionally omitted in browser-dev: it is a bridge-only field populated by
+  // Qortium Home's FETCH_NODE_API. No consumer reads it in the local fallback path today.
   return {
     body,
     contentLength: getContentLength(response, bodyLength),

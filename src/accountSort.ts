@@ -1,0 +1,129 @@
+import { getIdentityLabel } from './identityProfiles';
+import type { AccountData, AccountRatingCategory, IdentityProfilesByAddress, TrustDerivation } from './types';
+import type {
+  AccountDataByAddress,
+  AccountSortKey,
+  AccountSortState,
+  RatingsByAddress,
+  SortDirection,
+} from './viewTypes';
+
+// Sentinel below the -4..+4 rating range so accounts you have not rated sort to the bottom.
+export const UNRATED_SORT_VALUE = -5;
+
+export function getDefaultAccountSortDirection(key: AccountSortKey): SortDirection {
+  return key === 'account' ? 'asc' : 'desc';
+}
+
+export function getDerivationCategory(derivation: TrustDerivation, category: AccountRatingCategory) {
+  return derivation.categories.find((candidate) => candidate.category === category);
+}
+
+export function getInboundRatingCount(derivation: TrustDerivation, category: AccountRatingCategory) {
+  const inbound = getDerivationCategory(derivation, category)?.inboundRatings;
+
+  return (inbound?.positiveRatingCount ?? 0) + (inbound?.negativeRatingCount ?? 0);
+}
+
+function getAccountSortLabel(derivation: TrustDerivation, profiles: IdentityProfilesByAddress) {
+  return getIdentityLabel(profiles[derivation.accountAddress], derivation.accountAddress);
+}
+
+export function getAccountMintingLevel(accountData: AccountData | undefined) {
+  return accountData?.level;
+}
+
+export function getAccountBlocksMinted(accountData: AccountData | undefined) {
+  return accountData?.blocksMinted;
+}
+
+export function compareAccountLabels(
+  left: TrustDerivation,
+  right: TrustDerivation,
+  profiles: IdentityProfilesByAddress,
+) {
+  const labelSort = getAccountSortLabel(left, profiles).localeCompare(getAccountSortLabel(right, profiles), undefined, {
+    numeric: true,
+    sensitivity: 'base',
+  });
+
+  return labelSort || left.accountAddress.localeCompare(right.accountAddress);
+}
+
+export function compareAccountRows(
+  left: TrustDerivation,
+  right: TrustDerivation,
+  sortKey: AccountSortKey,
+  category: AccountRatingCategory,
+  profiles: IdentityProfilesByAddress,
+  accountDataByAddress: AccountDataByAddress,
+  youRatedByAddress: RatingsByAddress,
+) {
+  const leftCategory = getDerivationCategory(left, category);
+  const rightCategory = getDerivationCategory(right, category);
+
+  switch (sortKey) {
+    case 'account':
+      return compareAccountLabels(left, right, profiles);
+    case 'status':
+      return left.derivedTrustStatusValue - right.derivedTrustStatusValue;
+    case 'level':
+      return (getAccountMintingLevel(accountDataByAddress[left.accountAddress]) ?? -1) -
+        (getAccountMintingLevel(accountDataByAddress[right.accountAddress]) ?? -1);
+    case 'blocksMinted':
+      return (getAccountBlocksMinted(accountDataByAddress[left.accountAddress]) ?? -1) -
+        (getAccountBlocksMinted(accountDataByAddress[right.accountAddress]) ?? -1);
+    case 'score':
+      return (leftCategory?.score ?? 0) - (rightCategory?.score ?? 0);
+    case 'ratings': {
+      const ratingSort = getInboundRatingCount(left, category) - getInboundRatingCount(right, category);
+
+      if (ratingSort !== 0) {
+        return ratingSort;
+      }
+
+      return (leftCategory?.inboundRatings.positiveRatingCount ?? 0) -
+        (rightCategory?.inboundRatings.positiveRatingCount ?? 0);
+    }
+    case 'youRated':
+      return (youRatedByAddress[left.accountAddress] ?? UNRATED_SORT_VALUE) -
+        (youRatedByAddress[right.accountAddress] ?? UNRATED_SORT_VALUE);
+    case 'voteWeight':
+      return left.derivedTrustWeightPercent - right.derivedTrustWeightPercent;
+    case 'seed':
+      return Number(left.mintingSeedMember) - Number(right.mintingSeedMember);
+    default:
+      return 0;
+  }
+}
+
+export function getAriaSort(sort: AccountSortState, key: AccountSortKey) {
+  const entry = sort.find((candidate) => candidate.key === key);
+
+  if (!entry) {
+    return 'none';
+  }
+
+  return entry.direction === 'asc' ? 'ascending' : 'descending';
+}
+
+// Pure transform applied by the App-level changeAccountSort reducer: clicking a column promotes it
+// to primary (preserving its direction if it was already a tiebreaker, flipping it if it was already
+// primary) and keeps the previous columns as tiebreakers.
+export function changeAccountSortState(current: AccountSortState, key: AccountSortKey): AccountSortState {
+  const existingIndex = current.findIndex((entry) => entry.key === key);
+
+  // Already the primary column: just flip its direction.
+  if (existingIndex === 0) {
+    const [primary, ...rest] = current;
+    return [{ direction: primary.direction === 'asc' ? 'desc' : 'asc', key }, ...rest];
+  }
+
+  // Already a tiebreaker: promote it to primary, preserving its direction.
+  if (existingIndex > 0) {
+    return [current[existingIndex], ...current.filter((entry) => entry.key !== key)];
+  }
+
+  // New column: make it primary and keep the previous columns as tiebreakers.
+  return [{ direction: getDefaultAccountSortDirection(key), key }, ...current];
+}

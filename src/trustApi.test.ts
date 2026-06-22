@@ -1,11 +1,18 @@
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   buildAccountRatingsPath,
   buildRatingCooldownPath,
   buildResourceRatingsPath,
   buildTrustChangesPath,
   buildTrustDerivationPath,
+  submitRating,
 } from './trustApi';
+import { hasHomeBridge, qdnRequest } from './qdnRequest';
+
+vi.mock('./qdnRequest', () => ({
+  hasHomeBridge: vi.fn(),
+  qdnRequest: vi.fn(),
+}));
 
 describe('trust API path builders', () => {
   it('builds trust derivation query paths with defaults', () => {
@@ -56,5 +63,39 @@ describe('trust API path builders', () => {
     expect(buildRatingCooldownPath({ target: 'tPub', rater: 'rPub' })).toBe(
       '/account-ratings/cooldown?target=tPub&rater=rPub',
     );
+  });
+});
+
+describe('submitRating bridge requirement', () => {
+  const hasHomeBridgeMock = vi.mocked(hasHomeBridge);
+  const qdnRequestMock = vi.mocked(qdnRequest);
+
+  beforeEach(() => {
+    hasHomeBridgeMock.mockReset();
+    qdnRequestMock.mockReset();
+  });
+
+  it('throws when the Home bridge is absent', async () => {
+    hasHomeBridgeMock.mockReturnValue(false);
+
+    await expect(submitRating({ category: 'SUBJECT', rating: 1, targetPublicKey: 'tPub' })).rejects.toThrow(
+      'Submitting ratings requires Qortium Home.',
+    );
+    expect(qdnRequestMock).not.toHaveBeenCalled();
+  });
+
+  it('routes a RATE_ACCOUNT request through the bridge when present', async () => {
+    hasHomeBridgeMock.mockReturnValue(true);
+    qdnRequestMock.mockResolvedValue({ signature: 'sig' } as never);
+
+    await expect(submitRating({ category: 'SUBJECT', rating: 1, targetPublicKey: 'tPub' })).resolves.toEqual({
+      signature: 'sig',
+    });
+    expect(qdnRequestMock).toHaveBeenCalledWith({
+      action: 'RATE_ACCOUNT',
+      category: 'SUBJECT',
+      rating: 1,
+      targetPublicKey: 'tPub',
+    });
   });
 });
