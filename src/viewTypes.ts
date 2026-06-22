@@ -1,5 +1,4 @@
 import type {
-  AccountData,
   AccountRating,
   AccountRatingCategory,
   BridgeState,
@@ -38,7 +37,6 @@ export type AccountSortEntry = {
 // previous columns as tiebreakers, so users can stack their own sort (e.g. name, then rating).
 export type AccountSortState = AccountSortEntry[];
 
-export type AccountDataByAddress = Record<string, AccountData>;
 export type RatingsByAddress = Record<string, number>;
 
 export type ExplorerState = {

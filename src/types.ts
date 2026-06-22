@@ -156,6 +156,11 @@ export type TrustDerivation = {
   derivedTrustStatusValue: number;
   derivedTrustWeightPercent: number;
   mintingSeedMember: boolean;
+  // Per-account minting data, populated only on the live derivation path (live=true). Snapshot rows
+  // return 0 because Core does not yet persist these in stored snapshots — read them only when `live`.
+  blocksMinted: number;
+  mintingLevel: number;
+  effectiveVoteWeight: number;
   snapshotHeight: number | null;
   snapshotTimestamp: number | null;
   live: boolean;

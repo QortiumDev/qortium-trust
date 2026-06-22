@@ -1,12 +1,6 @@
 import { getIdentityLabel } from './identityProfiles';
-import type { AccountData, AccountRatingCategory, IdentityProfilesByAddress, TrustDerivation } from './types';
-import type {
-  AccountDataByAddress,
-  AccountSortKey,
-  AccountSortState,
-  RatingsByAddress,
-  SortDirection,
-} from './viewTypes';
+import type { AccountRatingCategory, IdentityProfilesByAddress, TrustDerivation } from './types';
+import type { AccountSortKey, AccountSortState, RatingsByAddress, SortDirection } from './viewTypes';
 
 // Sentinel below the -4..+4 rating range so accounts you have not rated sort to the bottom.
 export const UNRATED_SORT_VALUE = -5;
@@ -29,12 +23,14 @@ function getAccountSortLabel(derivation: TrustDerivation, profiles: IdentityProf
   return getIdentityLabel(profiles[derivation.accountAddress], derivation.accountAddress);
 }
 
-export function getAccountMintingLevel(accountData: AccountData | undefined) {
-  return accountData?.level;
+// Minting level/blocks now come off the derivation row itself (#9). They are only meaningful on a
+// live derivation; snapshot rows carry 0, so the table renders "—" rather than these values there.
+export function getAccountMintingLevel(derivation: TrustDerivation) {
+  return derivation.mintingLevel;
 }
 
-export function getAccountBlocksMinted(accountData: AccountData | undefined) {
-  return accountData?.blocksMinted;
+export function getAccountBlocksMinted(derivation: TrustDerivation) {
+  return derivation.blocksMinted;
 }
 
 export function compareAccountLabels(
@@ -56,7 +52,6 @@ export function compareAccountRows(
   sortKey: AccountSortKey,
   category: AccountRatingCategory,
   profiles: IdentityProfilesByAddress,
-  accountDataByAddress: AccountDataByAddress,
   youRatedByAddress: RatingsByAddress,
 ) {
   const leftCategory = getDerivationCategory(left, category);
@@ -68,11 +63,9 @@ export function compareAccountRows(
     case 'status':
       return left.derivedTrustStatusValue - right.derivedTrustStatusValue;
     case 'level':
-      return (getAccountMintingLevel(accountDataByAddress[left.accountAddress]) ?? -1) -
-        (getAccountMintingLevel(accountDataByAddress[right.accountAddress]) ?? -1);
+      return getAccountMintingLevel(left) - getAccountMintingLevel(right);
     case 'blocksMinted':
-      return (getAccountBlocksMinted(accountDataByAddress[left.accountAddress]) ?? -1) -
-        (getAccountBlocksMinted(accountDataByAddress[right.accountAddress]) ?? -1);
+      return getAccountBlocksMinted(left) - getAccountBlocksMinted(right);
     case 'score':
       return (leftCategory?.score ?? 0) - (rightCategory?.score ?? 0);
     case 'ratings': {

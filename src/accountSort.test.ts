@@ -7,7 +7,7 @@ import type {
   TrustCategory,
   TrustDerivation,
 } from './types';
-import type { AccountDataByAddress, AccountSortState, RatingsByAddress } from './viewTypes';
+import type { AccountSortState, RatingsByAddress } from './viewTypes';
 
 const CATEGORY: AccountRatingCategory = 'SUBJECT';
 
@@ -50,6 +50,9 @@ function derivation(address: string, overrides: Partial<TrustDerivation> = {}): 
     derivedTrustStatusValue: 1,
     derivedTrustWeightPercent: 40,
     mintingSeedMember: false,
+    blocksMinted: 0,
+    mintingLevel: 0,
+    effectiveVoteWeight: 0,
     snapshotHeight: 1,
     snapshotTimestamp: 1000,
     live: false,
@@ -59,7 +62,6 @@ function derivation(address: string, overrides: Partial<TrustDerivation> = {}): 
 }
 
 const profiles: IdentityProfilesByAddress = {};
-const accountData: AccountDataByAddress = {};
 
 function compare(
   left: TrustDerivation,
@@ -67,7 +69,7 @@ function compare(
   key: Parameters<typeof compareAccountRows>[2],
   youRated: RatingsByAddress = {},
 ) {
-  return compareAccountRows(left, right, key, CATEGORY, profiles, accountData, youRated);
+  return compareAccountRows(left, right, key, CATEGORY, profiles, youRated);
 }
 
 describe('compareAccountRows — youRated', () => {
@@ -116,6 +118,16 @@ describe('compareAccountRows — ratings tiebreak', () => {
     });
 
     expect(compare(more, fewer, 'ratings')).toBe(5 - 1);
+  });
+});
+
+describe('compareAccountRows — minting columns read off the derivation row (#9)', () => {
+  it('sorts by mintingLevel and blocksMinted from the row, not a side table', () => {
+    const high = derivation('Qhigh', { mintingLevel: 5, blocksMinted: 5000 });
+    const low = derivation('Qlow', { mintingLevel: 2, blocksMinted: 100 });
+
+    expect(compare(high, low, 'level')).toBe(5 - 2);
+    expect(compare(high, low, 'blocksMinted')).toBe(5000 - 100);
   });
 });
 

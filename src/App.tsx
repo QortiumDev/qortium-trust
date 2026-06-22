@@ -11,7 +11,6 @@ import { loadIdentityProfile } from './identityProfiles';
 import { getBridgeState } from './qdnRequest';
 import { resolveQdnAssetUrl } from './qdnAsset';
 import {
-  getAccountData,
   getAccountRatings,
   getNodeStatus,
   getRatingCooldown,
@@ -50,7 +49,6 @@ import type {
   TrustSummary,
 } from './types';
 import type {
-  AccountDataByAddress,
   AccountDetailState,
   AccountSortKey,
   AccountSortState,
@@ -184,7 +182,6 @@ function PolicyFooter({ policy, summary }: { policy: TrustPolicy | null; summary
 }
 
 export default function App() {
-  const [accountDataByAddress, setAccountDataByAddress] = useState<AccountDataByAddress>({});
   const [accountSort, setAccountSort] = useState<AccountSortState>(DEFAULT_ACCOUNT_SORT);
   const [category, setCategory] = useState<AccountRatingCategory>('SUBJECT');
   const [data, setData] = useState<ExplorerState>(EMPTY_EXPLORER_STATE);
@@ -198,7 +195,9 @@ export default function App() {
   const [detailReloadToken, setDetailReloadToken] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [identityProfiles, setIdentityProfiles] = useState<IdentityProfilesByAddress>({});
-  const [live, setLive] = useState(false);
+  // Default to live derivations so the Level/Blocks/vote-weight columns carry real minting data off
+  // each row (#9) — snapshot rows return 0 for those. Toggling Live off shows the on-chain snapshot.
+  const [live, setLive] = useState(true);
   const [loading, setLoading] = useState(true);
   const [openRateAddress, setOpenRateAddress] = useState<string | null>(null);
   const [pendingRatings, setPendingRatings] = useState<PendingRatingsByKey>({});
@@ -602,44 +601,6 @@ export default function App() {
   }, [data.bridge?.actions, data.changes, data.derivations, data.ratings, identityProfiles]);
 
   useEffect(() => {
-    const missingAddresses = [...new Set(data.derivations.map((derivation) => derivation.accountAddress))].filter(
-      (address) => !accountDataByAddress[address],
-    );
-
-    if (missingAddresses.length === 0) {
-      return;
-    }
-
-    let cancelled = false;
-
-    Promise.allSettled(missingAddresses.map((address) => getAccountData(address))).then((results) => {
-      if (cancelled) {
-        return;
-      }
-
-      const accountRows = results.flatMap((result) => (result.status === 'fulfilled' ? [result.value] : []));
-
-      if (accountRows.length === 0) {
-        return;
-      }
-
-      setAccountDataByAddress((current) => {
-        const next = { ...current };
-
-        for (const account of accountRows) {
-          next[account.address] = account;
-        }
-
-        return next;
-      });
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [accountDataByAddress, data.derivations]);
-
-  useEffect(() => {
     const publicKey = selectedDerivation?.accountPublicKey;
 
     if (!publicKey) {
@@ -925,9 +886,9 @@ export default function App() {
                 </div>
               ) : view === 'accounts' ? (
                 <AccountsTable
-                  accountDataByAddress={accountDataByAddress}
                   category={category}
                   derivations={filteredDerivations}
+                  live={live}
                   onRate={setOpenRateAddress}
                   onRatingSubmitted={handleRatingSubmitted}
                   onResetFilters={() => {

@@ -8,13 +8,7 @@ import type {
   TrustDerivation,
   TrustStatus,
 } from '../types';
-import type {
-  AccountDataByAddress,
-  AccountSortKey,
-  AccountSortState,
-  PendingRatingEntry,
-  RatingsByAddress,
-} from '../viewTypes';
+import type { AccountSortKey, AccountSortState, PendingRatingEntry, RatingsByAddress } from '../viewTypes';
 import {
   compareAccountLabels,
   compareAccountRows,
@@ -73,9 +67,9 @@ export function SortHeader({
 }
 
 export function AccountsTable({
-  accountDataByAddress,
   category,
   derivations,
+  live,
   onRate,
   onRatingSubmitted,
   onResetFilters,
@@ -92,9 +86,11 @@ export function AccountsTable({
   statusFilter = 'ALL',
   youRatedByAddress,
 }: {
-  accountDataByAddress: AccountDataByAddress;
   category: AccountRatingCategory;
   derivations: TrustDerivation[];
+  // Minting columns (Level/Blocks) are only populated on live derivations; in snapshot mode they
+  // render as "—" because Core returns 0 placeholders there (#9).
+  live: boolean;
   onRate: (address: string | null) => void;
   onRatingSubmitted: (entry: PendingRatingEntry) => void;
   onResetFilters?: () => void;
@@ -137,7 +133,6 @@ export function AccountsTable({
               key,
               category,
               profiles,
-              accountDataByAddress,
               effectiveYouRated,
             );
 
@@ -149,7 +144,7 @@ export function AccountsTable({
           return compareAccountLabels(left.derivation, right.derivation, profiles) || left.index - right.index;
         })
         .map(({ derivation }) => derivation),
-    [accountDataByAddress, category, derivations, effectiveYouRated, profiles, sort],
+    [category, derivations, effectiveYouRated, profiles, sort],
   );
 
   // #19: distinguish "your search/filter matched nothing" (recoverable — offer a reset) from
@@ -216,7 +211,6 @@ export function AccountsTable({
             const categoryData = getDerivationCategory(derivation, category);
             const inbound = categoryData?.inboundRatings;
             const profile = profiles[derivation.accountAddress];
-            const accountData = accountDataByAddress[derivation.accountAddress];
             const youRated = youRatedByAddress[derivation.accountAddress];
             const pendingRating = pendingByAddress[derivation.accountAddress];
 
@@ -235,8 +229,8 @@ export function AccountsTable({
                 <td>
                   <MemoStatusBadge status={derivation.derivedTrustStatus} />
                 </td>
-                <td>{formatNumber(getAccountMintingLevel(accountData))}</td>
-                <td>{formatNumber(getAccountBlocksMinted(accountData))}</td>
+                <td>{live ? formatNumber(getAccountMintingLevel(derivation)) : '—'}</td>
+                <td>{live ? formatNumber(getAccountBlocksMinted(derivation)) : '—'}</td>
                 <td>{formatNumber(categoryData?.score ?? 0)}</td>
                 <td>
                   {formatNumber(inbound?.positiveRatingCount ?? 0)} / {formatNumber(inbound?.negativeRatingCount ?? 0)}
