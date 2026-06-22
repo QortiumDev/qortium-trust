@@ -3,3 +3,6 @@ dist/
 .vite/
 *.local
 CLAUDE.md
+
+# Local scratch notes (handoff plans, review backlogs)
+/notes*
