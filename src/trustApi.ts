@@ -34,22 +34,47 @@ function appendQueryValue(query: URLSearchParams, key: string, value: string | n
   query.set(key, String(value));
 }
 
-function assertOk<T>(result: NodeApiFetchResult<T>, label: string) {
-  if (!result.ok) {
-    throw new Error(result.body || t('fetch.failedHttp', { label, status: result.status }));
+// Case-insensitive lookup for a numeric response header. Home's FETCH_NODE_API forwards the node's
+// response headers verbatim (case preserved), and the browser-dev fallback omits headers entirely,
+// so callers degrade to `null` rather than guessing a count.
+function readNumericHeader(headers: Record<string, string> | undefined, name: string): number | null {
+  if (!headers) {
+    return null;
   }
 
-  return result.data;
+  const target = name.toLowerCase();
+
+  for (const [key, value] of Object.entries(headers)) {
+    if (key.toLowerCase() === target) {
+      const parsed = Number(value);
+
+      return Number.isFinite(parsed) ? parsed : null;
+    }
+  }
+
+  return null;
 }
 
-export async function fetchNodeApiData<T>(path: string, label: string, maxBytes = DEFAULT_MAX_BYTES) {
+export async function fetchNodeApiResult<T>(
+  path: string,
+  label: string,
+  maxBytes = DEFAULT_MAX_BYTES,
+): Promise<NodeApiFetchResult<T>> {
   const result = await qdnRequest<NodeApiFetchResult<T>>({
     action: 'FETCH_NODE_API',
     maxBytes,
     path,
   });
 
-  return assertOk(result, label);
+  if (!result.ok) {
+    throw new Error(result.body || t('fetch.failedHttp', { label, status: result.status }));
+  }
+
+  return result;
+}
+
+export async function fetchNodeApiData<T>(path: string, label: string, maxBytes = DEFAULT_MAX_BYTES) {
+  return (await fetchNodeApiResult<T>(path, label, maxBytes)).data;
 }
 
 export function buildTrustDerivationPath(options: {
@@ -170,8 +195,21 @@ export function getTrustPolicy() {
   return fetchNodeApiData<TrustPolicy>('/account-ratings/trust-policy', t('fetch.trustPolicy'));
 }
 
-export function getTrustDerivation(options?: Parameters<typeof buildTrustDerivationPath>[0]) {
-  return fetchNodeApiData<TrustDerivation[]>(buildTrustDerivationPath(options), t('fetch.trustDerivation'));
+/**
+ * Fetch a page of the trust derivation listing plus the total category size from the `X-Total-Count`
+ * response header (set by Core on the paginated listing). `total` is `null` when the header is
+ * absent — e.g. the browser-dev fallback, which doesn't surface response headers — so the UI can
+ * cleanly omit the "of M" hint instead of showing a wrong count.
+ */
+export async function getTrustDerivationPage(
+  options?: Parameters<typeof buildTrustDerivationPath>[0],
+): Promise<{ derivations: TrustDerivation[]; total: number | null }> {
+  const result = await fetchNodeApiResult<TrustDerivation[]>(
+    buildTrustDerivationPath(options),
+    t('fetch.trustDerivation'),
+  );
+
+  return { derivations: result.data, total: readNumericHeader(result.headers, 'X-Total-Count') };
 }
 
 export function getAccountRatings(options?: Parameters<typeof buildAccountRatingsPath>[0]) {

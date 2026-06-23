@@ -266,6 +266,101 @@ export async function loadIdentityProfile(address: string, actions?: QdnAction[]
   return pending;
 }
 
+// Home's RESOLVE_IDENTITIES bridge action resolves at most this many addresses per call (mirrors
+// MAX_RESOLVE_IDENTITIES in qortium-home); larger sets are split into successive calls.
+const RESOLVE_IDENTITIES_BATCH_SIZE = 500;
+
+// Concurrency cap for the per-address fallback path (no batch action) so a large category resolves
+// in bounded waves instead of firing hundreds of simultaneous name/avatar round-trips (perf-002).
+const IDENTITY_FETCH_CONCURRENCY = 6;
+
+function chunk<T>(items: T[], size: number): T[][] {
+  const chunks: T[][] = [];
+
+  for (let index = 0; index < items.length; index += size) {
+    chunks.push(items.slice(index, index + size));
+  }
+
+  return chunks;
+}
+
+async function mapWithConcurrency<T, R>(items: T[], limit: number, resolve: (item: T) => Promise<R>): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  let cursor = 0;
+
+  const runWorker = async () => {
+    while (cursor < items.length) {
+      const index = cursor++;
+      results[index] = await resolve(items[index]);
+    }
+  };
+
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, runWorker));
+
+  return results;
+}
+
+type ResolvedIdentityEntry = { address?: unknown; name?: unknown; avatarSrc?: unknown };
+
+function toIdentityProfile(entry: ResolvedIdentityEntry, address: string): IdentityProfile {
+  const name = normalizeRegisteredName(typeof entry.name === 'string' ? entry.name : null);
+  // Home only emits an avatarSrc for named accounts and does not status-check it, so an unpublished
+  // avatar still yields a URL here; IdentityAvatar falls back to the glyph on image error.
+  const avatarSrc = name && typeof entry.avatarSrc === 'string' && entry.avatarSrc ? entry.avatarSrc : null;
+
+  return { address, avatarSrc, name };
+}
+
+async function resolveIdentitiesViaBridge(addresses: string[]): Promise<IdentityProfile[]> {
+  const profiles: IdentityProfile[] = [];
+
+  for (const batch of chunk(addresses, RESOLVE_IDENTITIES_BATCH_SIZE)) {
+    const resolved = await qdnRequest<ResolvedIdentityEntry[]>({ action: 'RESOLVE_IDENTITIES', addresses: batch });
+    const byAddress = new Map<string, ResolvedIdentityEntry>();
+
+    if (Array.isArray(resolved)) {
+      for (const entry of resolved) {
+        const address = getStringProperty(entry, 'address');
+
+        if (address) {
+          byAddress.set(address, entry as ResolvedIdentityEntry);
+        }
+      }
+    }
+
+    // Preserve the requested order and always emit a record per address, so a missing/garbled entry
+    // resolves to a nameless profile (retried next data-epoch) rather than dropping the row.
+    for (const address of batch) {
+      const entry = byAddress.get(address);
+
+      profiles.push(entry ? toIdentityProfile(entry, address) : { address, avatarSrc: null, name: null });
+    }
+  }
+
+  return profiles;
+}
+
+/**
+ * Resolve identities for many addresses at once. When Home advertises `RESOLVE_IDENTITIES` the whole
+ * set is resolved in one chunked bridge call instead of a name+avatar round-trip per address
+ * (perf-002); otherwise it falls back to the per-address path with bounded concurrency.
+ */
+export async function loadIdentityProfiles(addresses: string[], actions?: QdnAction[]): Promise<IdentityProfile[]> {
+  if (addresses.length === 0) {
+    return [];
+  }
+
+  if (hasHomeBridge() && hasBridgeAction(actions, 'RESOLVE_IDENTITIES')) {
+    try {
+      return await resolveIdentitiesViaBridge(addresses);
+    } catch {
+      // Fall back to per-address resolution if the batch action is unavailable or errors mid-flight.
+    }
+  }
+
+  return mapWithConcurrency(addresses, IDENTITY_FETCH_CONCURRENCY, (address) => loadIdentityProfile(address, actions));
+}
+
 export function getIdentityLabel(profile: IdentityProfile | undefined, address: string) {
   return profile?.name ?? address;
 }

@@ -3,6 +3,7 @@ import { type TranslationKey } from '../en';
 type LocaleCatalog = Record<TranslationKey, string>;
 
 export const ja: LocaleCatalog = {
+  'accounts.showingCount': '{total}件中、最初の{loaded}件のアカウントを表示しています',
   'action.back': '戻る',
   'action.backToList': '一覧に戻る',
   'action.closeSearch': '検索を閉じる',
@@ -175,6 +176,7 @@ export const ja: LocaleCatalog = {
 };
 
 export const ko: LocaleCatalog = {
+  'accounts.showingCount': '{total}개 계정 중 처음 {loaded}개 표시 중',
   'action.back': '뒤로',
   'action.backToList': '목록으로 돌아가기',
   'action.closeSearch': '검색 닫기',
@@ -347,6 +349,7 @@ export const ko: LocaleCatalog = {
 };
 
 export const zhCN: LocaleCatalog = {
+  'accounts.showingCount': '正在显示 {total} 个账户中的前 {loaded} 个',
   'action.back': '返回',
   'action.backToList': '返回列表',
   'action.closeSearch': '关闭搜索',
@@ -519,6 +522,7 @@ export const zhCN: LocaleCatalog = {
 };
 
 export const zhTW: LocaleCatalog = {
+  'accounts.showingCount': '正在顯示 {total} 個帳戶中的前 {loaded} 個',
   'action.back': '返回',
   'action.backToList': '返回清單',
   'action.closeSearch': '關閉搜尋',

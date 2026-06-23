@@ -5,6 +5,7 @@ import {
   buildResourceRatingsPath,
   buildTrustChangesPath,
   buildTrustDerivationPath,
+  getTrustDerivationPage,
   submitRating,
 } from './trustApi';
 import { hasHomeBridge, qdnRequest } from './qdnRequest';
@@ -98,5 +99,40 @@ describe('submitRating bridge requirement', () => {
       rating: 1,
       targetPublicKey: 'tPub',
     });
+  });
+});
+
+describe('getTrustDerivationPage total count', () => {
+  const qdnRequestMock = vi.mocked(qdnRequest);
+
+  const okResult = (data: unknown, headers?: Record<string, string>) =>
+    ({ body: '', contentType: 'application/json', data, headers, ok: true, status: 200, statusText: 'OK' }) as never;
+
+  beforeEach(() => {
+    qdnRequestMock.mockReset();
+  });
+
+  it('reads X-Total-Count case-insensitively', async () => {
+    qdnRequestMock.mockResolvedValueOnce(okResult([{ accountAddress: 'Qa' }], { 'x-total-count': '4096' }));
+
+    await expect(getTrustDerivationPage({ category: 'SUBJECT' })).resolves.toEqual({
+      derivations: [{ accountAddress: 'Qa' }],
+      total: 4096,
+    });
+  });
+
+  it('returns null total when the header is absent (browser-dev fallback)', async () => {
+    qdnRequestMock.mockResolvedValueOnce(okResult([{ accountAddress: 'Qa' }]));
+
+    await expect(getTrustDerivationPage({ category: 'SUBJECT' })).resolves.toEqual({
+      derivations: [{ accountAddress: 'Qa' }],
+      total: null,
+    });
+  });
+
+  it('returns null total when the header is non-numeric', async () => {
+    qdnRequestMock.mockResolvedValueOnce(okResult([], { 'X-Total-Count': 'lots' }));
+
+    await expect(getTrustDerivationPage({ category: 'SUBJECT' })).resolves.toEqual({ derivations: [], total: null });
   });
 });

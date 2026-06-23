@@ -3,6 +3,7 @@ import { type TranslationKey } from '../en';
 type LocaleCatalog = Record<TranslationKey, string>;
 
 export const ar: LocaleCatalog = {
+  'accounts.showingCount': 'عرض أول {loaded} من أصل {total} حساب',
   'action.back': 'رجوع',
   'action.backToList': 'العودة إلى القائمة',
   'action.closeSearch': 'إغلاق البحث',
@@ -175,6 +176,7 @@ export const ar: LocaleCatalog = {
 };
 
 export const he: LocaleCatalog = {
+  'accounts.showingCount': 'מוצגים {loaded} החשבונות הראשונים מתוך {total}',
   'action.back': 'חזרה',
   'action.backToList': 'חזרה לרשימה',
   'action.closeSearch': 'סגירת חיפוש',

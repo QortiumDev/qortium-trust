@@ -1,4 +1,5 @@
 export const en = {
+  'accounts.showingCount': 'Showing first {loaded} of {total} accounts',
   'action.back': 'Back',
   'action.backToList': 'Back to list',
   'action.closeSearch': 'Close search',

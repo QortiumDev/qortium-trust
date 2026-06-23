@@ -13,6 +13,9 @@ export type KnownQdnAction =
   | 'WHICH_UI'
   | 'GET_SELECTED_ACCOUNT'
   | 'GET_ACCOUNT_DATA'
+  | 'GET_ACCOUNT_NAMES'
+  | 'GET_QDN_RESOURCE_URL'
+  | 'RESOLVE_IDENTITIES'
   | 'RATE_ACCOUNT';
 
 /**

@@ -3,6 +3,7 @@ import { type TranslationKey } from '../en';
 type LocaleCatalog = Record<TranslationKey, string>;
 
 export const de: LocaleCatalog = {
+  'accounts.showingCount': 'Erste {loaded} von {total} Konten werden angezeigt',
   'action.back': 'Zurück',
   'action.backToList': 'Zurück zur Liste',
   'action.closeSearch': 'Suche schließen',
@@ -175,6 +176,7 @@ export const de: LocaleCatalog = {
 };
 
 export const el: LocaleCatalog = {
+  'accounts.showingCount': 'Εμφάνιση των πρώτων {loaded} από {total} λογαριασμούς',
   'action.back': 'Πίσω',
   'action.backToList': 'Πίσω στη λίστα',
   'action.closeSearch': 'Κλείσιμο αναζήτησης',
@@ -347,6 +349,7 @@ export const el: LocaleCatalog = {
 };
 
 export const es: LocaleCatalog = {
+  'accounts.showingCount': 'Mostrando las primeras {loaded} de {total} cuentas',
   'action.back': 'Atrás',
   'action.backToList': 'Volver a la lista',
   'action.closeSearch': 'Cerrar búsqueda',
@@ -519,6 +522,7 @@ export const es: LocaleCatalog = {
 };
 
 export const et: LocaleCatalog = {
+  'accounts.showingCount': 'Kuvatakse esimesed {loaded} kontot {total}-st',
   'action.back': 'Tagasi',
   'action.backToList': 'Tagasi loendisse',
   'action.closeSearch': 'Sulge otsing',
@@ -691,6 +695,7 @@ export const et: LocaleCatalog = {
 };
 
 export const fi: LocaleCatalog = {
+  'accounts.showingCount': 'Näytetään ensimmäiset {loaded}/{total} tiliä',
   'action.back': 'Takaisin',
   'action.backToList': 'Takaisin luetteloon',
   'action.closeSearch': 'Sulje haku',
@@ -863,6 +868,7 @@ export const fi: LocaleCatalog = {
 };
 
 export const fr: LocaleCatalog = {
+  'accounts.showingCount': 'Affichage des {loaded} premiers comptes sur {total}',
   'action.back': 'Retour',
   'action.backToList': 'Retour à la liste',
   'action.closeSearch': 'Fermer la recherche',
@@ -1035,6 +1041,7 @@ export const fr: LocaleCatalog = {
 };
 
 export const hi: LocaleCatalog = {
+  'accounts.showingCount': '{total} में से पहले {loaded} खाते दिखाए जा रहे हैं',
   'action.back': 'वापस',
   'action.backToList': 'सूची पर वापस',
   'action.closeSearch': 'खोज बंद करें',
@@ -1207,6 +1214,7 @@ export const hi: LocaleCatalog = {
 };
 
 export const hu: LocaleCatalog = {
+  'accounts.showingCount': 'Az első {loaded} fiók megjelenítése {total} közül',
   'action.back': 'Vissza',
   'action.backToList': 'Vissza a listához',
   'action.closeSearch': 'Keresés bezárása',
@@ -1379,6 +1387,7 @@ export const hu: LocaleCatalog = {
 };
 
 export const it: LocaleCatalog = {
+  'accounts.showingCount': 'Visualizzazione dei primi {loaded} di {total} account',
   'action.back': 'Indietro',
   'action.backToList': 'Torna all\'elenco',
   'action.closeSearch': 'Chiudi ricerca',
@@ -1551,6 +1560,7 @@ export const it: LocaleCatalog = {
 };
 
 export const nl: LocaleCatalog = {
+  'accounts.showingCount': 'Eerste {loaded} van {total} accounts worden weergegeven',
   'action.back': 'Terug',
   'action.backToList': 'Terug naar lijst',
   'action.closeSearch': 'Zoeken sluiten',
@@ -1723,6 +1733,7 @@ export const nl: LocaleCatalog = {
 };
 
 export const pl: LocaleCatalog = {
+  'accounts.showingCount': 'Wyświetlanie pierwszych {loaded} z {total} kont',
   'action.back': 'Wstecz',
   'action.backToList': 'Powrót do listy',
   'action.closeSearch': 'Zamknij wyszukiwanie',
@@ -1895,6 +1906,7 @@ export const pl: LocaleCatalog = {
 };
 
 export const pt: LocaleCatalog = {
+  'accounts.showingCount': 'Mostrando as primeiras {loaded} de {total} contas',
   'action.back': 'Voltar',
   'action.backToList': 'Voltar à lista',
   'action.closeSearch': 'Fechar pesquisa',
@@ -2067,6 +2079,7 @@ export const pt: LocaleCatalog = {
 };
 
 export const ro: LocaleCatalog = {
+  'accounts.showingCount': 'Se afișează primele {loaded} din {total} conturi',
   'action.back': 'Înapoi',
   'action.backToList': 'Înapoi la listă',
   'action.closeSearch': 'Închide căutarea',
@@ -2239,6 +2252,7 @@ export const ro: LocaleCatalog = {
 };
 
 export const ru: LocaleCatalog = {
+  'accounts.showingCount': 'Показаны первые {loaded} из {total} аккаунтов',
   'action.back': 'Назад',
   'action.backToList': 'Назад к списку',
   'action.closeSearch': 'Закрыть поиск',
@@ -2411,6 +2425,7 @@ export const ru: LocaleCatalog = {
 };
 
 export const sv: LocaleCatalog = {
+  'accounts.showingCount': 'Visar de första {loaded} av {total} kontona',
   'action.back': 'Tillbaka',
   'action.backToList': 'Tillbaka till listan',
   'action.closeSearch': 'Stäng sökning',
@@ -2583,6 +2598,7 @@ export const sv: LocaleCatalog = {
 };
 
 export const nb: LocaleCatalog = {
+  'accounts.showingCount': 'Viser de første {loaded} av {total} kontoer',
   'action.back': 'Tilbake',
   'action.backToList': 'Tilbake til listen',
   'action.closeSearch': 'Lukk søk',
