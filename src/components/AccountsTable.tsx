@@ -196,13 +196,20 @@ export function AccountsTable({
     !filtering && typeof totalCount === 'number' && typeof loadedCount === 'number' && totalCount > loadedCount;
 
   return (
-    <div className="table-wrap">
+    <div aria-label={t('nav.accounts')} className="table-wrap" role="region" tabIndex={0}>
       <table className="accounts-table">
-        {showCountHint ? (
-          <caption className="table-caption">
-            {t('accounts.showingCount', { loaded: loadedCount as number, total: totalCount as number })}
-          </caption>
-        ) : null}
+        <caption className="table-caption">
+          {/* Data-freshness badge (UX-007): in snapshot mode the Level/Blocks columns read "—", so
+              surfacing the mode explains why. */}
+          <span className={`data-mode-badge data-mode-badge--${live ? 'live' : 'snapshot'}`}>
+            {live ? t('label.live') : t('label.snapshot')}
+          </span>
+          {showCountHint ? (
+            <span className="table-caption__count">
+              {t('accounts.showingCount', { loaded: loadedCount as number, total: totalCount as number })}
+            </span>
+          ) : null}
+        </caption>
         <thead>
           <tr>
             <th aria-sort={getAriaSort(sort, 'account')}>
@@ -211,7 +218,7 @@ export function AccountsTable({
             <th aria-sort={getAriaSort(sort, 'status')}>
               <SortHeader label={t('label.status')} onSort={onSort} sort={sort} sortKey="status" />
             </th>
-            <th aria-sort={live ? getAriaSort(sort, 'level') : 'none'}>
+            <th aria-sort={live ? getAriaSort(sort, 'level') : 'none'} title={t('tooltip.level')}>
               <SortHeader
                 disabled={!live}
                 disabledReason={mintingSortDisabledReason}
@@ -221,7 +228,7 @@ export function AccountsTable({
                 sortKey="level"
               />
             </th>
-            <th aria-sort={live ? getAriaSort(sort, 'blocksMinted') : 'none'}>
+            <th aria-sort={live ? getAriaSort(sort, 'blocksMinted') : 'none'} title={t('tooltip.blocksMinted')}>
               <SortHeader
                 disabled={!live}
                 disabledReason={mintingSortDisabledReason}
@@ -231,7 +238,7 @@ export function AccountsTable({
                 sortKey="blocksMinted"
               />
             </th>
-            <th aria-sort={getAriaSort(sort, 'score')}>
+            <th aria-sort={getAriaSort(sort, 'score')} title={t('tooltip.score')}>
               <SortHeader label={t('label.score')} onSort={onSort} sort={sort} sortKey="score" />
             </th>
             <th aria-sort={getAriaSort(sort, 'ratings')}>
@@ -240,10 +247,10 @@ export function AccountsTable({
             <th aria-sort={getAriaSort(sort, 'youRated')}>
               <SortHeader label={t('label.youRated')} onSort={onSort} sort={sort} sortKey="youRated" />
             </th>
-            <th aria-sort={getAriaSort(sort, 'voteWeight')}>
+            <th aria-sort={getAriaSort(sort, 'voteWeight')} title={t('tooltip.voteWeight')}>
               <SortHeader label={t('label.voteWeight')} onSort={onSort} sort={sort} sortKey="voteWeight" />
             </th>
-            <th aria-sort={getAriaSort(sort, 'seed')}>
+            <th aria-sort={getAriaSort(sort, 'seed')} title={t('tooltip.seed')}>
               <SortHeader label={t('label.seed')} onSort={onSort} sort={sort} sortKey="seed" />
             </th>
             <th>{t('label.rate')}</th>
@@ -259,9 +266,18 @@ export function AccountsTable({
 
             return (
               <tr
-                className={selectedAddress === derivation.accountAddress ? 'selected-row' : ''}
+                className={`account-row${selectedAddress === derivation.accountAddress ? ' selected-row' : ''}`}
                 key={derivation.accountAddress}
                 onClick={() => onSelect(derivation)}
+                onKeyDown={(event) => {
+                  // Enter/Space activate the row like a click; the rate-cell button keeps its own
+                  // focus + Enter handling and stops propagation so it never double-fires (UX-004).
+                  if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
+                    event.preventDefault();
+                    onSelect(derivation);
+                  }
+                }}
+                tabIndex={0}
               >
                 <td>
                   <div className="identity-cell">

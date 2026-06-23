@@ -12,17 +12,24 @@ const MemoStatusBadge = memo(StatusBadge);
 
 export function ChangesTable({
   changes,
+  onSelectAccount,
   profiles,
+  selectableAddresses,
 }: {
   changes: TrustStatusChange[];
+  // Opens the account's detail when its row is activated. Only wired for accounts present in the
+  // loaded category list (selectableAddresses) — detail is driven by that list, so a row for an
+  // account outside it would be a no-op and is left non-interactive instead (UX-003).
+  onSelectAccount?: (address: string) => void;
   profiles: IdentityProfilesByAddress;
+  selectableAddresses?: Set<string>;
 }) {
   if (changes.length === 0) {
     return <EmptyState icon={<ArrowDownUp size={18} />} text={t('empty.changes')} />;
   }
 
   return (
-    <div className="table-wrap">
+    <div aria-label={t('nav.changes')} className="table-wrap" role="region" tabIndex={0}>
       <table>
         <thead>
           <tr>
@@ -38,9 +45,25 @@ export function ChangesTable({
         <tbody>
           {changes.map((change) => {
             const profile = profiles[change.accountAddress];
+            const selectable = !!onSelectAccount && (selectableAddresses?.has(change.accountAddress) ?? false);
 
             return (
-              <tr key={`${change.accountAddress}-${change.category}-${change.snapshotHeight}`}>
+              <tr
+                className={selectable ? 'account-row' : undefined}
+                key={`${change.accountAddress}-${change.category}-${change.snapshotHeight}`}
+                onClick={selectable ? () => onSelectAccount?.(change.accountAddress) : undefined}
+                onKeyDown={
+                  selectable
+                    ? (event) => {
+                        if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
+                          event.preventDefault();
+                          onSelectAccount?.(change.accountAddress);
+                        }
+                      }
+                    : undefined
+                }
+                tabIndex={selectable ? 0 : undefined}
+              >
                 <td>
                   <div className="identity-cell">
                     <MemoIdentityAvatar address={change.accountAddress} profile={profile} size="small" />

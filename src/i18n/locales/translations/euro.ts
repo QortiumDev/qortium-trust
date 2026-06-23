@@ -3,6 +3,15 @@ import { type TranslationKey } from '../en';
 type LocaleCatalog = Record<TranslationKey, string>;
 
 export const de: LocaleCatalog = {
+  'graph.edgeTitle': '{source} → {target}: {rating} (Konfidenz {confidence})',
+  'rating.submitted': 'Bewertung gesendet',
+  'readonly.note': 'Schreibgeschützter Modus. Öffne diese App in Qortium Home, um Konten zu bewerten.',
+  'tooltip.blocksMinted': 'Gesamtzahl der von diesem Konto geprägten Blöcke.',
+  'tooltip.effectiveVote': 'Aktuelles Stimmgewicht einschließlich Prägeeinfluss.',
+  'tooltip.level': 'Für diese Kategorie abgeleitetes Präge-Level.',
+  'tooltip.score': 'Gewichteter Trust-Score aus eingehenden Bewertungen.',
+  'tooltip.seed': 'Gründungs-Seed-Mitglied des Netzwerks.',
+  'tooltip.voteWeight': 'Anteil an der gesamten trust-gewichteten Stimmkraft.',
   'accounts.showingCount': 'Erste {loaded} von {total} Konten werden angezeigt',
   'action.back': 'Zurück',
   'action.backToList': 'Zurück zur Liste',
@@ -176,6 +185,15 @@ export const de: LocaleCatalog = {
 };
 
 export const el: LocaleCatalog = {
+  'graph.edgeTitle': '{source} → {target}: {rating} (αξιοπιστία {confidence})',
+  'rating.submitted': 'Η αξιολόγηση υποβλήθηκε',
+  'readonly.note': 'Λειτουργία μόνο για ανάγνωση. Ανοίξτε αυτήν την εφαρμογή στο Qortium Home για να αξιολογήσετε λογαριασμούς.',
+  'tooltip.blocksMinted': 'Συνολικά μπλοκ που έχει δημιουργήσει αυτός ο λογαριασμός.',
+  'tooltip.effectiveVote': 'Ζωντανό βάρος ψήφου, συμπεριλαμβανομένης της επιρροής δημιουργίας.',
+  'tooltip.level': 'Επίπεδο δημιουργίας που προκύπτει για αυτήν την κατηγορία.',
+  'tooltip.score': 'Σταθμισμένη βαθμολογία εμπιστοσύνης από εισερχόμενες αξιολογήσεις.',
+  'tooltip.seed': 'Ιδρυτικό μέλος seed του δικτύου.',
+  'tooltip.voteWeight': 'Μερίδιο της συνολικής ισχύος ψήφου σταθμισμένης με εμπιστοσύνη.',
   'accounts.showingCount': 'Εμφάνιση των πρώτων {loaded} από {total} λογαριασμούς',
   'action.back': 'Πίσω',
   'action.backToList': 'Πίσω στη λίστα',
@@ -349,6 +367,15 @@ export const el: LocaleCatalog = {
 };
 
 export const es: LocaleCatalog = {
+  'graph.edgeTitle': '{source} → {target}: {rating} (confianza {confidence})',
+  'rating.submitted': 'Valoración enviada',
+  'readonly.note': 'Modo de solo lectura. Abre esta app en Qortium Home para valorar cuentas.',
+  'tooltip.blocksMinted': 'Total de bloques que ha forjado esta cuenta.',
+  'tooltip.effectiveVote': 'Peso de voto en vivo, incluida la influencia de forja.',
+  'tooltip.level': 'Nivel de forja derivado para esta categoría.',
+  'tooltip.score': 'Puntuación de confianza ponderada de las valoraciones recibidas.',
+  'tooltip.seed': 'Miembro semilla fundador de la red.',
+  'tooltip.voteWeight': 'Proporción del poder de voto ponderado por confianza.',
   'accounts.showingCount': 'Mostrando las primeras {loaded} de {total} cuentas',
   'action.back': 'Atrás',
   'action.backToList': 'Volver a la lista',
@@ -522,6 +549,15 @@ export const es: LocaleCatalog = {
 };
 
 export const et: LocaleCatalog = {
+  'graph.edgeTitle': '{source} → {target}: {rating} (usaldus {confidence})',
+  'rating.submitted': 'Hinnang esitatud',
+  'readonly.note': 'Kirjutuskaitstud režiim. Kontode hindamiseks ava see rakendus Qortium Home is.',
+  'tooltip.blocksMinted': 'Selle konto loodud plokkide koguarv.',
+  'tooltip.effectiveVote': 'Reaalajas hääleõigus koos mintimise mõjuga.',
+  'tooltip.level': 'Selle kategooria jaoks tuletatud mintimistase.',
+  'tooltip.score': 'Kaalutud usaldusskoor sissetulevatest hinnangutest.',
+  'tooltip.seed': 'Võrgu asutaja seed-liige.',
+  'tooltip.voteWeight': 'Osa kogu usaldusega kaalutud hääleõigusest.',
   'accounts.showingCount': 'Kuvatakse esimesed {loaded} kontot {total}-st',
   'action.back': 'Tagasi',
   'action.backToList': 'Tagasi loendisse',
@@ -695,6 +731,15 @@ export const et: LocaleCatalog = {
 };
 
 export const fi: LocaleCatalog = {
+  'graph.edgeTitle': '{source} → {target}: {rating} (luotettavuus {confidence})',
+  'rating.submitted': 'Arvio lähetetty',
+  'readonly.note': 'Vain luku -tila. Avaa tämä sovellus Qortium Homessa arvioidaksesi tilejä.',
+  'tooltip.blocksMinted': 'Tämän tilin louhimien lohkojen kokonaismäärä.',
+  'tooltip.effectiveVote': 'Reaaliaikainen äänipaino mukaan lukien louhintavaikutus.',
+  'tooltip.level': 'Tälle kategorialle johdettu louhintataso.',
+  'tooltip.score': 'Painotettu luottamuspistemäärä saapuneista arvioista.',
+  'tooltip.seed': 'Verkon perustava seed-jäsen.',
+  'tooltip.voteWeight': 'Osuus koko luottamuspainotetusta äänivallasta.',
   'accounts.showingCount': 'Näytetään ensimmäiset {loaded}/{total} tiliä',
   'action.back': 'Takaisin',
   'action.backToList': 'Takaisin luetteloon',
@@ -868,6 +913,15 @@ export const fi: LocaleCatalog = {
 };
 
 export const fr: LocaleCatalog = {
+  'graph.edgeTitle': '{source} → {target} : {rating} (confiance {confidence})',
+  'rating.submitted': 'Évaluation envoyée',
+  'readonly.note': 'Mode lecture seule. Ouvrez cette app dans Qortium Home pour évaluer des comptes.',
+  'tooltip.blocksMinted': 'Nombre total de blocs forgés par ce compte.',
+  'tooltip.effectiveVote': 'Poids de vote en direct, influence de forge incluse.',
+  'tooltip.level': 'Niveau de forge dérivé pour cette catégorie.',
+  'tooltip.score': 'Score de confiance pondéré des évaluations reçues.',
+  'tooltip.seed': 'Membre fondateur (seed) du réseau.',
+  'tooltip.voteWeight': 'Part du pouvoir de vote pondéré par la confiance.',
   'accounts.showingCount': 'Affichage des {loaded} premiers comptes sur {total}',
   'action.back': 'Retour',
   'action.backToList': 'Retour à la liste',
@@ -1041,6 +1095,15 @@ export const fr: LocaleCatalog = {
 };
 
 export const hi: LocaleCatalog = {
+  'graph.edgeTitle': '{source} → {target}: {rating} (विश्वास {confidence})',
+  'rating.submitted': 'रेटिंग सबमिट की गई',
+  'readonly.note': 'केवल-पढ़ने का मोड। खातों को रेट करने के लिए इस ऐप को Qortium Home में खोलें।',
+  'tooltip.blocksMinted': 'इस खाते द्वारा माइन किए गए कुल ब्लॉक।',
+  'tooltip.effectiveVote': 'माइनिंग प्रभाव सहित लाइव वोट भार।',
+  'tooltip.level': 'इस श्रेणी के लिए निकाला गया माइनिंग स्तर।',
+  'tooltip.score': 'प्राप्त रेटिंग से भारित विश्वास स्कोर।',
+  'tooltip.seed': 'नेटवर्क का संस्थापक सीड सदस्य।',
+  'tooltip.voteWeight': 'कुल विश्वास-भारित मतदान शक्ति का हिस्सा।',
   'accounts.showingCount': '{total} में से पहले {loaded} खाते दिखाए जा रहे हैं',
   'action.back': 'वापस',
   'action.backToList': 'सूची पर वापस',
@@ -1214,6 +1277,15 @@ export const hi: LocaleCatalog = {
 };
 
 export const hu: LocaleCatalog = {
+  'graph.edgeTitle': '{source} → {target}: {rating} (megbízhatóság {confidence})',
+  'rating.submitted': 'Értékelés elküldve',
+  'readonly.note': 'Csak olvasható mód. A fiókok értékeléséhez nyisd meg ezt az alkalmazást a Qortium Home-ban.',
+  'tooltip.blocksMinted': 'A fiók által generált blokkok száma összesen.',
+  'tooltip.effectiveVote': 'Élő szavazati súly a generálási hatással együtt.',
+  'tooltip.level': 'Ehhez a kategóriához származtatott generálási szint.',
+  'tooltip.score': 'Súlyozott bizalmi pontszám a beérkező értékelésekből.',
+  'tooltip.seed': 'A hálózat alapító seed tagja.',
+  'tooltip.voteWeight': 'A teljes bizalommal súlyozott szavazati erő aránya.',
   'accounts.showingCount': 'Az első {loaded} fiók megjelenítése {total} közül',
   'action.back': 'Vissza',
   'action.backToList': 'Vissza a listához',
@@ -1387,6 +1459,15 @@ export const hu: LocaleCatalog = {
 };
 
 export const it: LocaleCatalog = {
+  'graph.edgeTitle': '{source} → {target}: {rating} (affidabilità {confidence})',
+  'rating.submitted': 'Valutazione inviata',
+  'readonly.note': 'Modalità di sola lettura. Apri questa app in Qortium Home per valutare gli account.',
+  'tooltip.blocksMinted': 'Totale dei blocchi forgiati da questo account.',
+  'tooltip.effectiveVote': 'Peso di voto in tempo reale, inclusa la forgiatura.',
+  'tooltip.level': 'Livello di forgiatura derivato per questa categoria.',
+  'tooltip.score': 'Punteggio di fiducia ponderato dalle valutazioni ricevute.',
+  'tooltip.seed': 'Membro seed fondatore della rete.',
+  'tooltip.voteWeight': 'Quota del potere di voto ponderato per la fiducia.',
   'accounts.showingCount': 'Visualizzazione dei primi {loaded} di {total} account',
   'action.back': 'Indietro',
   'action.backToList': 'Torna all\'elenco',
@@ -1560,6 +1641,15 @@ export const it: LocaleCatalog = {
 };
 
 export const nl: LocaleCatalog = {
+  'graph.edgeTitle': '{source} → {target}: {rating} (vertrouwen {confidence})',
+  'rating.submitted': 'Beoordeling verzonden',
+  'readonly.note': 'Alleen-lezen modus. Open deze app in Qortium Home om accounts te beoordelen.',
+  'tooltip.blocksMinted': 'Totaal aantal blokken dat dit account heeft gemined.',
+  'tooltip.effectiveVote': 'Live stemgewicht inclusief mining-invloed.',
+  'tooltip.level': 'Afgeleid mining-niveau voor deze categorie.',
+  'tooltip.score': 'Gewogen vertrouwensscore uit inkomende beoordelingen.',
+  'tooltip.seed': 'Oprichtend seed-lid van het netwerk.',
+  'tooltip.voteWeight': 'Aandeel van de totale vertrouwensgewogen stemkracht.',
   'accounts.showingCount': 'Eerste {loaded} van {total} accounts worden weergegeven',
   'action.back': 'Terug',
   'action.backToList': 'Terug naar lijst',
@@ -1733,6 +1823,15 @@ export const nl: LocaleCatalog = {
 };
 
 export const pl: LocaleCatalog = {
+  'graph.edgeTitle': '{source} → {target}: {rating} (pewność {confidence})',
+  'rating.submitted': 'Ocena wysłana',
+  'readonly.note': 'Tryb tylko do odczytu. Otwórz tę aplikację w Qortium Home, aby oceniać konta.',
+  'tooltip.blocksMinted': 'Łączna liczba bloków wykopanych przez to konto.',
+  'tooltip.effectiveVote': 'Waga głosu na żywo z uwzględnieniem wpływu wydobycia.',
+  'tooltip.level': 'Poziom wydobycia ustalony dla tej kategorii.',
+  'tooltip.score': 'Ważony wynik zaufania z otrzymanych ocen.',
+  'tooltip.seed': 'Założycielski członek seed sieci.',
+  'tooltip.voteWeight': 'Udział w całkowitej sile głosu ważonej zaufaniem.',
   'accounts.showingCount': 'Wyświetlanie pierwszych {loaded} z {total} kont',
   'action.back': 'Wstecz',
   'action.backToList': 'Powrót do listy',
@@ -1906,6 +2005,15 @@ export const pl: LocaleCatalog = {
 };
 
 export const pt: LocaleCatalog = {
+  'graph.edgeTitle': '{source} → {target}: {rating} (confiança {confidence})',
+  'rating.submitted': 'Avaliação enviada',
+  'readonly.note': 'Modo somente leitura. Abra este app no Qortium Home para avaliar contas.',
+  'tooltip.blocksMinted': 'Total de blocos que esta conta forjou.',
+  'tooltip.effectiveVote': 'Peso de voto ao vivo, incluindo influência de forja.',
+  'tooltip.level': 'Nível de forja derivado para esta categoria.',
+  'tooltip.score': 'Pontuação de confiança ponderada das avaliações recebidas.',
+  'tooltip.seed': 'Membro semente fundador da rede.',
+  'tooltip.voteWeight': 'Parte do poder de voto ponderado por confiança.',
   'accounts.showingCount': 'Mostrando as primeiras {loaded} de {total} contas',
   'action.back': 'Voltar',
   'action.backToList': 'Voltar à lista',
@@ -2079,6 +2187,15 @@ export const pt: LocaleCatalog = {
 };
 
 export const ro: LocaleCatalog = {
+  'graph.edgeTitle': '{source} → {target}: {rating} (încredere {confidence})',
+  'rating.submitted': 'Evaluare trimisă',
+  'readonly.note': 'Mod doar citire. Deschide această aplicație în Qortium Home pentru a evalua conturi.',
+  'tooltip.blocksMinted': 'Numărul total de blocuri minate de acest cont.',
+  'tooltip.effectiveVote': 'Greutatea votului în timp real, inclusiv influența de minare.',
+  'tooltip.level': 'Nivel de minare derivat pentru această categorie.',
+  'tooltip.score': 'Scor de încredere ponderat din evaluările primite.',
+  'tooltip.seed': 'Membru seed fondator al rețelei.',
+  'tooltip.voteWeight': 'Cota din puterea totală de vot ponderată cu încredere.',
   'accounts.showingCount': 'Se afișează primele {loaded} din {total} conturi',
   'action.back': 'Înapoi',
   'action.backToList': 'Înapoi la listă',
@@ -2252,6 +2369,15 @@ export const ro: LocaleCatalog = {
 };
 
 export const ru: LocaleCatalog = {
+  'graph.edgeTitle': '{source} → {target}: {rating} (достоверность {confidence})',
+  'rating.submitted': 'Оценка отправлена',
+  'readonly.note': 'Режим только для чтения. Откройте это приложение в Qortium Home, чтобы оценивать аккаунты.',
+  'tooltip.blocksMinted': 'Общее число блоков, сформированных этим аккаунтом.',
+  'tooltip.effectiveVote': 'Текущий вес голоса с учётом влияния минтинга.',
+  'tooltip.level': 'Уровень минтинга, выведенный для этой категории.',
+  'tooltip.score': 'Взвешенный рейтинг доверия по входящим оценкам.',
+  'tooltip.seed': 'Учредительный seed-участник сети.',
+  'tooltip.voteWeight': 'Доля в общей силе голоса, взвешенной по доверию.',
   'accounts.showingCount': 'Показаны первые {loaded} из {total} аккаунтов',
   'action.back': 'Назад',
   'action.backToList': 'Назад к списку',
@@ -2425,6 +2551,15 @@ export const ru: LocaleCatalog = {
 };
 
 export const sv: LocaleCatalog = {
+  'graph.edgeTitle': '{source} → {target}: {rating} (tillförlitlighet {confidence})',
+  'rating.submitted': 'Betyg skickat',
+  'readonly.note': 'Skrivskyddat läge. Öppna den här appen i Qortium Home för att betygsätta konton.',
+  'tooltip.blocksMinted': 'Totalt antal block som detta konto har präglat.',
+  'tooltip.effectiveVote': 'Live-röstvikt inklusive präglingspåverkan.',
+  'tooltip.level': 'Präglingsnivå härledd för denna kategori.',
+  'tooltip.score': 'Viktad förtroendepoäng från inkommande betyg.',
+  'tooltip.seed': 'Grundande seed-medlem i nätverket.',
+  'tooltip.voteWeight': 'Andel av den totala förtroendeviktade röststyrkan.',
   'accounts.showingCount': 'Visar de första {loaded} av {total} kontona',
   'action.back': 'Tillbaka',
   'action.backToList': 'Tillbaka till listan',
@@ -2598,6 +2733,15 @@ export const sv: LocaleCatalog = {
 };
 
 export const nb: LocaleCatalog = {
+  'graph.edgeTitle': '{source} → {target}: {rating} (konfidens {confidence})',
+  'rating.submitted': 'Vurdering sendt',
+  'readonly.note': 'Skrivebeskyttet modus. Åpne denne appen i Qortium Home for å vurdere kontoer.',
+  'tooltip.blocksMinted': 'Totalt antall blokker denne kontoen har minet.',
+  'tooltip.effectiveVote': 'Sanntids stemmevekt inkludert mintepåvirkning.',
+  'tooltip.level': 'Mintenivå utledet for denne kategorien.',
+  'tooltip.score': 'Vektet tillitspoeng fra innkommende vurderinger.',
+  'tooltip.seed': 'Grunnleggende seed-medlem av nettverket.',
+  'tooltip.voteWeight': 'Andel av den totale tillitsvektede stemmekraften.',
   'accounts.showingCount': 'Viser de første {loaded} av {total} kontoer',
   'action.back': 'Tilbake',
   'action.backToList': 'Tilbake til listen',

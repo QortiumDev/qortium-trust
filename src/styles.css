@@ -27,6 +27,7 @@
   --bronze: #8f5b2e;
   --graph-node-fill: #ffffff;
   --row-hover: #f0f7f8;
+  --scroll-shadow: rgba(27, 45, 52, 0.16);
   --empty-overlay-bg: rgba(255, 255, 255, 0.9);
   --error-bg: #fff2f0;
   --error-border: #f0b9b2;
@@ -94,6 +95,7 @@
   --bronze: #d89b67;
   --graph-node-fill: #20282d;
   --row-hover: #1e2a30;
+  --scroll-shadow: rgba(0, 0, 0, 0.45);
   --empty-overlay-bg: rgba(23, 29, 33, 0.92);
   --error-bg: #321c1f;
   --error-border: #6b3238;
@@ -578,6 +580,76 @@ select {
   padding: 12px 14px;
 }
 
+/* Read-only notice (UX-001): neutral, lower-emphasis than the error banner — it's informational,
+   not a failure. Reuses theme tokens so it adapts to light/dark. */
+.info-banner {
+  align-items: center;
+  background: var(--panel-strong);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--muted);
+  display: flex;
+  font-size: var(--font-size-small);
+  gap: 10px;
+  margin: 0 0 14px;
+  padding: 10px 14px;
+}
+
+/* Transient post-submit confirmation (UX-006), pinned bottom-centre clear of content. Honours
+   reduced-motion below. */
+.toast {
+  background: var(--text);
+  border-radius: 8px;
+  bottom: 24px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
+  color: var(--surface);
+  font-size: var(--font-size-small);
+  font-weight: 600;
+  left: 50%;
+  padding: 10px 18px;
+  position: fixed;
+  transform: translateX(-50%);
+  z-index: 50;
+  animation: toast-in 0.18s ease-out;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 8px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast {
+    animation: none;
+  }
+}
+
+/* Live/snapshot data-mode badge in the accounts table caption (UX-007). */
+.data-mode-badge {
+  border-radius: 999px;
+  font-size: var(--font-size-small);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 2px 9px;
+  text-transform: uppercase;
+}
+
+.data-mode-badge--live {
+  background: var(--badge-positive-bg, var(--row-hover));
+  color: var(--positive);
+}
+
+.data-mode-badge--snapshot {
+  background: var(--badge-neutral-bg, var(--row-hover));
+  color: var(--muted);
+}
+
 .workspace {
   display: block;
   width: 100%;
@@ -653,7 +725,6 @@ select {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 8px;
-  min-height: 520px;
   overflow: hidden;
   position: relative;
 }
@@ -662,6 +733,10 @@ select {
   cursor: grab;
   display: block;
   height: auto;
+  /* min-height lives on the SVG (not the surface) so the interactive canvas always fills the panel;
+     putting it on the surface left a dead zone below short graphs on tablet/narrow desktop
+     (RESP-02/RESP-11). */
+  min-height: 520px;
   touch-action: none;
   user-select: none;
   width: 100%;
@@ -819,6 +894,8 @@ select {
   align-items: center;
   display: flex;
   justify-content: center;
+  /* The loading variant has no SVG to carry the min-height, so it keeps its own panel floor. */
+  min-height: 520px;
 }
 
 .graph-loading {
@@ -1036,9 +1113,12 @@ table {
 /* "Showing first N of M accounts" hint; left-aligned and muted so it reads as a footnote rather
    than competing with the column headers. text-align follows the document direction (RTL-safe). */
 .table-caption {
+  align-items: center;
   caption-side: top;
   color: var(--muted);
+  display: flex;
   font-size: var(--font-size-small);
+  gap: 10px;
   padding: 8px 13px;
   text-align: start;
 }
@@ -1106,6 +1186,24 @@ tbody tr {
 tbody tr:hover,
 .selected-row {
   background: var(--row-hover);
+}
+
+/* Rows that open a detail takeover on click/Enter (UX-004). The pointer cursor + keyboard focus ring
+   signal the affordance; non-interactive rows (e.g. resources) keep the default cursor. */
+.account-row {
+  cursor: pointer;
+}
+
+.account-row:focus-visible {
+  outline: 2px solid var(--accent-strong);
+  outline-offset: -2px;
+}
+
+/* Scrollable table containers are focusable regions (RESP-09) so keyboard users can scroll wide
+   tables horizontally; show a focus ring when focused directly (not when a child row has focus). */
+.table-wrap:focus-visible {
+  outline: 2px solid var(--accent-strong);
+  outline-offset: -2px;
 }
 
 .mono {
@@ -1756,9 +1854,9 @@ tbody tr:hover,
     background:
       linear-gradient(to right, var(--panel), transparent 12px) left center / 24px 100% no-repeat,
       linear-gradient(to left, var(--panel), transparent 12px) right center / 24px 100% no-repeat,
-      radial-gradient(farthest-side at 0 50%, rgba(27, 45, 52, 0.16), transparent) left center / 12px 100%
+      radial-gradient(farthest-side at 0 50%, var(--scroll-shadow), transparent) left center / 12px 100%
         no-repeat,
-      radial-gradient(farthest-side at 100% 50%, rgba(27, 45, 52, 0.16), transparent) right center / 12px 100%
+      radial-gradient(farthest-side at 100% 50%, var(--scroll-shadow), transparent) right center / 12px 100%
         no-repeat;
     background-attachment: local, local, scroll, scroll;
   }

@@ -3,6 +3,15 @@ import { type TranslationKey } from '../en';
 type LocaleCatalog = Record<TranslationKey, string>;
 
 export const ar: LocaleCatalog = {
+  'graph.edgeTitle': '{source} → {target}: {rating} (الثقة {confidence})',
+  'rating.submitted': 'تم إرسال التقييم',
+  'readonly.note': 'وضع القراءة فقط. افتح هذا التطبيق في Qortium Home لتقييم الحسابات.',
+  'tooltip.blocksMinted': 'إجمالي الكتل التي قام هذا الحساب بسكها.',
+  'tooltip.effectiveVote': 'وزن التصويت المباشر بما في ذلك تأثير السك.',
+  'tooltip.level': 'مستوى السك المشتق لهذه الفئة.',
+  'tooltip.score': 'درجة ثقة مرجحة من التقييمات الواردة.',
+  'tooltip.seed': 'عضو seed مؤسس للشبكة.',
+  'tooltip.voteWeight': 'حصة من إجمالي قوة التصويت المرجحة بالثقة.',
   'accounts.showingCount': 'عرض أول {loaded} من أصل {total} حساب',
   'action.back': 'رجوع',
   'action.backToList': 'العودة إلى القائمة',
@@ -176,6 +185,15 @@ export const ar: LocaleCatalog = {
 };
 
 export const he: LocaleCatalog = {
+  'graph.edgeTitle': '{source} → {target}: {rating} (מהימנות {confidence})',
+  'rating.submitted': 'הדירוג נשלח',
+  'readonly.note': 'מצב קריאה בלבד. פתח אפליקציה זו ב-Qortium Home כדי לדרג חשבונות.',
+  'tooltip.blocksMinted': 'סך הבלוקים שחשבון זה כרה.',
+  'tooltip.effectiveVote': 'משקל הצבעה חי כולל השפעת כרייה.',
+  'tooltip.level': 'רמת כרייה הנגזרת לקטגוריה זו.',
+  'tooltip.score': 'ציון אמון משוקלל מדירוגים נכנסים.',
+  'tooltip.seed': 'חבר seed מייסד של הרשת.',
+  'tooltip.voteWeight': 'חלק מכוח ההצבעה הכולל המשוקלל לפי אמון.',
   'accounts.showingCount': 'מוצגים {loaded} החשבונות הראשונים מתוך {total}',
   'action.back': 'חזרה',
   'action.backToList': 'חזרה לרשימה',
