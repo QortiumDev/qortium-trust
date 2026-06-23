@@ -109,25 +109,25 @@ export function AccountDetail({
               <span>{t('label.category')}</span>
               <strong>{categoryLabel(category)}</strong>
             </div>
-            <div>
+            <div title={t('tooltip.level')}>
               <span>{t('label.level')}</span>
               <strong>{formatNumber(profileCategory?.level ?? fallbackCategory?.level ?? 0)}</strong>
             </div>
-            <div>
+            <div title={t('tooltip.score')}>
               <span>{t('label.score')}</span>
               <strong>{formatNumber(profileCategory?.score ?? fallbackCategory?.score ?? 0)}</strong>
             </div>
-            <div>
+            <div title={t('tooltip.voteWeight')}>
               <span>{t('label.voteWeight')}</span>
               <strong>
                 {formatPercent(detail.profile?.trustWeightPercent ?? selectedDerivation.derivedTrustWeightPercent)}
               </strong>
             </div>
-            <div>
+            <div title={t('tooltip.blocksMinted')}>
               <span>{t('label.blocksMinted')}</span>
               <strong>{live && liveBlocksMinted !== undefined ? formatNumber(liveBlocksMinted) : '—'}</strong>
             </div>
-            <div>
+            <div title={t('tooltip.effectiveVote')}>
               <span>{t('label.effectiveVote')}</span>
               <strong>
                 {live && liveEffectiveVoteWeight !== undefined ? formatNumber(liveEffectiveVoteWeight) : '—'}

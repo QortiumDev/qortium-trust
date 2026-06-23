@@ -10,7 +10,7 @@ export function ResourceRatingsTable({ resources }: { resources: ResourceRatingS
   }
 
   return (
-    <div className="table-wrap">
+    <div aria-label={t('nav.resources')} className="table-wrap" role="region" tabIndex={0}>
       <table>
         <thead>
           <tr>

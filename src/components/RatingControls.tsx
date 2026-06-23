@@ -332,9 +332,17 @@ export function RowRatePopover({
 
       const rect = anchor.getBoundingClientRect();
       const popoverHeight = ref.current?.offsetHeight ?? 0;
-      const spaceBelow = window.innerHeight - rect.bottom;
+      // Use the visual viewport when available so the open-upward decision and clamp account for a
+      // soft keyboard shrinking the visible area on mobile (RESP-08).
+      const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
+      const spaceBelow = viewportHeight - rect.bottom;
       const openUpward = popoverHeight > 0 && spaceBelow < popoverHeight + 12 && rect.top > popoverHeight + 12;
-      const top = openUpward ? rect.top - popoverHeight - 6 : rect.bottom + 6;
+      let top = openUpward ? rect.top - popoverHeight - 6 : rect.bottom + 6;
+      // Keep the whole popover inside the visible viewport so the soft keyboard can't cover its
+      // submit button or push it off-screen.
+      if (popoverHeight > 0) {
+        top = Math.max(8, Math.min(top, viewportHeight - popoverHeight - 8));
+      }
       // Right-align to the trigger, then clamp to the viewport so it never runs off either edge.
       const left = Math.max(8, Math.min(rect.right - POPOVER_WIDTH, window.innerWidth - POPOVER_WIDTH - 8));
 
@@ -344,10 +352,14 @@ export function RowRatePopover({
     updatePosition();
     window.addEventListener('scroll', updatePosition, true);
     window.addEventListener('resize', updatePosition);
+    window.visualViewport?.addEventListener('resize', updatePosition);
+    window.visualViewport?.addEventListener('scroll', updatePosition);
 
     return () => {
       window.removeEventListener('scroll', updatePosition, true);
       window.removeEventListener('resize', updatePosition);
+      window.visualViewport?.removeEventListener('resize', updatePosition);
+      window.visualViewport?.removeEventListener('scroll', updatePosition);
     };
   }, [anchorRef]);
 

@@ -1,4 +1,13 @@
 export const en = {
+  'graph.edgeTitle': '{source} → {target}: {rating} (confidence {confidence})',
+  'rating.submitted': 'Rating submitted',
+  'readonly.note': 'Read-only mode. Open this app in Qortium Home to rate accounts.',
+  'tooltip.blocksMinted': 'Total blocks this account has minted.',
+  'tooltip.effectiveVote': 'Live voting weight including minting influence.',
+  'tooltip.level': 'Minting level derived for this category.',
+  'tooltip.score': 'Weighted trust score from inbound ratings.',
+  'tooltip.seed': 'Founding seed member of the network.',
+  'tooltip.voteWeight': 'Share of the total trust-weighted voting power.',
   'accounts.showingCount': 'Showing first {loaded} of {total} accounts',
   'action.back': 'Back',
   'action.backToList': 'Back to list',

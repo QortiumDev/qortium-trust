@@ -3,6 +3,15 @@ import { type TranslationKey } from '../en';
 type LocaleCatalog = Record<TranslationKey, string>;
 
 export const ja: LocaleCatalog = {
+  'graph.edgeTitle': '{source} → {target}: {rating}（信頼度 {confidence}）',
+  'rating.submitted': '評価を送信しました',
+  'readonly.note': '読み取り専用モードです。アカウントを評価するには、このアプリを Qortium Home で開いてください。',
+  'tooltip.blocksMinted': 'このアカウントが鋳造したブロックの総数。',
+  'tooltip.effectiveVote': '鋳造の影響を含むライブの投票ウェイト。',
+  'tooltip.level': 'このカテゴリーで導出された鋳造レベル。',
+  'tooltip.score': '受信した評価による加重信頼スコア。',
+  'tooltip.seed': 'ネットワークの創設シードメンバー。',
+  'tooltip.voteWeight': '信頼度で加重された総投票力に占める割合。',
   'accounts.showingCount': '{total}件中、最初の{loaded}件のアカウントを表示しています',
   'action.back': '戻る',
   'action.backToList': '一覧に戻る',
@@ -176,6 +185,15 @@ export const ja: LocaleCatalog = {
 };
 
 export const ko: LocaleCatalog = {
+  'graph.edgeTitle': '{source} → {target}: {rating} (신뢰도 {confidence})',
+  'rating.submitted': '평가가 제출되었습니다',
+  'readonly.note': '읽기 전용 모드입니다. 계정을 평가하려면 Qortium Home에서 이 앱을 여세요.',
+  'tooltip.blocksMinted': '이 계정이 채굴한 총 블록 수.',
+  'tooltip.effectiveVote': '채굴 영향을 포함한 실시간 투표 가중치.',
+  'tooltip.level': '이 카테고리에 대해 도출된 채굴 레벨.',
+  'tooltip.score': '수신된 평가의 가중 신뢰 점수.',
+  'tooltip.seed': '네트워크의 창립 시드 멤버.',
+  'tooltip.voteWeight': '신뢰 가중 총 투표력에서 차지하는 비율.',
   'accounts.showingCount': '{total}개 계정 중 처음 {loaded}개 표시 중',
   'action.back': '뒤로',
   'action.backToList': '목록으로 돌아가기',
@@ -349,6 +367,15 @@ export const ko: LocaleCatalog = {
 };
 
 export const zhCN: LocaleCatalog = {
+  'graph.edgeTitle': '{source} → {target}：{rating}（置信度 {confidence}）',
+  'rating.submitted': '评分已提交',
+  'readonly.note': '只读模式。请在 Qortium Home 中打开此应用以评分账户。',
+  'tooltip.blocksMinted': '该账户铸造的区块总数。',
+  'tooltip.effectiveVote': '实时投票权重（含铸造影响）。',
+  'tooltip.level': '为此类别推导的铸造等级。',
+  'tooltip.score': '来自收到评分的加权信任分数。',
+  'tooltip.seed': '网络的创始种子成员。',
+  'tooltip.voteWeight': '在信任加权总投票权中所占的比例。',
   'accounts.showingCount': '正在显示 {total} 个账户中的前 {loaded} 个',
   'action.back': '返回',
   'action.backToList': '返回列表',
@@ -522,6 +549,15 @@ export const zhCN: LocaleCatalog = {
 };
 
 export const zhTW: LocaleCatalog = {
+  'graph.edgeTitle': '{source} → {target}：{rating}（信賴度 {confidence}）',
+  'rating.submitted': '評分已送出',
+  'readonly.note': '唯讀模式。請在 Qortium Home 中開啟此應用以評分帳戶。',
+  'tooltip.blocksMinted': '此帳戶鑄造的區塊總數。',
+  'tooltip.effectiveVote': '即時投票權重（含鑄造影響）。',
+  'tooltip.level': '為此類別推導的鑄造等級。',
+  'tooltip.score': '來自收到評分的加權信任分數。',
+  'tooltip.seed': '網路的創始種子成員。',
+  'tooltip.voteWeight': '在信任加權總投票權中所佔的比例。',
   'accounts.showingCount': '正在顯示 {total} 個帳戶中的前 {loaded} 個',
   'action.back': '返回',
   'action.backToList': '返回清單',

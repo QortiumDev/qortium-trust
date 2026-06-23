@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { CircleDot, RotateCcw } from 'lucide-react';
+import { CircleDot, RotateCcw, ZoomIn, ZoomOut } from 'lucide-react';
 import { getAvatarFallbackCharacter, getIdentityLabel } from '../identityProfiles';
 import { compactAddress, ratingTone, statusLabel, statusTone } from '../format';
 import type { TrustGraphModel, TrustGraphNode } from '../graphModel';
@@ -42,6 +42,10 @@ export function TrustGraph({
   const panRef = useRef<{ pointerId: number; startX: number; startY: number; moved: boolean } | null>(
     null,
   );
+  // All active pointers on the surface (keyed by id) + the last finger distance, so two-finger
+  // gestures pinch-to-zoom on touch (RESP-03) while a single pointer keeps panning.
+  const pointersRef = useRef(new Map<number, { x: number; y: number }>());
+  const pinchRef = useRef<{ distance: number } | null>(null);
 
   const nodeByAddress = useMemo(
     () => new Map(graph.nodes.map((node) => [node.address, node] as const)),
@@ -140,12 +144,38 @@ export function TrustGraph({
     if (event.button !== 0) {
       return;
     }
-    panRef.current = { pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, moved: false };
+    pointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
     event.currentTarget.setPointerCapture(event.pointerId);
+
+    if (pointersRef.current.size === 2) {
+      // Second finger down → start a pinch and abandon any single-pointer pan.
+      panRef.current = null;
+      const [a, b] = [...pointersRef.current.values()];
+      pinchRef.current = { distance: Math.hypot(a.x - b.x, a.y - b.y) };
+    } else if (pointersRef.current.size === 1) {
+      panRef.current = { pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, moved: false };
+    }
   }, []);
 
   const handlePointerMove = useCallback(
     (event: React.PointerEvent<SVGSVGElement>) => {
+      const tracked = pointersRef.current.get(event.pointerId);
+      if (tracked) {
+        tracked.x = event.clientX;
+        tracked.y = event.clientY;
+      }
+
+      // Two-finger pinch: scale by the change in finger distance, centred on the midpoint (RESP-03).
+      if (pointersRef.current.size === 2 && pinchRef.current) {
+        const [a, b] = [...pointersRef.current.values()];
+        const distance = Math.hypot(a.x - b.x, a.y - b.y);
+        if (pinchRef.current.distance > 0 && distance > 0) {
+          zoomBy(distance / pinchRef.current.distance, (a.x + b.x) / 2, (a.y + b.y) / 2);
+        }
+        pinchRef.current.distance = distance;
+        return;
+      }
+
       const pan = panRef.current;
       if (!pan || pan.pointerId !== event.pointerId) {
         return;
@@ -166,15 +196,25 @@ export function TrustGraph({
       pan.startY = event.clientY;
       setView((current) => ({ ...current, x: current.x + dx, y: current.y + dy }));
     },
-    [graph.width, graph.height],
+    [graph.width, graph.height, zoomBy],
   );
 
   const endPan = useCallback((event: React.PointerEvent<SVGSVGElement>) => {
-    const pan = panRef.current;
-    if (pan && pan.pointerId === event.pointerId) {
-      if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-        event.currentTarget.releasePointerCapture(event.pointerId);
-      }
+    pointersRef.current.delete(event.pointerId);
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+
+    if (pointersRef.current.size < 2) {
+      pinchRef.current = null;
+    }
+
+    if (pointersRef.current.size === 1) {
+      // One finger left after a pinch: resume panning from its current position so the view doesn't
+      // jump, and treat it as already-moved so the lift-off doesn't register as a node tap.
+      const [[pointerId, point]] = [...pointersRef.current.entries()];
+      panRef.current = { pointerId, startX: point.x, startY: point.y, moved: true };
+    } else if (pointersRef.current.size === 0) {
       panRef.current = null;
     }
   }, []);
@@ -261,9 +301,12 @@ export function TrustGraph({
                   y2={target.y}
                 >
                   <title>
-                    {compactAddress(link.source)}
-                    {' -> '}
-                    {compactAddress(link.target)} ({link.rating})
+                    {t('graph.edgeTitle', {
+                      confidence: link.confidence,
+                      rating: link.rating,
+                      source: compactAddress(link.source),
+                      target: compactAddress(link.target),
+                    })}
                   </title>
                 </line>
               );
@@ -339,10 +382,10 @@ export function TrustGraph({
       </svg>
       <div className="graph-zoom-controls">
         <button aria-label={t('graph.zoomIn')} onClick={() => zoomBy(1.3)} title={t('graph.zoomIn')} type="button">
-          +
+          <ZoomIn size={15} />
         </button>
         <button aria-label={t('graph.zoomOut')} onClick={() => zoomBy(1 / 1.3)} title={t('graph.zoomOut')} type="button">
-          −
+          <ZoomOut size={15} />
         </button>
         <button
           aria-label={t('action.resetView')}

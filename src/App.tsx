@@ -1,6 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertTriangle,
+  Info,
   RefreshCw,
   Search,
   X,
@@ -194,6 +195,8 @@ export default function App() {
   // Total accounts in the active category (from the listing's X-Total-Count header); null when the
   // count is unknown (browser-dev fallback). Drives the "showing first N of M" hint on the table.
   const [derivationTotal, setDerivationTotal] = useState<number | null>(null);
+  // Transient confirmation shown after a rating is broadcast (UX-006); auto-clears.
+  const [toast, setToast] = useState<string | null>(null);
   const [displaySettings, setDisplaySettings] = useState(getInitialDisplaySettings);
   const [detail, setDetail] = useState<AccountDetailState>({
     explanation: null,
@@ -501,6 +504,13 @@ export default function App() {
     [data.derivations, selectedAddress],
   );
 
+  // Addresses whose detail can be opened — i.e. those present in the loaded category list, since the
+  // detail takeover is driven by selectedDerivation. Lets Changes rows drill in only when it'll work.
+  const selectableAddresses = useMemo(
+    () => new Set(data.derivations.map((derivation) => derivation.accountAddress)),
+    [data.derivations],
+  );
+
   // Stable signature of every input the graph sim renders from — the category, plus each node's
   // visual fields (status/level/score/seed) and each edge's (rater/target/rating/confidence) — but
   // never identityProfiles. Memoizing TrustGraphView's model build on this string stops identity
@@ -673,7 +683,21 @@ export default function App() {
       ...current,
       [pendingRatingKey(entry.category, entry.targetAddress)]: entry,
     }));
+    // onSubmitted only fires after Home accepts the broadcast, so this is a reliable success cue
+    // beyond the per-row pending spinner (UX-006).
+    setToast(t('rating.submitted'));
   }, []);
+
+  // Auto-dismiss the success toast; re-armed each time a new toast is set.
+  useEffect(() => {
+    if (!toast) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => setToast(null), 4000);
+
+    return () => window.clearTimeout(timer);
+  }, [toast]);
 
   // Confirm pending ratings in the background: poll each one's cooldown until the active rating
   // matches what was submitted, then drop it and silently refresh so the confirmed value shows.
@@ -917,18 +941,22 @@ export default function App() {
             <input checked={live} onChange={(event) => setLive(event.target.checked)} type="checkbox" />
             <span>{t('label.live')}</span>
           </label>
-          <select
-            aria-label={t('label.trustStatus')}
-            onChange={(event) => setStatusFilter(event.target.value as TrustStatus | 'ALL')}
-            value={statusFilter}
-          >
-            <option value="ALL">{t('label.allStatuses')}</option>
-            {TRUST_STATUSES.map((status) => (
-              <option key={status} value={status}>
-                {statusLabel(status)}
-              </option>
-            ))}
-          </select>
+          {view === 'accounts' || view === 'graph' ? (
+            // The status filter feeds filteredDerivations, which only the Accounts and Graph views
+            // consume; hide it on Changes/Resources where it has no effect (UX-002).
+            <select
+              aria-label={t('label.trustStatus')}
+              onChange={(event) => setStatusFilter(event.target.value as TrustStatus | 'ALL')}
+              value={statusFilter}
+            >
+              <option value="ALL">{t('label.allStatuses')}</option>
+              {TRUST_STATUSES.map((status) => (
+                <option key={status} value={status}>
+                  {statusLabel(status)}
+                </option>
+              ))}
+            </select>
+          ) : null}
         </div>
       </section>
 
@@ -936,6 +964,16 @@ export default function App() {
         <div className="error-banner" role="alert">
           <AlertTriangle size={18} />
           {error}
+        </div>
+      ) : null}
+
+      {data.bridge && !ratingActionAvailable ? (
+        // Read-only context (opened outside Home, or RATE_ACCOUNT unavailable): explain why rating is
+        // disabled rather than leaving the disabled controls unexplained (UX-001). Gated on a resolved
+        // bridge so it doesn't flash during the initial load.
+        <div className="info-banner" role="note">
+          <Info size={18} />
+          {t('readonly.note')}
         </div>
       ) : null}
 
@@ -1011,7 +1049,12 @@ export default function App() {
                   />
                 </Suspense>
               ) : view === 'changes' ? (
-                <ChangesTable changes={data.changes} profiles={identityProfiles} />
+                <ChangesTable
+                  changes={data.changes}
+                  onSelectAccount={setSelectedAddress}
+                  profiles={identityProfiles}
+                  selectableAddresses={selectableAddresses}
+                />
               ) : (
                 <ResourceRatingsTable resources={data.resources} />
               )}
@@ -1021,6 +1064,12 @@ export default function App() {
       </section>
 
       <PolicyFooter policy={data.policy} summary={data.summary} />
+
+      {toast ? (
+        <div className="toast" role="status">
+          {toast}
+        </div>
+      ) : null}
     </main>
   );
 }
