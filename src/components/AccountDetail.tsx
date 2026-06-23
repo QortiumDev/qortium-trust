@@ -25,11 +25,13 @@ export function AccountDetail({
   profile,
   profiles,
   ratingActionAvailable,
+  live,
   self,
   selectedDerivation,
 }: {
   category: AccountRatingCategory;
   detail: AccountDetailState;
+  live: boolean;
   onBack: () => void;
   onRatingSubmitted: (entry: PendingRatingEntry) => void;
   pendingRating: number | undefined;
@@ -62,6 +64,8 @@ export function AccountDetail({
   const profileCategory = detail.profile?.categories.find((candidate) => candidate.category === category);
   const explanationCategory = detail.explanation?.categories.find((candidate) => candidate.category === category);
   const fallbackCategory = selectedDerivation.categories.find((candidate) => candidate.category === category);
+  const liveBlocksMinted = detail.profile?.blocksMinted;
+  const liveEffectiveVoteWeight = detail.profile?.effectiveVoteWeight;
   const label = getIdentityLabel(profile, selectedDerivation.accountAddress);
 
   return (
@@ -91,9 +95,10 @@ export function AccountDetail({
         />
       </div>
       {detail.loading ? (
-        <div className="detail-columns-loading">
+        <div aria-busy="true" aria-live="polite" className="detail-columns-loading" role="status">
           <div className="skeleton-block" />
           <div className="skeleton-block short" />
+          <span className="sr-only">Loading account details</span>
         </div>
       ) : (
       <div className="detail-columns">
@@ -119,11 +124,13 @@ export function AccountDetail({
             </div>
             <div>
               <span>Blocks minted</span>
-              <strong>{formatNumber(detail.profile?.blocksMinted)}</strong>
+              <strong>{live && liveBlocksMinted !== undefined ? formatNumber(liveBlocksMinted) : '—'}</strong>
             </div>
             <div>
               <span>Effective vote</span>
-              <strong>{formatNumber(detail.profile?.effectiveVoteWeight)}</strong>
+              <strong>
+                {live && liveEffectiveVoteWeight !== undefined ? formatNumber(liveEffectiveVoteWeight) : '—'}
+              </strong>
             </div>
           </div>
           <div className="mini-section">

@@ -58,7 +58,7 @@ import type {
   RatingsByAddress,
   ViewMode,
 } from './viewTypes';
-import { changeAccountSortState } from './accountSort';
+import { changeAccountSortState, getTrustDerivationServerSort } from './accountSort';
 import { PENDING_CONFIRM_POLL_MS, pendingRatingKey } from './ratingControl';
 import { NodeSyncPill } from './components/Identity';
 import { TrustGraph } from './components/TrustGraph';
@@ -119,6 +119,7 @@ function CategoryTabs({
     <div className="segmented-control" aria-label="Trust category">
       {TRUST_CATEGORIES.map((candidate) => (
         <button
+          aria-pressed={candidate === category}
           className={candidate === category ? 'active' : ''}
           key={candidate}
           onClick={() => onChange(candidate)}
@@ -222,6 +223,7 @@ export default function App() {
   // The rater-scoped ratings map ("You rated") is fetched independently of the capped global edge
   // fetch (#2) so it stays complete past the 1000-edge cap. Keyed by self address + category epoch.
   const [youRatedRatings, setYouRatedRatings] = useState<AccountRating[]>([]);
+  const serverDerivationSort = useMemo(() => getTrustDerivationServerSort(accountSort), [accountSort]);
 
   const loadData = useCallback(async ({ silent = false }: { silent?: boolean } = {}) => {
     const token = ++loadTokenRef.current;
@@ -242,7 +244,7 @@ export default function App() {
         getNodeStatus(),
         getTrustSummary(),
         getTrustPolicy(),
-        getTrustDerivation({ category, limit: 250, live }),
+        getTrustDerivation({ category, limit: 250, live, ...serverDerivationSort }),
         getAccountRatings({ category, limit: 1000 }),
         getTrustChanges({ category, limit: 25 }),
         getResourceRatings({ limit: 25, reverse: true }),
@@ -274,17 +276,17 @@ export default function App() {
         setLoading(false);
       }
     }
-  }, [category, live]);
+  }, [category, live, serverDerivationSort]);
 
   // Refetch only the slices a new rating changes — the category derivations and ratings — and merge
   // them into state so the other arrays (changes/resources/summary/policy) keep stable references
   // (#12), avoiding a full 8-call reload and downstream re-derivation per confirmation.
-  const refreshRatingSlices = useCallback(async () => {
+  const refreshRatingSlices = useCallback(async (refreshCategory: AccountRatingCategory = category) => {
     const token = ++loadTokenRef.current;
 
     const [derivations, ratings] = await Promise.all([
-      getTrustDerivation({ category, limit: 250, live }),
-      getAccountRatings({ category, limit: 1000 }),
+      getTrustDerivation({ category: refreshCategory, limit: 250, live, ...serverDerivationSort }),
+      getAccountRatings({ category: refreshCategory, limit: 1000 }),
     ]);
 
     if (loadTokenRef.current !== token) {
@@ -292,7 +294,7 @@ export default function App() {
     }
 
     setData((current) => ({ ...current, derivations, ratings }));
-  }, [category, live]);
+  }, [category, live, serverDerivationSort]);
 
   // Rater-scoped fetch of the current user's own ratings (#2): independent of the capped edge fetch
   // so the "You rated" column / default sort / pending-clear stay correct past 1000 active ratings.
@@ -685,11 +687,26 @@ export default function App() {
         // reloaded data (#3). Refetching just the slices keeps unrelated arrays stable (#12), and the
         // rater-scoped map (#2) is the reliable source past the global edge cap. If a confirmed value
         // isn't visible yet, keep the optimistic value and re-verify on the next poll.
-        setDetailReloadToken((token) => token + 1);
+        const confirmedCategories = new Set<AccountRatingCategory>();
 
-        let confirmedYouRated: AccountRating[] = [];
+        for (const key of confirmedKeys) {
+          const entry = pendingRatings[key];
+
+          if (entry) {
+            confirmedCategories.add(entry.category);
+          }
+        }
+
+        const activeCategory = categoryRef.current;
+        const refreshVisibleCategory = confirmedCategories.has(activeCategory);
+
+        if (refreshVisibleCategory) {
+          setDetailReloadToken((token) => token + 1);
+        }
+
+        const confirmedYouRatedByCategory = new Map<AccountRatingCategory, AccountRating[]>();
         await Promise.all([
-          refreshRatingSlicesRef.current(),
+          refreshVisibleCategory ? refreshRatingSlicesRef.current(activeCategory) : Promise.resolve(),
           (async () => {
             const publicKey = selfRef.current?.publicKey;
 
@@ -698,8 +715,18 @@ export default function App() {
             }
 
             try {
-              confirmedYouRated = await getAccountRatings({ category: categoryRef.current, rater: publicKey });
-              setYouRatedRatings(confirmedYouRated);
+              await Promise.all(
+                [...confirmedCategories].map(async (confirmedCategory) => {
+                  const ratings = await getAccountRatings({ category: confirmedCategory, rater: publicKey });
+                  confirmedYouRatedByCategory.set(confirmedCategory, ratings);
+                }),
+              );
+
+              const activeCategoryRatings = confirmedYouRatedByCategory.get(categoryRef.current);
+
+              if (activeCategoryRatings) {
+                setYouRatedRatings(activeCategoryRatings);
+              }
             } catch (youRatedError) {
               console.warn('Failed to refresh your ratings during confirmation', youRatedError);
             }
@@ -712,6 +739,7 @@ export default function App() {
 
         const selfAddress = selfRef.current?.address ?? null;
         const ratingPresent = (entry: PendingRatingEntry) => {
+          const confirmedYouRated = confirmedYouRatedByCategory.get(entry.category) ?? [];
           // 0 means "rating cleared" — confirmed when no active rating remains for that target.
           const active = confirmedYouRated.find(
             (rating) =>
@@ -808,6 +836,7 @@ export default function App() {
             <div className="search-field">
               <Search size={17} />
               <input
+                aria-label="Search account or public key"
                 onChange={(event) => setQuery(event.target.value)}
                 onKeyDown={(event) => {
                   if (event.key === 'Escape') {
@@ -847,7 +876,7 @@ export default function App() {
       </section>
 
       {error ? (
-        <div className="error-banner">
+        <div className="error-banner" role="alert">
           <AlertTriangle size={18} />
           {error}
         </div>
@@ -859,6 +888,7 @@ export default function App() {
             <AccountDetail
               category={category}
               detail={detail}
+              live={live}
               onBack={handleBack}
               onRatingSubmitted={handleRatingSubmitted}
               pendingRating={pendingByAddress[selectedDerivation.accountAddress]}
@@ -879,10 +909,11 @@ export default function App() {
                   selectedAddress={selectedAddress ?? undefined}
                 />
               ) : loading ? (
-                <div className="loading-panel">
+                <div aria-busy="true" aria-live="polite" className="loading-panel" role="status">
                   <div className="skeleton-block" />
                   <div className="skeleton-block short" />
                   <div className="skeleton-table" />
+                  <span className="sr-only">Loading trust data</span>
                 </div>
               ) : view === 'accounts' ? (
                 <AccountsTable

@@ -1079,6 +1079,16 @@ th {
   color: var(--accent-strong);
 }
 
+.sort-header:disabled {
+  color: var(--muted);
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.sort-header:disabled:hover {
+  color: var(--muted);
+}
+
 tbody tr {
   cursor: default;
 }
@@ -1311,6 +1321,7 @@ tbody tr:hover,
   border-radius: 8px;
   color: #fff;
   font-weight: 800;
+  min-height: 44px;
   padding: 9px 16px;
 }
 
@@ -1364,7 +1375,9 @@ tbody tr:hover,
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .rating-pending__spinner {
+  .rating-pending__spinner,
+  .you-rated-spinner,
+  .node-pill--busy .node-pill__dot {
     animation: none;
   }
 }
@@ -1658,24 +1671,69 @@ tbody tr:hover,
      the four lowest-priority columns — Blocks minted (4), Score (5), Vote weight (8), Seed (9) —
      keeping identity, status, level, ratings, you-rated and Rate. This lets the remaining columns fit
      without horizontal scroll on phones. Column order is fixed in AccountsTable. */
-  table {
+  .accounts-table {
     min-width: 0;
   }
 
-  th:nth-child(4),
-  td:nth-child(4),
-  th:nth-child(5),
-  td:nth-child(5),
-  th:nth-child(8),
-  td:nth-child(8),
-  th:nth-child(9),
-  td:nth-child(9) {
+  .accounts-table th:nth-child(4),
+  .accounts-table td:nth-child(4),
+  .accounts-table th:nth-child(5),
+  .accounts-table td:nth-child(5),
+  .accounts-table th:nth-child(8),
+  .accounts-table td:nth-child(8),
+  .accounts-table th:nth-child(9),
+  .accounts-table td:nth-child(9) {
     display: none;
   }
 
   th,
   td {
     padding: 10px 9px;
+  }
+}
+
+@media (pointer: coarse) {
+  .icon-button,
+  .graph-zoom-controls button,
+  .search-field__close {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .icon-button {
+    height: 44px;
+    width: 44px;
+  }
+
+  .graph-zoom-controls button {
+    height: 44px;
+    width: 44px;
+  }
+
+  .back-button {
+    min-height: 44px;
+    padding-inline: 14px;
+  }
+
+  .rate-button {
+    min-height: 38px;
+    padding: 8px 12px;
+  }
+
+  .search-field__close {
+    justify-content: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .graph-link,
+  .graph-node {
+    transition: none;
+  }
+
+  .skeleton-block,
+  .skeleton-table {
+    animation: none;
   }
 }
 

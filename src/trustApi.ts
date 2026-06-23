@@ -14,6 +14,7 @@ import type {
   ResourceRatingSummary,
   SelfAccount,
   TrustDerivation,
+  TrustDerivationOrderBy,
   TrustPolicy,
   TrustStatus,
   TrustStatusChange,
@@ -56,6 +57,7 @@ export function buildTrustDerivationPath(options: {
   live?: boolean;
   minLevel?: number;
   offset?: number;
+  orderBy?: TrustDerivationOrderBy;
   reverse?: boolean;
   seedMember?: boolean;
   status?: TrustStatus;
@@ -67,6 +69,7 @@ export function buildTrustDerivationPath(options: {
   appendQueryValue(query, 'live', options.live);
   appendQueryValue(query, 'minLevel', options.minLevel);
   appendQueryValue(query, 'offset', options.offset);
+  appendQueryValue(query, 'orderBy', options.orderBy);
   appendQueryValue(query, 'reverse', options.reverse);
   appendQueryValue(query, 'seedMember', options.seedMember);
   appendQueryValue(query, 'status', options.status);

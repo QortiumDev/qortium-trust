@@ -2,6 +2,8 @@ export type TrustStatus = 'SUSPICIOUS' | 'UNVERIFIED' | 'BRONZE' | 'SILVER' | 'G
 
 export type AccountRatingCategory = 'SUBJECT' | 'PLAYER' | 'TRAINER' | 'MANAGER';
 
+export type TrustDerivationOrderBy = 'account' | 'level' | 'score' | 'voteWeight' | 'blocksMinted';
+
 /** Bridge actions the app explicitly knows about. Keeps autocomplete + typo-safety. */
 export type KnownQdnAction =
   | 'FETCH_NODE_API'
@@ -156,11 +158,11 @@ export type TrustDerivation = {
   derivedTrustStatusValue: number;
   derivedTrustWeightPercent: number;
   mintingSeedMember: boolean;
-  // Per-account minting data, populated only on the live derivation path (live=true). Snapshot rows
-  // return 0 because Core does not yet persist these in stored snapshots — read them only when `live`.
-  blocksMinted: number;
-  mintingLevel: number;
-  effectiveVoteWeight: number;
+  // Per-account minting data is not present on every derivation shape. Live rows currently expose
+  // level per category, while snapshot rows should render these account-level fields as unavailable.
+  blocksMinted?: number;
+  mintingLevel?: number;
+  effectiveVoteWeight?: number;
   snapshotHeight: number | null;
   snapshotTimestamp: number | null;
   live: boolean;
@@ -294,6 +296,7 @@ export type AccountTrustExplanation = {
     levelScoreCap: number;
     level: number;
     mappedTrustStatus: TrustStatus;
+    mappedTrustStatusValue: number;
     mappedTrustWeightPercent: number;
     topPositiveImpacts: TrustImpact[];
     topNegativeImpacts: TrustImpact[];

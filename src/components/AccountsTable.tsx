@@ -30,23 +30,29 @@ const MemoStatusBadge = memo(StatusBadge);
 const MemoRateCell = memo(RateCell);
 
 export function SortHeader({
+  disabled = false,
+  disabledReason,
   label,
   onSort,
   sort,
   sortKey,
 }: {
+  disabled?: boolean;
+  disabledReason?: string;
   label: string;
   onSort: (key: AccountSortKey) => void;
   sort: AccountSortState;
   sortKey: AccountSortKey;
 }) {
-  const rank = sort.findIndex((entry) => entry.key === sortKey);
+  const rank = disabled ? -1 : sort.findIndex((entry) => entry.key === sortKey);
   const active = rank >= 0;
   const Icon = active ? (sort[rank].direction === 'asc' ? ArrowUp : ArrowDown) : ArrowDownUp;
 
   // #21: multi-column sort rank is otherwise conveyed only by a 9px number, invisible to screen
   // readers. Announce the active direction and this column's tiebreak priority out of the total.
-  const sortStateLabel = active
+  const sortStateLabel = disabled
+    ? `, unavailable${disabledReason ? `: ${disabledReason}` : ''}`
+    : active
     ? `, sorted ${sort[rank].direction === 'asc' ? 'ascending' : 'descending'}` +
       (sort.length > 1 ? `, sort priority ${rank + 1} of ${sort.length}` : '')
     : ', not sorted';
@@ -54,8 +60,9 @@ export function SortHeader({
   return (
     <button
       className={`sort-header ${active ? 'active' : ''}`}
+      disabled={disabled}
       onClick={() => onSort(sortKey)}
-      title={`Sort by ${label}`}
+      title={disabledReason ?? `Sort by ${label}`}
       type="button"
     >
       <span>{label}</span>
@@ -171,9 +178,11 @@ export function AccountsTable({
     return <EmptyState icon={<Users size={18} />} text="No accounts in this category yet." />;
   }
 
+  const mintingSortDisabledReason = live ? undefined : 'Unavailable in snapshot mode';
+
   return (
     <div className="table-wrap">
-      <table>
+      <table className="accounts-table">
         <thead>
           <tr>
             <th aria-sort={getAriaSort(sort, 'account')}>
@@ -182,11 +191,25 @@ export function AccountsTable({
             <th aria-sort={getAriaSort(sort, 'status')}>
               <SortHeader label="Status" onSort={onSort} sort={sort} sortKey="status" />
             </th>
-            <th aria-sort={getAriaSort(sort, 'level')}>
-              <SortHeader label="Level" onSort={onSort} sort={sort} sortKey="level" />
+            <th aria-sort={live ? getAriaSort(sort, 'level') : 'none'}>
+              <SortHeader
+                disabled={!live}
+                disabledReason={mintingSortDisabledReason}
+                label="Level"
+                onSort={onSort}
+                sort={sort}
+                sortKey="level"
+              />
             </th>
-            <th aria-sort={getAriaSort(sort, 'blocksMinted')}>
-              <SortHeader label="Blocks minted" onSort={onSort} sort={sort} sortKey="blocksMinted" />
+            <th aria-sort={live ? getAriaSort(sort, 'blocksMinted') : 'none'}>
+              <SortHeader
+                disabled={!live}
+                disabledReason={mintingSortDisabledReason}
+                label="Blocks minted"
+                onSort={onSort}
+                sort={sort}
+                sortKey="blocksMinted"
+              />
             </th>
             <th aria-sort={getAriaSort(sort, 'score')}>
               <SortHeader label="Score" onSort={onSort} sort={sort} sortKey="score" />
@@ -229,8 +252,8 @@ export function AccountsTable({
                 <td>
                   <MemoStatusBadge status={derivation.derivedTrustStatus} />
                 </td>
-                <td>{live ? formatNumber(getAccountMintingLevel(derivation)) : '—'}</td>
-                <td>{live ? formatNumber(getAccountBlocksMinted(derivation)) : '—'}</td>
+                <td>{live ? formatNumber(getAccountMintingLevel(derivation, category)) : '—'}</td>
+                <td>{live && derivation.blocksMinted !== undefined ? formatNumber(getAccountBlocksMinted(derivation)) : '—'}</td>
                 <td>{formatNumber(categoryData?.score ?? 0)}</td>
                 <td>
                   {formatNumber(inbound?.positiveRatingCount ?? 0)} / {formatNumber(inbound?.negativeRatingCount ?? 0)}

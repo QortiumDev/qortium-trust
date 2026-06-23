@@ -389,9 +389,12 @@ export function RowRatePopover({
 
   return createPortal(
     <div
+      aria-label="Rate account"
+      aria-modal="true"
       className="rate-popover"
       onClick={(event) => event.stopPropagation()}
       ref={ref}
+      role="dialog"
       style={{ left: position?.left ?? 0, top: position?.top ?? 0, visibility: position ? 'visible' : 'hidden' }}
     >
       <RatingPopover control={control} onClose={onClose} selectRef={selectRef} />

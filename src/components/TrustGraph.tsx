@@ -233,7 +233,7 @@ export function TrustGraph({
         onPointerUp={endPan}
         onWheel={handleWheel}
         ref={svgRef}
-        role="img"
+        role="group"
         style={{ aspectRatio: `${graph.width} / ${graph.height}` }}
         viewBox={`0 0 ${graph.width} ${graph.height}`}
       >

@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { changeAccountSortState, compareAccountRows, UNRATED_SORT_VALUE } from './accountSort';
+import {
+  changeAccountSortState,
+  compareAccountRows,
+  getTrustDerivationServerSort,
+  UNRATED_SORT_VALUE,
+} from './accountSort';
 import type {
   AccountRatingCategory,
   IdentityProfilesByAddress,
@@ -121,10 +126,16 @@ describe('compareAccountRows — ratings tiebreak', () => {
   });
 });
 
-describe('compareAccountRows — minting columns read off the derivation row (#9)', () => {
-  it('sorts by mintingLevel and blocksMinted from the row, not a side table', () => {
-    const high = derivation('Qhigh', { mintingLevel: 5, blocksMinted: 5000 });
-    const low = derivation('Qlow', { mintingLevel: 2, blocksMinted: 100 });
+describe('compareAccountRows — minting columns', () => {
+  it('sorts level by the active category level and blocks by the derivation row', () => {
+    const high = derivation('Qhigh', {
+      blocksMinted: 5000,
+      categories: [category({ level: 5 })],
+    });
+    const low = derivation('Qlow', {
+      blocksMinted: 100,
+      categories: [category({ level: 2 })],
+    });
 
     expect(compare(high, low, 'level')).toBe(5 - 2);
     expect(compare(high, low, 'blocksMinted')).toBe(5000 - 100);
@@ -168,5 +179,29 @@ describe('changeAccountSortState transitions', () => {
       { key: 'voteWeight', direction: 'desc' },
       { key: 'score', direction: 'desc' },
     ]);
+  });
+});
+
+describe('getTrustDerivationServerSort', () => {
+  it('maps supported primary sort keys to Core orderBy values', () => {
+    expect(getTrustDerivationServerSort([{ key: 'score', direction: 'desc' }])).toEqual({
+      orderBy: 'score',
+      reverse: true,
+    });
+    expect(getTrustDerivationServerSort([{ key: 'level', direction: 'asc' }])).toEqual({
+      orderBy: 'level',
+      reverse: undefined,
+    });
+  });
+
+  it('does not map client-only or semantically different sort keys', () => {
+    expect(
+      getTrustDerivationServerSort([
+        { key: 'youRated', direction: 'desc' },
+        { key: 'blocksMinted', direction: 'desc' },
+      ]),
+    ).toEqual({});
+    expect(getTrustDerivationServerSort([{ key: 'account', direction: 'asc' }])).toEqual({});
+    expect(getTrustDerivationServerSort([{ key: 'youRated', direction: 'desc' }])).toEqual({});
   });
 });

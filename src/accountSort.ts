@@ -1,9 +1,22 @@
 import { getIdentityLabel } from './identityProfiles';
-import type { AccountRatingCategory, IdentityProfilesByAddress, TrustDerivation } from './types';
+import type {
+  AccountRatingCategory,
+  IdentityProfilesByAddress,
+  TrustDerivation,
+  TrustDerivationOrderBy,
+} from './types';
 import type { AccountSortKey, AccountSortState, RatingsByAddress, SortDirection } from './viewTypes';
 
 // Sentinel below the -4..+4 rating range so accounts you have not rated sort to the bottom.
 export const UNRATED_SORT_VALUE = -5;
+
+const SERVER_SORT_BY_KEY: Partial<Record<AccountSortKey, TrustDerivationOrderBy>> = {
+  blocksMinted: 'blocksMinted',
+  level: 'level',
+  score: 'score',
+  voteWeight: 'voteWeight',
+};
+const NO_SERVER_SORT: { orderBy?: TrustDerivationOrderBy; reverse?: boolean } = {};
 
 export function getDefaultAccountSortDirection(key: AccountSortKey): SortDirection {
   return key === 'account' ? 'asc' : 'desc';
@@ -25,12 +38,12 @@ function getAccountSortLabel(derivation: TrustDerivation, profiles: IdentityProf
 
 // Minting level/blocks now come off the derivation row itself (#9). They are only meaningful on a
 // live derivation; snapshot rows carry 0, so the table renders "—" rather than these values there.
-export function getAccountMintingLevel(derivation: TrustDerivation) {
-  return derivation.mintingLevel;
+export function getAccountMintingLevel(derivation: TrustDerivation, category: AccountRatingCategory) {
+  return getDerivationCategory(derivation, category)?.level ?? derivation.mintingLevel ?? 0;
 }
 
 export function getAccountBlocksMinted(derivation: TrustDerivation) {
-  return derivation.blocksMinted;
+  return derivation.blocksMinted ?? 0;
 }
 
 export function compareAccountLabels(
@@ -63,7 +76,7 @@ export function compareAccountRows(
     case 'status':
       return left.derivedTrustStatusValue - right.derivedTrustStatusValue;
     case 'level':
-      return getAccountMintingLevel(left) - getAccountMintingLevel(right);
+      return getAccountMintingLevel(left, category) - getAccountMintingLevel(right, category);
     case 'blocksMinted':
       return getAccountBlocksMinted(left) - getAccountBlocksMinted(right);
     case 'score':
@@ -119,4 +132,21 @@ export function changeAccountSortState(current: AccountSortState, key: AccountSo
 
   // New column: make it primary and keep the previous columns as tiebreakers.
   return [{ direction: getDefaultAccountSortDirection(key), key }, ...current];
+}
+
+export function getTrustDerivationServerSort(sort: AccountSortState): {
+  orderBy?: TrustDerivationOrderBy;
+  reverse?: boolean;
+} {
+  const primary = sort[0];
+  const orderBy = primary ? SERVER_SORT_BY_KEY[primary.key] : undefined;
+
+  if (!primary || !orderBy) {
+    return NO_SERVER_SORT;
+  }
+
+  return {
+    orderBy,
+    reverse: primary.direction === 'desc' ? true : undefined,
+  };
 }

@@ -27,12 +27,13 @@ describe('trust API path builders', () => {
         category: 'PLAYER',
         live: true,
         minLevel: 2,
+        orderBy: 'score',
         reverse: true,
         seedMember: false,
         status: 'SILVER',
       }),
     ).toBe(
-      '/account-ratings/trust-derivation?category=PLAYER&limit=250&live=true&minLevel=2&reverse=true&seedMember=false&status=SILVER',
+      '/account-ratings/trust-derivation?category=PLAYER&limit=250&live=true&minLevel=2&orderBy=score&reverse=true&seedMember=false&status=SILVER',
     );
   });
 
