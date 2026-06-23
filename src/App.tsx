@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertTriangle,
   RefreshCw,
@@ -6,7 +6,8 @@ import {
   X,
 } from 'lucide-react';
 import trustIconUrl from './assets/qortium-trust-protoicon-black-transparent.png';
-import { createTrustGraphModel, filterDerivations, type TrustGraphNode } from './graphModel';
+import { filterDerivations } from './derivationFilter';
+import type { TrustGraphNode } from './graphModel';
 import { loadIdentityProfiles } from './identityProfiles';
 import { getBridgeState } from './qdnRequest';
 import { resolveQdnAssetUrl } from './qdnAsset';
@@ -62,11 +63,14 @@ import { changeAccountSortState, getTrustDerivationServerSort } from './accountS
 import { PENDING_CONFIRM_POLL_MS, pendingRatingKey } from './ratingControl';
 import { t, type TranslationKey } from './i18n';
 import { NodeSyncPill } from './components/Identity';
-import { TrustGraph } from './components/TrustGraph';
 import { AccountsTable } from './components/AccountsTable';
 import { ChangesTable } from './components/ChangesTable';
 import { ResourceRatingsTable } from './components/ResourceRatingsTable';
 import { AccountDetail } from './components/AccountDetail';
+
+// Lazily loaded so d3-force + the graph simulation land in a separate chunk the default Accounts
+// view never downloads (bundle-001).
+const TrustGraphView = lazy(() => import('./components/TrustGraphView'));
 
 type QdnRenderWindow = Window &
   typeof globalThis & {
@@ -497,27 +501,46 @@ export default function App() {
     [data.derivations, selectedAddress],
   );
 
-  // Stable signature of the inputs to the (expensive, 320-tick) graph sim: it depends only on the
-  // displayed addresses, the rating edges, and the category — never on identityProfiles. Memoizing on
-  // this string instead of array identity stops identity-profile batches / silent polls from re-running
-  // the sim when nothing graph-relevant changed (#6).
+  // Stable signature of every input the graph sim renders from — the category, plus each node's
+  // visual fields (status/level/score/seed) and each edge's (rater/target/rating/confidence) — but
+  // never identityProfiles. Memoizing TrustGraphView's model build on this string stops identity
+  // batches / silent polls from re-running the 320-tick sim, while still rebuilding when a live
+  // toggle or re-derivation changes a node's status/level/score that addresses alone wouldn't catch
+  // (perf-001, #6).
   const graphSignature = useMemo(
     () =>
       JSON.stringify([
         category,
-        filteredDerivations.map((derivation) => derivation.accountAddress),
-        data.ratings.map((rating) => [rating.raterAddress, rating.targetAddress, rating.rating]),
+        filteredDerivations.map((derivation) => {
+          const categoryData = derivation.categories.find((candidate) => candidate.category === category);
+
+          return [
+            derivation.accountAddress,
+            derivation.derivedTrustStatus,
+            derivation.mintingSeedMember,
+            categoryData?.level ?? 0,
+            categoryData?.score ?? 0,
+          ];
+        }),
+        data.ratings.map((rating) => [
+          rating.raterAddress,
+          rating.targetAddress,
+          rating.rating,
+          rating.ratingConfidence,
+        ]),
       ]),
     [category, data.ratings, filteredDerivations],
   );
 
-  const graph = useMemo(
-    // Only build the graph model when the graph view is active; an empty graph otherwise so the sim
-    // never runs on the Accounts/Changes/Resources views (#6).
-    () => (view === 'graph' ? createTrustGraphModel(filteredDerivations, data.ratings, category) : createTrustGraphModel([], [], category)),
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- gated on graphSignature (stable input
-    // signature) + view rather than the array identities folded into the signature.
-    [view, graphSignature],
+  // Shared skeleton for the foreground load and the lazy graph-chunk Suspense fallback, so a
+  // graph-view switch shows the same placeholder whether data or the chunk is still arriving.
+  const loadingPanel = (
+    <div aria-busy="true" aria-live="polite" className="loading-panel" role="status">
+      <div className="skeleton-block" />
+      <div className="skeleton-block short" />
+      <div className="skeleton-table" />
+      <span className="sr-only">{t('app.loading')}</span>
+    </div>
   );
 
   // What the current user has rated each account in the selected category. Built from the dedicated
@@ -666,6 +689,13 @@ export default function App() {
     let timer = 0;
 
     const poll = async () => {
+      // Pause while the tab is backgrounded: browsers throttle background timers anyway, and there's
+      // no UI to update, so skip the cooldown round-trips. The visibilitychange listener resumes the
+      // loop (immediately re-polling) when the tab is shown again (poll-001).
+      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+        return;
+      }
+
       const confirmedKeys: string[] = [];
 
       await Promise.all(
@@ -786,11 +816,28 @@ export default function App() {
       }
     };
 
+    // When the tab returns to the foreground, poll right away rather than waiting out a full interval
+    // that may have been throttled or skipped while hidden.
+    const handleVisibility = () => {
+      if (!cancelled && document.visibilityState === 'visible') {
+        window.clearTimeout(timer);
+        timer = window.setTimeout(() => void poll(), 0);
+      }
+    };
+
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', handleVisibility);
+    }
+
     timer = window.setTimeout(() => void poll(), PENDING_CONFIRM_POLL_MS);
 
     return () => {
       cancelled = true;
       window.clearTimeout(timer);
+
+      if (typeof document !== 'undefined') {
+        document.removeEventListener('visibilitychange', handleVisibility);
+      }
     };
   }, [pendingRatings]);
 
@@ -911,20 +958,20 @@ export default function App() {
           ) : (
             <>
               {loading && view === 'graph' ? (
-                <TrustGraph
-                  graph={graph}
-                  isLoading
-                  onSelect={selectNode}
-                  profiles={identityProfiles}
-                  selectedAddress={selectedAddress ?? undefined}
-                />
+                <Suspense fallback={loadingPanel}>
+                  <TrustGraphView
+                    category={category}
+                    derivations={filteredDerivations}
+                    isLoading
+                    onSelect={selectNode}
+                    profiles={identityProfiles}
+                    ratings={data.ratings}
+                    selectedAddress={selectedAddress ?? undefined}
+                    signature={graphSignature}
+                  />
+                </Suspense>
               ) : loading ? (
-                <div aria-busy="true" aria-live="polite" className="loading-panel" role="status">
-                  <div className="skeleton-block" />
-                  <div className="skeleton-block short" />
-                  <div className="skeleton-table" />
-                  <span className="sr-only">{t('app.loading')}</span>
-                </div>
+                loadingPanel
               ) : view === 'accounts' ? (
                 <AccountsTable
                   category={category}
@@ -952,12 +999,17 @@ export default function App() {
                   youRatedByAddress={youRatedByAddress}
                 />
               ) : view === 'graph' ? (
-                <TrustGraph
-                  graph={graph}
-                  onSelect={selectNode}
-                  profiles={identityProfiles}
-                  selectedAddress={selectedAddress ?? undefined}
-                />
+                <Suspense fallback={loadingPanel}>
+                  <TrustGraphView
+                    category={category}
+                    derivations={filteredDerivations}
+                    onSelect={selectNode}
+                    profiles={identityProfiles}
+                    ratings={data.ratings}
+                    selectedAddress={selectedAddress ?? undefined}
+                    signature={graphSignature}
+                  />
+                </Suspense>
               ) : view === 'changes' ? (
                 <ChangesTable changes={data.changes} profiles={identityProfiles} />
               ) : (

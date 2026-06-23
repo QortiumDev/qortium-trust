@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { createTrustGraphModel, filterDerivations } from './graphModel';
+import { createTrustGraphModel } from './graphModel';
+import { filterDerivations } from './derivationFilter';
 import type { AccountRating, TrustDerivation } from './types';
 
 const derivations: TrustDerivation[] = [
