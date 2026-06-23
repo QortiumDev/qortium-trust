@@ -19,6 +19,7 @@ import {
 } from '../accountSort';
 import { EmptyState, IdentityAvatar, IdentityLabel, StatusBadge } from './Identity';
 import { RateCell } from './RatingControls';
+import { t } from '../i18n';
 
 // #14: IdentityAvatar / StatusBadge / RateCell live in other modules (Identity.tsx, RatingControls.tsx)
 // that this lane does not own, so they can't be wrapped in React.memo at their definition. Wrapping
@@ -51,18 +52,20 @@ export function SortHeader({
   // #21: multi-column sort rank is otherwise conveyed only by a 9px number, invisible to screen
   // readers. Announce the active direction and this column's tiebreak priority out of the total.
   const sortStateLabel = disabled
-    ? `, unavailable${disabledReason ? `: ${disabledReason}` : ''}`
+    ? `, ${disabledReason ? t('sort.unavailableReason', { reason: disabledReason }) : t('sort.unavailable')}`
     : active
-    ? `, sorted ${sort[rank].direction === 'asc' ? 'ascending' : 'descending'}` +
-      (sort.length > 1 ? `, sort priority ${rank + 1} of ${sort.length}` : '')
-    : ', not sorted';
+    ? `, ${t('sort.sorted', {
+      direction: sort[rank].direction === 'asc' ? t('sort.ascending') : t('sort.descending'),
+    })}` +
+      (sort.length > 1 ? `, ${t('sort.priority', { rank: rank + 1, total: sort.length })}` : '')
+    : `, ${t('sort.notSorted')}`;
 
   return (
     <button
       className={`sort-header ${active ? 'active' : ''}`}
       disabled={disabled}
       onClick={() => onSort(sortKey)}
-      title={disabledReason ?? `Sort by ${label}`}
+      title={disabledReason ?? t('sort.title', { label })}
       type="button"
     >
       <span>{label}</span>
@@ -165,20 +168,20 @@ export function AccountsTable({
       // alongside it rather than threaded through as a prop.
       return (
         <div className="empty-state-stack">
-          <EmptyState icon={<SearchX size={18} />} text="No accounts match your search or filter." />
+          <EmptyState icon={<SearchX size={18} />} text={t('empty.matches')} />
           {onResetFilters ? (
             <button className="empty-state-reset" onClick={onResetFilters} type="button">
-              Reset search and filter
+              {t('action.resetFilters')}
             </button>
           ) : null}
         </div>
       );
     }
 
-    return <EmptyState icon={<Users size={18} />} text="No accounts in this category yet." />;
+    return <EmptyState icon={<Users size={18} />} text={t('empty.accounts')} />;
   }
 
-  const mintingSortDisabledReason = live ? undefined : 'Unavailable in snapshot mode';
+  const mintingSortDisabledReason = live ? undefined : t('sort.unavailableSnapshot');
 
   return (
     <div className="table-wrap">
@@ -186,16 +189,16 @@ export function AccountsTable({
         <thead>
           <tr>
             <th aria-sort={getAriaSort(sort, 'account')}>
-              <SortHeader label="Account" onSort={onSort} sort={sort} sortKey="account" />
+              <SortHeader label={t('label.account')} onSort={onSort} sort={sort} sortKey="account" />
             </th>
             <th aria-sort={getAriaSort(sort, 'status')}>
-              <SortHeader label="Status" onSort={onSort} sort={sort} sortKey="status" />
+              <SortHeader label={t('label.status')} onSort={onSort} sort={sort} sortKey="status" />
             </th>
             <th aria-sort={live ? getAriaSort(sort, 'level') : 'none'}>
               <SortHeader
                 disabled={!live}
                 disabledReason={mintingSortDisabledReason}
-                label="Level"
+                label={t('label.level')}
                 onSort={onSort}
                 sort={sort}
                 sortKey="level"
@@ -205,28 +208,28 @@ export function AccountsTable({
               <SortHeader
                 disabled={!live}
                 disabledReason={mintingSortDisabledReason}
-                label="Blocks minted"
+                label={t('label.blocksMinted')}
                 onSort={onSort}
                 sort={sort}
                 sortKey="blocksMinted"
               />
             </th>
             <th aria-sort={getAriaSort(sort, 'score')}>
-              <SortHeader label="Score" onSort={onSort} sort={sort} sortKey="score" />
+              <SortHeader label={t('label.score')} onSort={onSort} sort={sort} sortKey="score" />
             </th>
             <th aria-sort={getAriaSort(sort, 'ratings')}>
-              <SortHeader label="Ratings" onSort={onSort} sort={sort} sortKey="ratings" />
+              <SortHeader label={t('label.ratings')} onSort={onSort} sort={sort} sortKey="ratings" />
             </th>
             <th aria-sort={getAriaSort(sort, 'youRated')}>
-              <SortHeader label="You rated" onSort={onSort} sort={sort} sortKey="youRated" />
+              <SortHeader label={t('label.youRated')} onSort={onSort} sort={sort} sortKey="youRated" />
             </th>
             <th aria-sort={getAriaSort(sort, 'voteWeight')}>
-              <SortHeader label="Vote weight" onSort={onSort} sort={sort} sortKey="voteWeight" />
+              <SortHeader label={t('label.voteWeight')} onSort={onSort} sort={sort} sortKey="voteWeight" />
             </th>
             <th aria-sort={getAriaSort(sort, 'seed')}>
-              <SortHeader label="Seed" onSort={onSort} sort={sort} sortKey="seed" />
+              <SortHeader label={t('label.seed')} onSort={onSort} sort={sort} sortKey="seed" />
             </th>
-            <th>Rate</th>
+            <th>{t('label.rate')}</th>
           </tr>
         </thead>
         <tbody>
@@ -260,7 +263,7 @@ export function AccountsTable({
                 </td>
                 <td>
                   {pendingRating !== undefined ? (
-                    <span className="you-rated-pending" title="Submitted — waiting for confirmation">
+                    <span className="you-rated-pending" title={t('rating.pendingConfirmation')}>
                       <span className="you-rated-spinner" aria-hidden="true" />
                       {pendingRating !== 0 ? (
                         <span className={`you-rated ${ratingTone(pendingRating)}`}>
@@ -277,7 +280,7 @@ export function AccountsTable({
                   )}
                 </td>
                 <td>{formatPercent(derivation.derivedTrustWeightPercent)}</td>
-                <td>{derivation.mintingSeedMember ? 'Yes' : 'No'}</td>
+                <td>{derivation.mintingSeedMember ? t('value.yes') : t('value.no')}</td>
                 <MemoRateCell
                   category={category}
                   derivation={derivation}

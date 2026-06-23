@@ -1,27 +1,61 @@
+import { setTranslationLanguage } from './i18n';
+
 export const ACCENT_OPTIONS = ['green', 'blue', 'orange', 'purple', 'red', 'teal', 'cyan', 'pink', 'yellow'] as const;
+export const LANGUAGE_VALUES = [
+  'ar',
+  'de',
+  'el',
+  'en',
+  'es',
+  'et',
+  'fi',
+  'fr',
+  'he',
+  'hi',
+  'hu',
+  'it',
+  'ja',
+  'ko',
+  'nb',
+  'nl',
+  'pl',
+  'pt',
+  'ro',
+  'ru',
+  'sv',
+  'zh-CN',
+  'zh-TW',
+] as const;
 export const TEXT_SIZE_VALUES = ['extra-small', 'small', 'medium', 'large', 'extra-large', 'huge'] as const;
 
 export type QdnTheme = 'dark' | 'light';
 export type QdnAccent = typeof ACCENT_OPTIONS[number];
+export type QdnLanguage = typeof LANGUAGE_VALUES[number];
 export type QdnTextSize = typeof TEXT_SIZE_VALUES[number];
 
 export type QdnDisplaySettings = {
   accent: QdnAccent;
+  language: QdnLanguage;
   textSize: QdnTextSize;
   theme: QdnTheme;
 };
 
 type QdnHostWindow = Window & {
   _qdnAccent?: unknown;
+  _qdnLang?: unknown;
+  _qdnLanguage?: unknown;
   _qdnTextSize?: unknown;
   _qdnTheme?: unknown;
 };
 
 const DEFAULT_DISPLAY_SETTINGS: QdnDisplaySettings = {
   accent: 'green',
+  language: 'en',
   textSize: 'medium',
   theme: 'light',
 };
+
+const RTL_LANGUAGES = new Set<QdnLanguage>(['ar', 'he']);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === 'object';
@@ -47,6 +81,29 @@ export function normalizeAccent(value: unknown): QdnAccent | null {
   return ACCENT_OPTIONS.includes(normalized as QdnAccent) ? normalized as QdnAccent : null;
 }
 
+export function normalizeLanguage(value: unknown): QdnLanguage | null {
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  const normalized = trimmed.toLowerCase();
+
+  if (normalized === 'zh-cn' || normalized === 'zh-hans') {
+    return 'zh-CN';
+  }
+
+  if (normalized === 'zh-tw' || normalized === 'zh-hant') {
+    return 'zh-TW';
+  }
+
+  if (normalized === 'no') {
+    return 'nb';
+  }
+
+  return LANGUAGE_VALUES.find((language) => language.toLowerCase() === normalized) ?? null;
+}
+
 export function normalizeTextSize(value: unknown): QdnTextSize | null {
   if (typeof value !== 'string') {
     return null;
@@ -64,6 +121,14 @@ export function getInitialDisplaySettings(): QdnDisplaySettings {
   return {
     accent: normalizeAccent(query?.get('accent') ?? query?.get('qdnAccent') ?? hostWindow?._qdnAccent) ??
       DEFAULT_DISPLAY_SETTINGS.accent,
+    language: normalizeLanguage(
+      query?.get('language') ??
+      query?.get('lang') ??
+      query?.get('qdnLanguage') ??
+      query?.get('qdnLang') ??
+      hostWindow?._qdnLanguage ??
+      hostWindow?._qdnLang,
+    ) ?? DEFAULT_DISPLAY_SETTINGS.language,
     textSize: normalizeTextSize(query?.get('textSize') ?? query?.get('text-size') ?? query?.get('qdnTextSize')) ??
       normalizeTextSize(hostWindow?._qdnTextSize) ??
       DEFAULT_DISPLAY_SETTINGS.textSize,
@@ -79,9 +144,14 @@ export function applyDisplaySettings(settings: QdnDisplaySettings) {
 
   const root = document.documentElement;
 
+  setTranslationLanguage(settings.language);
+
   root.dataset.accent = settings.accent;
+  root.dataset.language = settings.language;
   root.dataset.textSize = settings.textSize;
   root.dataset.theme = settings.theme;
+  root.dir = RTL_LANGUAGES.has(settings.language) ? 'rtl' : 'ltr';
+  root.lang = settings.language;
   root.style.colorScheme = settings.theme;
 }
 
@@ -106,10 +176,47 @@ export function getDisplaySettingsUpdateFromMessage(
       return accent ? { ...current, accent } : null;
     }
 
+    case 'LANGUAGE_CHANGED': {
+      const language = normalizeLanguage(data.language ?? data.lang ?? data.qdnLanguage ?? data.qdnLang);
+
+      return language ? { ...current, language } : null;
+    }
+
     case 'TEXT_SIZE_CHANGED': {
       const textSize = normalizeTextSize(data.textSize ?? data.qdnTextSize);
 
       return textSize ? { ...current, textSize } : null;
+    }
+
+    case 'DISPLAY_SETTINGS_CHANGED': {
+      const next: QdnDisplaySettings = { ...current };
+      let changed = false;
+      const accent = normalizeAccent(data.accent ?? data.qdnAccent);
+      const language = normalizeLanguage(data.language ?? data.lang ?? data.qdnLanguage ?? data.qdnLang);
+      const textSize = normalizeTextSize(data.textSize ?? data.qdnTextSize);
+      const theme = normalizeTheme(data.theme ?? data.qdnTheme);
+
+      if (accent) {
+        next.accent = accent;
+        changed = true;
+      }
+
+      if (language) {
+        next.language = language;
+        changed = true;
+      }
+
+      if (textSize) {
+        next.textSize = textSize;
+        changed = true;
+      }
+
+      if (theme) {
+        next.theme = theme;
+        changed = true;
+      }
+
+      return changed ? next : null;
     }
 
     default:

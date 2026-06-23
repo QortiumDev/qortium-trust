@@ -28,10 +28,10 @@ const submitRatingMock = vi.mocked(submitRating);
 
 describe('rating predicates (pure)', () => {
   it('mapRatingError translates known wire errors and passes others through', () => {
-    expect(mapRatingError('rejected: TOO_SOON to change')).toMatch(/too recently/i);
+    expect(mapRatingError('rejected: TOO_SOON to change')).toMatch(/cooldown/i);
     expect(mapRatingError('CANNOT_RATE_SELF')).toMatch(/your own account/i);
     expect(mapRatingError('PUBLIC_KEY_UNKNOWN')).toMatch(/no on-chain history/i);
-    expect(mapRatingError('UNCHANGED')).toMatch(/matches your current rating/i);
+    expect(mapRatingError('UNCHANGED')).toMatch(/unchanged/i);
     expect(mapRatingError('INVALID_ACCOUNT_RATING')).toMatch(/whole number/i);
     expect(mapRatingError('NO_BALANCE')).toMatch(/insufficient balance/i);
     expect(mapRatingError('NEEDS_SYNC now')).toMatch(/syncing/i);

@@ -3,6 +3,7 @@ import { ArrowDownUp } from 'lucide-react';
 import { categoryLabel, formatDate, formatNumber } from '../format';
 import type { IdentityProfilesByAddress, TrustStatusChange } from '../types';
 import { EmptyState, IdentityAvatar, IdentityLabel, StatusBadge } from './Identity';
+import { t } from '../i18n';
 
 // #14: IdentityAvatar / StatusBadge are defined in Identity.tsx (another lane). Memoize them at this
 // render boundary so unchanged rows skip re-render when the table re-renders.
@@ -17,7 +18,7 @@ export function ChangesTable({
   profiles: IdentityProfilesByAddress;
 }) {
   if (changes.length === 0) {
-    return <EmptyState icon={<ArrowDownUp size={18} />} text="No trust status changes are recorded yet." />;
+    return <EmptyState icon={<ArrowDownUp size={18} />} text={t('empty.changes')} />;
   }
 
   return (
@@ -25,13 +26,13 @@ export function ChangesTable({
       <table>
         <thead>
           <tr>
-            <th>Account</th>
-            <th>Category</th>
-            <th>Previous</th>
-            <th>New</th>
-            <th>Score</th>
-            <th>Height</th>
-            <th>Time</th>
+            <th>{t('label.account')}</th>
+            <th>{t('label.category')}</th>
+            <th>{t('label.before')}</th>
+            <th>{t('label.new')}</th>
+            <th>{t('label.score')}</th>
+            <th>{t('label.height')}</th>
+            <th>{t('label.time')}</th>
           </tr>
         </thead>
         <tbody>

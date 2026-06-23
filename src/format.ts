@@ -1,4 +1,5 @@
 import type { AccountRatingCategory, TrustStatus } from './types';
+import { t, type TranslationKey } from './i18n';
 
 export const TRUST_STATUSES: TrustStatus[] = ['SUSPICIOUS', 'UNVERIFIED', 'BRONZE', 'SILVER', 'GOLD'];
 
@@ -6,34 +7,36 @@ export const TRUST_CATEGORIES: AccountRatingCategory[] = ['SUBJECT', 'PLAYER', '
 
 // Display labels only. The wire/API values stay 'SUBJECT' | 'PLAYER' | 'TRAINER' | 'MANAGER';
 // the Core API both accepts and returns those raw values, so we remap purely at render time.
-const CATEGORY_LABELS: Record<AccountRatingCategory, string> = {
-  SUBJECT: 'Minters',
-  PLAYER: 'Voters',
-  TRAINER: 'Guides',
-  MANAGER: 'Designers',
+const CATEGORY_LABELS: Record<AccountRatingCategory, TranslationKey> = {
+  SUBJECT: 'category.minters.label',
+  PLAYER: 'category.voters.label',
+  TRAINER: 'category.guides.label',
+  MANAGER: 'category.designers.label',
 };
 
 // Friendly labels for the WHICH_UI runtime string the bridge reports. Home returns environment
 // tokens ('QORTIUM_HOME_ELECTRON' on desktop, 'QORTIUM_HOME_ANDROID' on Android); collapse those to
 // a single readable name, and surface anything unrecognized verbatim so new runtimes still show.
-const RUNTIME_LABELS: Record<string, string> = {
-  BROWSER_DEV: 'Browser dev',
-  QORTIUM_HOME: 'Qortium Home',
-  QORTIUM_HOME_ANDROID: 'Qortium Home',
-  QORTIUM_HOME_ELECTRON: 'Qortium Home',
+const RUNTIME_LABELS: Record<string, TranslationKey> = {
+  BROWSER_DEV: 'runtime.browserDev',
+  QORTIUM_HOME: 'runtime.qortiumHome',
+  QORTIUM_HOME_ANDROID: 'runtime.qortiumHome',
+  QORTIUM_HOME_ELECTRON: 'runtime.qortiumHome',
 };
 
 export function formatRuntimeLabel(ui: string | null | undefined) {
   if (!ui) {
-    return 'Loading';
+    return t('app.loading');
   }
 
-  return RUNTIME_LABELS[ui.trim().toUpperCase()] ?? ui;
+  const labelKey = RUNTIME_LABELS[ui.trim().toUpperCase()];
+
+  return labelKey ? t(labelKey) : ui;
 }
 
 export function compactAddress(value: string | undefined, head = 7, tail = 5) {
   if (!value) {
-    return 'Unknown';
+    return t('value.unknown');
   }
 
   if (value.length <= head + tail + 3) {
@@ -71,27 +74,41 @@ export function formatDate(value: number | null | undefined) {
 }
 
 export function statusLabel(status: TrustStatus) {
-  return status.charAt(0) + status.slice(1).toLowerCase();
+  switch (status) {
+    case 'BRONZE':
+      return t('status.bronze');
+    case 'GOLD':
+      return t('status.gold');
+    case 'SILVER':
+      return t('status.silver');
+    case 'SUSPICIOUS':
+      return t('status.suspicious');
+    case 'UNVERIFIED':
+    default:
+      return t('status.unverified');
+  }
 }
 
 export function categoryLabel(category: AccountRatingCategory) {
   // Fall back to title-casing any unexpected wire value the API might return.
-  return CATEGORY_LABELS[category] ?? category.charAt(0) + category.slice(1).toLowerCase();
+  const labelKey = CATEGORY_LABELS[category];
+
+  return labelKey ? t(labelKey) : category.charAt(0) + category.slice(1).toLowerCase();
 }
 
 // One-line role descriptions surfaced under the category selector, in plain language.
-const CATEGORY_DESCRIPTIONS: Record<AccountRatingCategory, string> = {
-  SUBJECT: 'Whether you trust this account to be a block minter.',
-  PLAYER: 'Whether you trust this account to rate other accounts in the trust network.',
-  TRAINER:
-    'Whether you trust this account to understand the trust network well enough to explain it to others.',
-  MANAGER:
-    'Whether you trust this account to understand the trust network well enough to help vote on governance decisions.',
+const CATEGORY_DESCRIPTIONS: Record<AccountRatingCategory, TranslationKey> = {
+  SUBJECT: 'category.minters.description',
+  PLAYER: 'category.voters.description',
+  TRAINER: 'category.guides.description',
+  MANAGER: 'category.designers.description',
 };
 
 export function categoryDescription(category: AccountRatingCategory) {
   // Unknown wire values have no description; return '' so callers can render-or-skip cleanly.
-  return CATEGORY_DESCRIPTIONS[category] ?? '';
+  const descriptionKey = CATEGORY_DESCRIPTIONS[category];
+
+  return descriptionKey ? t(descriptionKey) : '';
 }
 
 export function ratingTone(rating: number) {

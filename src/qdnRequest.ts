@@ -1,4 +1,5 @@
 import type { BridgeState, NodeApiFetchResult, QdnAction } from './types';
+import { t } from './i18n';
 
 const DEFAULT_NODE_API_URL = 'http://127.0.0.1:24891';
 
@@ -46,11 +47,11 @@ export function parseResponseData(body: string, contentType: string) {
 /** @internal exported for unit tests; not part of the module's public surface. */
 export function sanitizeNodePath(path: unknown) {
   if (typeof path !== 'string' || !path.startsWith('/') || path.startsWith('//')) {
-    throw new Error('Node API paths must start with /.');
+    throw new Error(t('error.nodeApiPathPrefix'));
   }
 
   if (/[\x00-\x1F]/.test(path)) {
-    throw new Error('Node API path contains invalid control characters.');
+    throw new Error(t('error.nodeApiControlChars'));
   }
 
   const url = new URL(path, DEFAULT_NODE_API_URL);
@@ -63,7 +64,7 @@ export function sanitizeReadMethod(method: unknown) {
   const normalizedMethod = typeof method === 'string' && method.trim() ? method.trim().toUpperCase() : 'GET';
 
   if (normalizedMethod !== 'GET' && normalizedMethod !== 'HEAD') {
-    throw new Error('Only GET and HEAD node API requests are supported.');
+    throw new Error(t('error.nodeApiGetOnly'));
   }
 
   return normalizedMethod;
@@ -86,7 +87,7 @@ async function fetchLocalNodeApi(request: QdnRequest): Promise<NodeApiFetchResul
   const maxBytes = typeof request.maxBytes === 'number' ? request.maxBytes : 0;
 
   if (maxBytes > 0 && bodyLength > maxBytes) {
-    throw new Error(`Node API response exceeded the ${maxBytes.toLocaleString()} byte limit.`);
+    throw new Error(t('error.nodeApiByteLimit', { maxBytes: maxBytes.toLocaleString() }));
   }
 
   // `headers` is intentionally omitted in browser-dev: it is a bridge-only field populated by
@@ -116,13 +117,13 @@ async function fallbackQdnRequest<T>(request: QdnRequest): Promise<T> {
       const result = await fetchLocalNodeApi({ action: 'FETCH_NODE_API', path: '/admin/status' });
 
       if (!result.ok) {
-        throw new Error(result.body || `Node status failed with HTTP ${result.status}.`);
+        throw new Error(result.body || t('error.nodeStatusFailed', { status: result.status }));
       }
 
       return result.data as T;
     }
     default:
-      throw new Error(`${request.action} is not available in local browser development.`);
+      throw new Error(t('error.localActionUnavailable', { action: String(request.action) }));
   }
 }
 
@@ -132,7 +133,7 @@ export function hasHomeBridge() {
 
 export async function qdnRequest<T = unknown>(request: QdnRequest): Promise<T> {
   if (!isRecord(request) || typeof request.action !== 'string') {
-    throw new Error('QDN requests must include an action.');
+    throw new Error(t('error.qdnActionRequired'));
   }
 
   const bridgeRequest = typeof window !== 'undefined' ? window.qdnRequest : undefined;

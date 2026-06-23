@@ -60,6 +60,7 @@ import type {
 } from './viewTypes';
 import { changeAccountSortState, getTrustDerivationServerSort } from './accountSort';
 import { PENDING_CONFIRM_POLL_MS, pendingRatingKey } from './ratingControl';
+import { t, type TranslationKey } from './i18n';
 import { NodeSyncPill } from './components/Identity';
 import { TrustGraph } from './components/TrustGraph';
 import { AccountsTable } from './components/AccountsTable';
@@ -116,7 +117,7 @@ function CategoryTabs({
   onChange: (category: AccountRatingCategory) => void;
 }) {
   return (
-    <div className="segmented-control" aria-label="Trust category">
+    <div className="segmented-control" aria-label={t('label.trustCategory')}>
       {TRUST_CATEGORIES.map((candidate) => (
         <button
           aria-pressed={candidate === category}
@@ -132,11 +133,11 @@ function CategoryTabs({
   );
 }
 
-const VIEW_OPTIONS: { label: string; value: ViewMode }[] = [
-  { label: 'Accounts', value: 'accounts' },
-  { label: 'Graph', value: 'graph' },
-  { label: 'Changes', value: 'changes' },
-  { label: 'Resources', value: 'resources' },
+const VIEW_OPTIONS: { labelKey: TranslationKey; value: ViewMode }[] = [
+  { labelKey: 'nav.accounts', value: 'accounts' },
+  { labelKey: 'nav.graph', value: 'graph' },
+  { labelKey: 'nav.changes', value: 'changes' },
+  { labelKey: 'nav.resources', value: 'resources' },
 ];
 
 // The explorer view (Accounts/Graph/Changes/Resources) as a dropdown that sits next to the status
@@ -152,14 +153,14 @@ function ViewSelect({
 }) {
   return (
     <select
-      aria-label="Explorer view"
+      aria-label={t('label.explorerView')}
       onChange={(event) => onChange(event.target.value as ViewMode)}
       ref={selectRef}
       value={view}
     >
       {VIEW_OPTIONS.map((candidate) => (
         <option key={candidate.value} value={candidate.value}>
-          {candidate.label}
+          {t(candidate.labelKey)}
         </option>
       ))}
     </select>
@@ -173,11 +174,11 @@ function PolicyFooter({ policy, summary }: { policy: TrustPolicy | null; summary
 
   return (
     <footer className="policy-footer">
-      <span>Active weight: {categoryLabel(summary?.activeWeightCategory ?? policy?.activeWeightCategory ?? 'SUBJECT')}</span>
-      <span>Rating cooldown: {formatNumber(policy?.accountRatingChangeCooldownBlocks)} blocks</span>
-      <span>Positive branches: {formatNumber(policy?.positiveMinBranchCount)}</span>
-      <span>Suspicious raters: {formatNumber(policy?.suspiciousMinRaterCount)}</span>
-      <span>Snapshot: {formatDate(summary?.snapshotTimestamp)}</span>
+      <span>{t('label.activeWeight')}: {categoryLabel(summary?.activeWeightCategory ?? policy?.activeWeightCategory ?? 'SUBJECT')}</span>
+      <span>{t('label.ratingCooldown')}: {formatNumber(policy?.accountRatingChangeCooldownBlocks)} {t('label.blocks')}</span>
+      <span>{t('label.positiveBranches')}: {formatNumber(policy?.positiveMinBranchCount)}</span>
+      <span>{t('label.suspiciousRaters')}: {formatNumber(policy?.suspiciousMinRaterCount)}</span>
+      <span>{t('label.snapshot')}: {formatDate(summary?.snapshotTimestamp)}</span>
     </footer>
   );
 }
@@ -266,7 +267,7 @@ export default function App() {
       });
     } catch (loadError) {
       if (isLatest() && !silent) {
-        setError(loadError instanceof Error ? loadError.message : 'Trust data could not be loaded.');
+        setError(loadError instanceof Error ? loadError.message : t('error.trustLoadFailed'));
       } else if (silent) {
         // Swallowed so a transient poll failure can't clobber the banner; surfaced on next foreground load.
         console.warn('Silent Trust refresh failed', loadError);
@@ -810,17 +811,17 @@ export default function App() {
           <NodeSyncPill nodeStatus={data.nodeStatus} />
           <button
             aria-expanded={searchOpen}
-            aria-label={searchOpen ? 'Hide account search' : 'Search accounts'}
+            aria-label={searchOpen ? t('search.hideAccounts') : t('action.searchAccounts')}
             className={`icon-button ${searchOpen ? 'icon-button--active' : ''}`}
             onClick={toggleSearch}
             ref={searchToggleRef}
-            title="Search accounts"
+            title={t('action.searchAccounts')}
             type="button"
           >
             <Search size={18} />
           </button>
           <span className="runtime-pill">{formatRuntimeLabel(data.bridge?.ui)}</span>
-          <button className="icon-button" disabled={loading} onClick={() => void loadData()} title="Refresh" type="button">
+          <button aria-label={t('action.refresh')} className="icon-button" disabled={loading} onClick={() => void loadData()} title={t('action.refresh')} type="button">
             <RefreshCw size={18} />
           </button>
         </div>
@@ -836,18 +837,18 @@ export default function App() {
             <div className="search-field">
               <Search size={17} />
               <input
-                aria-label="Search account or public key"
+                aria-label={t('search.placeholder')}
                 onChange={(event) => setQuery(event.target.value)}
                 onKeyDown={(event) => {
                   if (event.key === 'Escape') {
                     toggleSearch();
                   }
                 }}
-                placeholder="Search account or public key"
+                placeholder={t('search.placeholder')}
                 ref={searchInputRef}
                 value={query}
               />
-              <button aria-label="Close search" className="search-field__close" onClick={toggleSearch} type="button">
+              <button aria-label={t('action.closeSearch')} className="search-field__close" onClick={toggleSearch} type="button">
                 <X size={15} />
               </button>
             </div>
@@ -855,17 +856,17 @@ export default function App() {
           <ViewSelect onChange={handleViewChange} selectRef={viewSelectRef} view={view} />
           <label
             className={`live-toggle ${live ? 'live-toggle--on' : ''}`}
-            title="Show trust derived live from current active ratings instead of the latest on-chain snapshot"
+            title={t('toggle.liveTitle')}
           >
             <input checked={live} onChange={(event) => setLive(event.target.checked)} type="checkbox" />
-            <span>Live</span>
+            <span>{t('label.live')}</span>
           </label>
           <select
-            aria-label="Trust status"
+            aria-label={t('label.trustStatus')}
             onChange={(event) => setStatusFilter(event.target.value as TrustStatus | 'ALL')}
             value={statusFilter}
           >
-            <option value="ALL">All statuses</option>
+            <option value="ALL">{t('label.allStatuses')}</option>
             {TRUST_STATUSES.map((status) => (
               <option key={status} value={status}>
                 {statusLabel(status)}
@@ -913,7 +914,7 @@ export default function App() {
                   <div className="skeleton-block" />
                   <div className="skeleton-block short" />
                   <div className="skeleton-table" />
-                  <span className="sr-only">Loading trust data</span>
+                  <span className="sr-only">{t('app.loading')}</span>
                 </div>
               ) : view === 'accounts' ? (
                 <AccountsTable

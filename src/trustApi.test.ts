@@ -80,7 +80,7 @@ describe('submitRating bridge requirement', () => {
     hasHomeBridgeMock.mockReturnValue(false);
 
     await expect(submitRating({ category: 'SUBJECT', rating: 1, targetPublicKey: 'tPub' })).rejects.toThrow(
-      'Submitting ratings requires Qortium Home.',
+      'Open in Qortium Home to rate.',
     );
     expect(qdnRequestMock).not.toHaveBeenCalled();
   });

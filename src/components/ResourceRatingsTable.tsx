@@ -2,10 +2,11 @@ import { Layers } from 'lucide-react';
 import { formatNumber } from '../format';
 import type { ResourceRatingSummary } from '../types';
 import { EmptyState } from './Identity';
+import { t } from '../i18n';
 
 export function ResourceRatingsTable({ resources }: { resources: ResourceRatingSummary[] }) {
   if (resources.length === 0) {
-    return <EmptyState icon={<Layers size={18} />} text="No resource ratings are recorded yet." />;
+    return <EmptyState icon={<Layers size={18} />} text={t('empty.resourceRatings')} />;
   }
 
   return (
@@ -13,12 +14,12 @@ export function ResourceRatingsTable({ resources }: { resources: ResourceRatingS
       <table>
         <thead>
           <tr>
-            <th>Resource</th>
-            <th>Service</th>
-            <th>Count</th>
-            <th>Average</th>
-            <th>Weighted</th>
-            <th>Total weight</th>
+            <th>{t('label.resource')}</th>
+            <th>{t('label.service')}</th>
+            <th>{t('label.count')}</th>
+            <th>{t('label.average')}</th>
+            <th>{t('label.weighted')}</th>
+            <th>{t('label.weight')}</th>
           </tr>
         </thead>
         <tbody>
@@ -26,7 +27,7 @@ export function ResourceRatingsTable({ resources }: { resources: ResourceRatingS
             <tr key={`${resource.service}-${resource.name}-${resource.identifier}`}>
               <td>
                 <span className="resource-name">{resource.name}</span>
-                <span className="muted">{resource.identifier || 'default'}</span>
+                <span className="muted">{resource.identifier || t('label.default')}</span>
               </td>
               <td>{resource.service}</td>
               <td>{formatNumber(resource.ratingCount)}</td>

@@ -11,6 +11,7 @@ import {
   type RatingControl,
   type RatingControlArgs,
 } from '../ratingControl';
+import { t } from '../i18n';
 
 // One-line preview of the selected rating's validity + trust impact (#33). Blocks reasons reuse the
 // same error mapping as a failed submit; an accepted change shows the resulting trust-status delta.
@@ -22,7 +23,7 @@ function RatingPreviewNote({ control }: { control: RatingControl }) {
   }
 
   if (previewLoading) {
-    return <p className="muted rating-preview">Checking rating impact…</p>;
+    return <p className="muted rating-preview">{t('rating.checkImpact')}</p>;
   }
 
   if (!preview) {
@@ -36,13 +37,15 @@ function RatingPreviewNote({ control }: { control: RatingControl }) {
   if (preview.trustStatusChanged) {
     return (
       <p className="rating-message positive">
-        Trust status would change: {statusLabel(preview.currentTrust.derivedTrustStatus)} →{' '}
-        {statusLabel(preview.previewTrust.derivedTrustStatus)}
+        {t('rating.impactChange', {
+          from: statusLabel(preview.currentTrust.derivedTrustStatus),
+          to: statusLabel(preview.previewTrust.derivedTrustStatus),
+        })}
       </p>
     );
   }
 
-  return <p className="muted rating-preview">Valid — no trust-status change for this account.</p>;
+  return <p className="muted rating-preview">{t('rating.noStatusChange')}</p>;
 }
 
 // Full-mode rating surface (detail view). Thin renderer over useRatingControl.
@@ -53,7 +56,7 @@ export function RatingForm(props: RatingControlArgs) {
   if (!control.canInteract) {
     return (
       <div className="mini-section">
-        <h3>Rate this account</h3>
+        <h3>{t('rating.action.rateAccount')}</h3>
         <p className="muted">{control.note}</p>
       </div>
     );
@@ -64,13 +67,13 @@ export function RatingForm(props: RatingControlArgs) {
 
   return (
     <div className="mini-section">
-      <h3>Rate this account</h3>
+      <h3>{t('rating.action.rateAccount')}</h3>
       <p className="muted rating-context">
-        Rating as {self?.name ?? compactAddress(self?.address, 8, 6)} in the {categoryLabel(category)} category.
+        {t('rating.context', { account: self?.name ?? compactAddress(self?.address, 8, 6), category: categoryLabel(category) })}
       </p>
       <div className="rating-form">
         <label className="rating-select">
-          <span>Rating</span>
+          <span>{t('label.rating')}</span>
           <select
             disabled={submitting || cooldownLoading || isPending}
             onChange={(event) => control.setRating(Number(event.target.value))}
@@ -89,7 +92,7 @@ export function RatingForm(props: RatingControlArgs) {
           onClick={() => void control.handleSubmit()}
           type="button"
         >
-          {submitting ? 'Submitting...' : isPending ? 'Pending...' : rating === 0 ? 'Remove rating' : 'Submit rating'}
+          {submitting ? t('rating.submitting') : isPending ? t('rating.submitPending') : rating === 0 ? t('action.removeRating') : t('action.submitRating')}
         </button>
       </div>
       {isPending ? (
@@ -98,37 +101,35 @@ export function RatingForm(props: RatingControlArgs) {
           <div>
             <strong>
               {pendingRating === 0
-                ? 'Removing your rating — pending confirmation'
-                : `Your ${pendingRating! > 0 ? '+' : ''}${pendingRating} rating is pending confirmation`}
+                ? t('rating.pendingRemove')
+                : t('rating.pendingValue', { rating: `${pendingRating! > 0 ? '+' : ''}${pendingRating}` })}
             </strong>
             <p className="muted">
-              Waiting for the transaction to be included in a block
               {cooldown?.candidateChangeHeight
-                ? ` — applies around block ${formatNumber(cooldown.candidateChangeHeight)}`
-                : ''}
-              . You can rate other accounts while you wait.
+                ? t('rating.waitingConfirmationNear', { block: formatNumber(cooldown.candidateChangeHeight) })
+                : t('rating.waitingConfirmation')}
             </p>
           </div>
         </div>
       ) : (
         <p className="muted rating-status">
           {cooldownLoading
-            ? 'Checking rating cooldown...'
+            ? t('rating.checkCooldown')
             : onCooldown
-              ? `On cooldown — ${formatNumber(cooldown?.blocksRemaining)} block(s) remaining.`
+              ? t('rating.statusCooldown', { blocks: formatNumber(cooldown?.blocksRemaining) })
               : activeRating === null
-                ? 'You have not rated this account yet.'
-                : `Your current rating is ${activeRating > 0 ? '+' : ''}${activeRating}.`}
+                ? t('rating.notRated')
+                : t('rating.current', { rating: `${activeRating > 0 ? '+' : ''}${activeRating}` })}
         </p>
       )}
       {!isPending && accountLocked ? (
-        <p className="muted">Your account is locked — submitting will prompt you to unlock it.</p>
+        <p className="muted">{t('rating.statusUnlockPrompt')}</p>
       ) : null}
       {!isPending && unchanged && !cooldownLoading && !onCooldown ? (
         <p className="muted">
           {activeRating === null
-            ? 'Choose a non-zero rating to submit.'
-            : 'Choose a different rating, or 0 to remove your existing one.'}
+            ? t('rating.promptNonZero')
+            : t('rating.promptDifferent')}
         </p>
       ) : null}
       <RatingPreviewNote control={control} />
@@ -172,7 +173,7 @@ export function RatingPopover({
   return (
     <div className="rating-popover-body">
       <label className="rating-select">
-        <span>Rating</span>
+        <span>{t('label.rating')}</span>
         <select
           disabled={submitting || cooldownLoading || isPending}
           onChange={(event) => control.setRating(Number(event.target.value))}
@@ -192,18 +193,18 @@ export function RatingPopover({
         onClick={() => void handleSubmit()}
         type="button"
       >
-        {submitting ? 'Submitting...' : isPending ? 'Pending...' : rating === 0 ? 'Remove rating' : 'Submit rating'}
+        {submitting ? t('rating.submitting') : isPending ? t('rating.submitPending') : rating === 0 ? t('action.removeRating') : t('action.submitRating')}
       </button>
       <p className="muted rating-popover-status">
         {isPending
-          ? 'Rating pending confirmation.'
+          ? t('rating.pending')
           : cooldownLoading
-            ? 'Checking rating cooldown...'
+            ? t('rating.checkCooldown')
             : onCooldown
-              ? `On cooldown — ${formatNumber(cooldown?.blocksRemaining)} block(s) remaining.`
+              ? t('rating.statusCooldown', { blocks: formatNumber(cooldown?.blocksRemaining) })
               : activeRating === null
-                ? 'You have not rated this account yet.'
-                : `Your current rating is ${activeRating > 0 ? '+' : ''}${activeRating}.`}
+                ? t('rating.notRated')
+                : t('rating.current', { rating: `${activeRating > 0 ? '+' : ''}${activeRating}` })}
       </p>
       <RatingPreviewNote control={control} />
       {message ? <p className={`rating-message ${message.tone}`}>{message.text}</p> : null}
@@ -236,14 +237,14 @@ export function RateCell({
   const rowIsSelf = !!self && self.address === derivation.accountAddress;
   const rowDisabled = !ratingActionAvailable || !self || !self.publicKey || rowIsSelf;
   const rowNote = !ratingActionAvailable
-    ? 'Open this app in Qortium Home to submit trust ratings.'
+    ? t('error.appUnavailable')
     : !self
-      ? 'Sign in to a Qortium Home account to submit trust ratings.'
+      ? t('error.signInToRate')
       : rowIsSelf
-        ? 'You cannot rate your own account.'
+        ? t('error.cannotRateSelf')
         : !self.publicKey
-          ? 'Your account needs at least one on-chain transaction before it can submit ratings.'
-          : 'Rate this account';
+          ? t('error.accountHistory')
+          : t('rating.action.rateAccount');
 
   return (
     <td className="rate-cell" onClick={(event) => event.stopPropagation()}>
@@ -259,7 +260,7 @@ export function RateCell({
         title={rowNote}
         type="button"
       >
-        Rate
+        {t('label.rate')}
       </button>
       {open ? (
         <RowRatePopover
@@ -389,7 +390,7 @@ export function RowRatePopover({
 
   return createPortal(
     <div
-      aria-label="Rate account"
+      aria-label={t('rating.action.rateAccount')}
       aria-modal="true"
       className="rate-popover"
       onClick={(event) => event.stopPropagation()}

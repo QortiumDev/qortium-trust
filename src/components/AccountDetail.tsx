@@ -12,6 +12,7 @@ import type {
 import type { AccountDetailState, PendingRatingEntry } from '../viewTypes';
 import { IdentityAvatar, IdentityLabel, StatusBadge } from './Identity';
 import { RatingForm } from './RatingControls';
+import { t } from '../i18n';
 
 // Full-width detail takeover: identity header, prominent rate section (primary action, above the
 // fold), then a two-column stats + impacts grid. Only mounted when an account is selected, so
@@ -51,8 +52,8 @@ export function AccountDetail({
 
   const backBar = (
     <div className="detail-back">
-      <button aria-label="Back to list" className="back-button" onClick={onBack} ref={backButtonRef} type="button">
-        <ArrowLeft size={16} /> Back
+      <button aria-label={t('action.backToList')} className="back-button" onClick={onBack} ref={backButtonRef} type="button">
+        <ArrowLeft size={16} /> {t('action.back')}
       </button>
     </div>
   );
@@ -98,43 +99,43 @@ export function AccountDetail({
         <div aria-busy="true" aria-live="polite" className="detail-columns-loading" role="status">
           <div className="skeleton-block" />
           <div className="skeleton-block short" />
-          <span className="sr-only">Loading account details</span>
+          <span className="sr-only">{t('app.loading')}</span>
         </div>
       ) : (
       <div className="detail-columns">
         <div className="detail-stats">
           <div className="detail-grid">
             <div>
-              <span>Category</span>
+              <span>{t('label.category')}</span>
               <strong>{categoryLabel(category)}</strong>
             </div>
             <div>
-              <span>Level</span>
+              <span>{t('label.level')}</span>
               <strong>{formatNumber(profileCategory?.level ?? fallbackCategory?.level ?? 0)}</strong>
             </div>
             <div>
-              <span>Score</span>
+              <span>{t('label.score')}</span>
               <strong>{formatNumber(profileCategory?.score ?? fallbackCategory?.score ?? 0)}</strong>
             </div>
             <div>
-              <span>Weight</span>
+              <span>{t('label.voteWeight')}</span>
               <strong>
                 {formatPercent(detail.profile?.trustWeightPercent ?? selectedDerivation.derivedTrustWeightPercent)}
               </strong>
             </div>
             <div>
-              <span>Blocks minted</span>
+              <span>{t('label.blocksMinted')}</span>
               <strong>{live && liveBlocksMinted !== undefined ? formatNumber(liveBlocksMinted) : '—'}</strong>
             </div>
             <div>
-              <span>Effective vote</span>
+              <span>{t('label.effectiveVote')}</span>
               <strong>
                 {live && liveEffectiveVoteWeight !== undefined ? formatNumber(liveEffectiveVoteWeight) : '—'}
               </strong>
             </div>
           </div>
           <div className="mini-section">
-            <h3>Rating Counts</h3>
+            <h3>{t('label.ratings')}</h3>
             <div className="rating-counts">
               <span className="positive">
                 +{formatNumber(profileCategory?.inboundRatings.positiveRatingCount ?? 0)}
@@ -142,17 +143,17 @@ export function AccountDetail({
               <span className="negative">
                 -{formatNumber(profileCategory?.inboundRatings.negativeRatingCount ?? 0)}
               </span>
-              <span>{formatNumber(profileCategory?.outboundRatings.totalRatingCount ?? 0)} outbound</span>
+              <span>{t('rating.outboundCount', { count: formatNumber(profileCategory?.outboundRatings.totalRatingCount ?? 0) })}</span>
             </div>
           </div>
         </div>
         <div className="detail-impacts">
           <div className="mini-section">
-            <h3>Top Impacts</h3>
+            <h3>{t('label.topImpacts')}</h3>
             {(explanationCategory?.topPositiveImpacts.length ?? 0) +
               (explanationCategory?.topNegativeImpacts.length ?? 0) ===
             0 ? (
-              <p className="muted">No impact rows for this category.</p>
+              <p className="muted">{t('empty.impacts')}</p>
             ) : (
               <ul className="impact-list">
                 {[

@@ -1,6 +1,7 @@
 import { hasHomeBridge, qdnRequest } from './qdnRequest';
 import { fetchNodeApiData } from './trustApi';
 import type { IdentityProfile, NameSummary, QdnAction } from './types';
+import { t } from './i18n';
 
 const AVATAR_MAX_BYTES = 500 * 1024;
 const NAME_MAX_BYTES = 2 * 1024 * 1024;
@@ -109,13 +110,13 @@ function getRasterMimeType(properties: unknown, base64: string) {
 
 function getBase64Payload(value: unknown) {
   if (typeof value !== 'string') {
-    throw new Error('Avatar resource returned an unsupported response.');
+    throw new Error(t('error.avatarUnsupported'));
   }
 
   const base64 = value.trim();
 
   if (!base64) {
-    throw new Error('Avatar resource returned empty image data.');
+    throw new Error(t('error.avatarEmpty'));
   }
 
   return base64;
@@ -129,7 +130,7 @@ async function getAccountNames(address: string, actions?: QdnAction[]) {
     });
   }
 
-  return fetchNodeApiData<NameSummary[]>(`/names/address/${encodeURIComponent(address)}`, 'Account names', NAME_MAX_BYTES);
+  return fetchNodeApiData<NameSummary[]>(`/names/address/${encodeURIComponent(address)}`, t('fetch.accountNames'), NAME_MAX_BYTES);
 }
 
 async function resolveRegisteredName(address: string, actions?: QdnAction[]) {
@@ -151,7 +152,7 @@ async function fetchAvatarRenderUrl(name: string) {
   });
 
   if (typeof renderUrl !== 'string' || !renderUrl) {
-    throw new Error('Avatar resource did not return a render URL.');
+    throw new Error(t('error.avatarRenderUrl'));
   }
 
   return renderUrl;
@@ -166,20 +167,20 @@ async function fetchAvatarRenderUrl(name: string) {
 async function fetchAvatarDataUri(name: string) {
   const status = await fetchNodeApiData<unknown>(
     `/arbitrary/resource/status/THUMBNAIL/${encodeURIComponent(name)}/avatar`,
-    'Avatar status',
+    t('fetch.avatarStatus'),
     64 * 1024,
   );
 
   const statusValue = getStringProperty(status, 'status');
 
   if (!statusValue || statusValue === 'NOT_PUBLISHED') {
-    throw new Error('Avatar resource does not exist.');
+    throw new Error(t('error.avatarMissing'));
   }
 
   const base64 = getBase64Payload(
     await fetchNodeApiData<string>(
       `/arbitrary/THUMBNAIL/${encodeURIComponent(name)}/avatar?encoding=base64`,
-      'Avatar image',
+      t('fetch.avatarImage'),
       AVATAR_MAX_BYTES,
     ),
   );

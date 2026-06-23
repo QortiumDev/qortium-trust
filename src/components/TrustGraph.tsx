@@ -5,6 +5,7 @@ import { compactAddress, ratingTone, statusLabel, statusTone } from '../format';
 import type { TrustGraphModel, TrustGraphNode } from '../graphModel';
 import type { IdentityProfilesByAddress } from '../types';
 import { compactIdentityGraphLabel } from './Identity';
+import { t } from '../i18n';
 
 // View transform applied to the graph contents: translate(x, y) scale(k). The SVG viewBox already
 // frames the whole settled layout at identity, so {x:0, y:0, k:1} shows everything; pan/zoom layer
@@ -213,7 +214,7 @@ export function TrustGraph({
             <span className="graph-loading__node" />
             <span className="graph-loading__node" />
           </div>
-          <span className="graph-loading__label">Loading trust graph…</span>
+          <span className="graph-loading__label">{t('graph.loading')}</span>
         </div>
       </div>
     );
@@ -222,10 +223,10 @@ export function TrustGraph({
   return (
     <div className="graph-surface">
       <p className="graph-hint">
-        Drag to pan, scroll to zoom, hover a node to highlight its connections.
+        {t('graph.hint')}
       </p>
       <svg
-        aria-label="Trust graph"
+        aria-label={t('graph.label')}
         className={`trust-graph ${adjacency ? 'has-focus' : ''}`}
         onPointerCancel={endPan}
         onPointerDown={handlePointerDown}
@@ -278,7 +279,11 @@ export function TrustGraph({
 
               return (
                 <g
-                  aria-label={`${label} - ${statusLabel(node.status)} L${node.level}`}
+                  aria-label={t('graph.nodeLabel', {
+                    label,
+                    level: node.level,
+                    status: statusLabel(node.status),
+                  })}
                   className={`graph-node graph-node-${statusTone(node.status)} ${
                     node.address === selectedAddress ? 'selected' : ''
                   } ${focused ? '' : 'dimmed'}`}
@@ -319,7 +324,12 @@ export function TrustGraph({
                     {compactIdentityGraphLabel(profile, node.address)}
                   </text>
                   <title>
-                    {label} - {node.address} - {statusLabel(node.status)} L{node.level}
+                    {t('graph.nodeTitle', {
+                      address: node.address,
+                      label,
+                      level: node.level,
+                      status: statusLabel(node.status),
+                    })}
                   </title>
                 </g>
               );
@@ -328,71 +338,71 @@ export function TrustGraph({
         </g>
       </svg>
       <div className="graph-zoom-controls">
-        <button aria-label="Zoom in" onClick={() => zoomBy(1.3)} title="Zoom in" type="button">
+        <button aria-label={t('graph.zoomIn')} onClick={() => zoomBy(1.3)} title={t('graph.zoomIn')} type="button">
           +
         </button>
-        <button aria-label="Zoom out" onClick={() => zoomBy(1 / 1.3)} title="Zoom out" type="button">
+        <button aria-label={t('graph.zoomOut')} onClick={() => zoomBy(1 / 1.3)} title={t('graph.zoomOut')} type="button">
           −
         </button>
         <button
-          aria-label="Reset view"
+          aria-label={t('action.resetView')}
           onClick={() => setView(IDENTITY_VIEW)}
-          title="Reset view"
+          title={t('action.resetView')}
           type="button"
         >
           <RotateCcw size={15} />
         </button>
       </div>
-      <div className="graph-legend" aria-label="Graph legend">
+      <div className="graph-legend" aria-label={t('label.graphLegend')}>
         <div className="graph-legend__group">
-          <span className="graph-legend__heading">Trust status</span>
+          <span className="graph-legend__heading">{t('label.trustStatus')}</span>
           <span className="graph-legend__item">
             <span className="graph-legend__ring graph-legend__ring--gold" />
-            Gold
+            {t('status.gold')}
           </span>
           <span className="graph-legend__item">
             <span className="graph-legend__ring graph-legend__ring--silver" />
-            Silver
+            {t('status.silver')}
           </span>
           <span className="graph-legend__item">
             <span className="graph-legend__ring graph-legend__ring--bronze" />
-            Bronze
+            {t('status.bronze')}
           </span>
           <span className="graph-legend__item">
             <span className="graph-legend__ring graph-legend__ring--neutral" />
-            Unverified
+            {t('status.unverified')}
           </span>
           <span className="graph-legend__item">
             <span className="graph-legend__ring graph-legend__ring--negative" />
-            Suspicious
+            {t('status.suspicious')}
           </span>
         </div>
         <div className="graph-legend__group">
-          <span className="graph-legend__heading">Rating</span>
+          <span className="graph-legend__heading">{t('label.rating')}</span>
           <span className="graph-legend__item">
             <svg className="graph-legend__edge" viewBox="0 0 24 8" aria-hidden="true">
               <line className="graph-legend__line graph-legend__line--positive" x1="1" y1="4" x2="23" y2="4" />
             </svg>
-            Positive
+            {t('status.positive')}
           </span>
           <span className="graph-legend__item">
             <svg className="graph-legend__edge" viewBox="0 0 24 8" aria-hidden="true">
               <line className="graph-legend__line graph-legend__line--negative" x1="1" y1="4" x2="23" y2="4" />
             </svg>
-            Negative
+            {t('status.negative')}
           </span>
           <span className="graph-legend__item">
             <svg className="graph-legend__edge" viewBox="0 0 24 8" aria-hidden="true">
               <line className="graph-legend__line graph-legend__line--neutral" x1="1" y1="4" x2="23" y2="4" />
             </svg>
-            Neutral
+            {t('status.neutral')}
           </span>
         </div>
       </div>
       {graph.links.length === 0 ? (
         <div className="empty-overlay">
           <CircleDot size={18} />
-          <span>No active rating edges in this category yet.</span>
+          <span>{t('empty.graphEdges')}</span>
         </div>
       ) : null}
     </div>

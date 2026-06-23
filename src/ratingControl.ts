@@ -8,12 +8,12 @@ import {
 } from './trustApi';
 import type { AccountRatingCategory, AccountRatingCooldown, RatingImpactPreview, SelfAccount } from './types';
 import type { PendingRatingEntry } from './viewTypes';
+import { t } from './i18n';
 
 // Debounce preview requests so scrubbing through the rating selector doesn't fire a request per step.
 const PREVIEW_DEBOUNCE_MS = 400;
 
 export const RATING_VALUES = [4, 3, 2, 1, 0, -1, -2, -3, -4];
-export const RATING_MAGNITUDES = ['', 'Low', 'Medium', 'High', 'Very high'];
 export const PENDING_CONFIRM_POLL_MS = 8000;
 
 export function pendingRatingKey(category: AccountRatingCategory, targetAddress: string) {
@@ -22,23 +22,34 @@ export function pendingRatingKey(category: AccountRatingCategory, targetAddress:
 
 export function ratingOptionLabel(value: number) {
   if (value === 0) {
-    return '0 · Remove rating';
+    return t('rating.option.remove');
   }
 
-  const tone = value > 0 ? 'Positive' : 'Negative';
+  const tone = value > 0 ? t('status.positive') : t('status.negative');
+  const magnitudes = [
+    '',
+    t('rating.magnitude.low'),
+    t('rating.magnitude.medium'),
+    t('rating.magnitude.high'),
+    t('rating.magnitude.veryHigh'),
+  ];
 
-  return `${value > 0 ? '+' : ''}${value} · ${tone} (${RATING_MAGNITUDES[Math.abs(value)]})`;
+  return t('rating.option', {
+    magnitude: magnitudes[Math.abs(value)],
+    rating: `${value > 0 ? '+' : ''}${value}`,
+    tone,
+  });
 }
 
 export function mapRatingError(message: string) {
   const checks: [RegExp, string][] = [
-    [/TOO_SOON/i, 'You rated this account too recently. Wait for the cooldown to clear before changing it.'],
-    [/CANNOT_RATE_SELF/i, 'You cannot rate your own account.'],
-    [/PUBLIC_KEY_UNKNOWN/i, 'This account has no on-chain history yet, so it cannot be rated.'],
-    [/UNCHANGED/i, 'That rating matches your current rating — nothing to change.'],
-    [/INVALID_ACCOUNT_RATING/i, 'Rating must be a whole number between -4 and +4.'],
-    [/NO_BALANCE/i, 'Your account has insufficient balance to cover the transaction fee.'],
-    [/NEEDS_SYNC|SYNCHRONIZ/i, 'Your node is still syncing. Try again once it has caught up.'],
+    [/TOO_SOON/i, t('error.ratingTooSoon')],
+    [/CANNOT_RATE_SELF/i, t('error.cannotRateSelf')],
+    [/PUBLIC_KEY_UNKNOWN/i, t('error.accountHistory')],
+    [/UNCHANGED/i, t('error.ratingUnchanged')],
+    [/INVALID_ACCOUNT_RATING/i, t('error.ratingRange')],
+    [/NO_BALANCE/i, t('error.balance')],
+    [/NEEDS_SYNC|SYNCHRONIZ/i, t('error.nodeSyncing')],
   ];
 
   for (const [pattern, text] of checks) {
@@ -152,14 +163,14 @@ export function useRatingControl({
     };
   }, [canInteract, category, pendingRating, raterPublicKey, targetPublicKey]);
 
-  let note = 'Open this app in Qortium Home to submit trust ratings.';
+  let note = t('error.appUnavailable');
 
   if (ratingActionAvailable && !self) {
-    note = 'Sign in to a Qortium Home account to submit trust ratings.';
+    note = t('error.signInToRate');
   } else if (ratingActionAvailable && isSelf) {
-    note = 'You cannot rate your own account.';
+    note = t('error.cannotRateSelf');
   } else if (ratingActionAvailable && self && !raterPublicKey) {
-    note = 'Your account needs at least one on-chain transaction before it can submit ratings.';
+    note = t('error.accountHistory');
   }
 
   const activeRating = cooldown?.activeRating ?? null;
@@ -237,12 +248,12 @@ export function useRatingControl({
       const unlocked = await ensureAccountUnlocked();
 
       if (!unlocked) {
-        setMessage({ text: 'Qortium Home could not confirm your account is unlocked. Try again.', tone: 'negative' });
+        setMessage({ text: t('error.unlockConfirmFailed'), tone: 'negative' });
         return false;
       }
 
       if (unlocked.isUnlocked === false) {
-        setMessage({ text: 'Unlock your account in Qortium Home to submit a rating.', tone: 'negative' });
+        setMessage({ text: t('error.accountLocked'), tone: 'negative' });
         return false;
       }
 
@@ -257,7 +268,7 @@ export function useRatingControl({
 
         if (!refreshed?.publicKey) {
           setMessage({
-            text: 'Your unlocked account has no on-chain history yet, so it cannot submit ratings.',
+            text: t('error.accountHistory'),
             tone: 'negative',
           });
           return false;
@@ -265,7 +276,7 @@ export function useRatingControl({
 
         // Cannot rate yourself, even after the account switch surfaced a different self.
         if (refreshed.address === targetAddress) {
-          setMessage({ text: 'You cannot rate your own account.', tone: 'negative' });
+          setMessage({ text: t('error.cannotRateSelf'), tone: 'negative' });
           return false;
         }
 

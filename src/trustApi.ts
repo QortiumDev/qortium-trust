@@ -1,4 +1,5 @@
 import { hasHomeBridge, qdnRequest } from './qdnRequest';
+import { t } from './i18n';
 import type {
   AccountData,
   AccountRating,
@@ -35,7 +36,7 @@ function appendQueryValue(query: URLSearchParams, key: string, value: string | n
 
 function assertOk<T>(result: NodeApiFetchResult<T>, label: string) {
   if (!result.ok) {
-    throw new Error(result.body || `${label} failed with HTTP ${result.status}.`);
+    throw new Error(result.body || t('fetch.failedHttp', { label, status: result.status }));
   }
 
   return result.data;
@@ -154,41 +155,41 @@ export function buildRatingCooldownPath(options: {
 }
 
 export function getNodeStatus() {
-  return fetchNodeApiData<NodeStatus>('/admin/status', 'Node status', 256 * 1024);
+  return fetchNodeApiData<NodeStatus>('/admin/status', t('fetch.nodeStatus'), 256 * 1024);
 }
 
 export function getAccountData(address: string) {
-  return fetchNodeApiData<AccountData>(`/addresses/${encodeURIComponent(address)}`, 'Account data', 256 * 1024);
+  return fetchNodeApiData<AccountData>(`/addresses/${encodeURIComponent(address)}`, t('fetch.accountData'), 256 * 1024);
 }
 
 export function getTrustSummary() {
-  return fetchNodeApiData<TrustSummary>('/account-ratings/trust-summary', 'Trust summary');
+  return fetchNodeApiData<TrustSummary>('/account-ratings/trust-summary', t('fetch.trustSummary'));
 }
 
 export function getTrustPolicy() {
-  return fetchNodeApiData<TrustPolicy>('/account-ratings/trust-policy', 'Trust policy');
+  return fetchNodeApiData<TrustPolicy>('/account-ratings/trust-policy', t('fetch.trustPolicy'));
 }
 
 export function getTrustDerivation(options?: Parameters<typeof buildTrustDerivationPath>[0]) {
-  return fetchNodeApiData<TrustDerivation[]>(buildTrustDerivationPath(options), 'Trust derivation');
+  return fetchNodeApiData<TrustDerivation[]>(buildTrustDerivationPath(options), t('fetch.trustDerivation'));
 }
 
 export function getAccountRatings(options?: Parameters<typeof buildAccountRatingsPath>[0]) {
-  return fetchNodeApiData<AccountRating[]>(buildAccountRatingsPath(options), 'Account ratings');
+  return fetchNodeApiData<AccountRating[]>(buildAccountRatingsPath(options), t('fetch.accountRatings'));
 }
 
 export function getTrustChanges(options?: Parameters<typeof buildTrustChangesPath>[0]) {
-  return fetchNodeApiData<TrustStatusChange[]>(buildTrustChangesPath(options), 'Trust changes');
+  return fetchNodeApiData<TrustStatusChange[]>(buildTrustChangesPath(options), t('fetch.trustChanges'));
 }
 
 export function getResourceRatings(options?: Parameters<typeof buildResourceRatingsPath>[0]) {
-  return fetchNodeApiData<ResourceRatingSummary[]>(buildResourceRatingsPath(options), 'Resource ratings');
+  return fetchNodeApiData<ResourceRatingSummary[]>(buildResourceRatingsPath(options), t('fetch.resourceRatings'));
 }
 
 export function getTrustProfile(targetPublicKey: string) {
   const query = new URLSearchParams({ target: targetPublicKey });
 
-  return fetchNodeApiData<AccountTrustProfile>(`/account-ratings/trust-profile?${query.toString()}`, 'Trust profile');
+  return fetchNodeApiData<AccountTrustProfile>(`/account-ratings/trust-profile?${query.toString()}`, t('fetch.trustProfile'));
 }
 
 export function getTrustExplanation(targetPublicKey: string, live = false) {
@@ -200,12 +201,12 @@ export function getTrustExplanation(targetPublicKey: string, live = false) {
 
   return fetchNodeApiData<AccountTrustExplanation>(
     `/account-ratings/trust-explanation?${query.toString()}`,
-    'Trust explanation',
+    t('fetch.trustExplanation'),
   );
 }
 
 export function getRatingCooldown(options: Parameters<typeof buildRatingCooldownPath>[0]) {
-  return fetchNodeApiData<AccountRatingCooldown>(buildRatingCooldownPath(options), 'Rating cooldown', 256 * 1024);
+  return fetchNodeApiData<AccountRatingCooldown>(buildRatingCooldownPath(options), t('fetch.ratingCooldown'), 256 * 1024);
 }
 
 // Live preview of a proposed rating's validity and trust impact (#33). Lets the UI block a submit
@@ -225,7 +226,7 @@ export function getRatingPreview(options: {
 
   return fetchNodeApiData<RatingImpactPreview>(
     `/account-ratings/preview?${query.toString()}`,
-    'Rating preview',
+    t('fetch.ratingPreview'),
     256 * 1024,
   );
 }
@@ -300,7 +301,7 @@ export async function ensureAccountUnlocked(): Promise<SelfAccount | null> {
  */
 export async function submitRating(request: RateAccountRequest): Promise<RateAccountResult> {
   if (!hasHomeBridge()) {
-    throw new Error('Submitting ratings requires Qortium Home.');
+    throw new Error(t('error.appUnavailable'));
   }
 
   return qdnRequest<RateAccountResult>({

@@ -1,49 +1,71 @@
+// @vitest-environment jsdom
+
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
+  applyDisplaySettings,
   getDisplaySettingsUpdateFromMessage,
   getInitialDisplaySettings,
   normalizeAccent,
+  normalizeLanguage,
   normalizeTextSize,
   normalizeTheme,
   type QdnDisplaySettings,
 } from './displaySettings';
+import { getTranslationLanguage, setTranslationLanguage } from './i18n';
 
 const current: QdnDisplaySettings = {
   accent: 'green',
+  language: 'en',
   textSize: 'medium',
   theme: 'light',
 };
 
 describe('QDN display settings helpers', () => {
   afterEach(() => {
+    document.documentElement.removeAttribute('data-accent');
+    document.documentElement.removeAttribute('data-language');
+    document.documentElement.removeAttribute('data-text-size');
+    document.documentElement.removeAttribute('data-theme');
+    document.documentElement.removeAttribute('dir');
+    document.documentElement.removeAttribute('lang');
+    document.documentElement.style.colorScheme = '';
+    setTranslationLanguage('en');
     vi.unstubAllGlobals();
   });
 
-  it('normalizes supported theme and accent values', () => {
+  it('normalizes supported display values', () => {
     expect(normalizeTheme('DARK')).toBe('dark');
     expect(normalizeTheme(' light ')).toBe('light');
     expect(normalizeAccent('BLUE')).toBe('blue');
     expect(normalizeAccent(' teal ')).toBe('teal');
+    expect(normalizeLanguage('HE')).toBe('he');
+    expect(normalizeLanguage('zh-cn')).toBe('zh-CN');
+    expect(normalizeLanguage('zh-Hant')).toBe('zh-TW');
+    expect(normalizeLanguage('no')).toBe('nb');
     expect(normalizeTextSize('EXTRA-LARGE')).toBe('extra-large');
     expect(normalizeTextSize(' huge ')).toBe('huge');
   });
 
-  it('rejects unsupported theme and accent values', () => {
+  it('rejects unsupported display values', () => {
     expect(normalizeTheme('system')).toBeNull();
     expect(normalizeTheme('sepia')).toBeNull();
     expect(normalizeAccent('neon')).toBeNull();
+    expect(normalizeLanguage('klingon')).toBeNull();
+    expect(normalizeLanguage('system')).toBeNull();
     expect(normalizeTextSize('extra-huge')).toBeNull();
   });
 
   it('reads initial QDN globals from Core/Home', () => {
     vi.stubGlobal('window', {
       _qdnAccent: 'blue',
+      _qdnLanguage: 'he',
       _qdnTextSize: 'large',
       _qdnTheme: 'dark',
     });
 
     expect(getInitialDisplaySettings()).toEqual({
       accent: 'blue',
+      language: 'he',
       textSize: 'large',
       theme: 'dark',
     });
@@ -52,15 +74,17 @@ describe('QDN display settings helpers', () => {
   it('prefers Core/Home query params over global values', () => {
     vi.stubGlobal('window', {
       _qdnAccent: 'yellow',
+      _qdnLanguage: 'he',
       _qdnTextSize: 'small',
       _qdnTheme: 'light',
       location: {
-        search: '?qdnTheme=dark&qdnAccent=red&qdnTextSize=huge',
+        search: '?qdnTheme=dark&qdnAccent=red&qdnLanguage=zh-CN&qdnTextSize=huge',
       },
     });
 
     expect(getInitialDisplaySettings()).toEqual({
       accent: 'red',
+      language: 'zh-CN',
       textSize: 'huge',
       theme: 'dark',
     });
@@ -75,17 +99,59 @@ describe('QDN display settings helpers', () => {
       ...current,
       accent: 'blue',
     });
+    expect(getDisplaySettingsUpdateFromMessage({ action: 'LANGUAGE_CHANGED', qdnLanguage: 'ar' }, current)).toEqual({
+      ...current,
+      language: 'ar',
+    });
     expect(getDisplaySettingsUpdateFromMessage({ action: 'TEXT_SIZE_CHANGED', qdnTextSize: 'extra-large' }, current)).toEqual({
       ...current,
       textSize: 'extra-large',
     });
   });
 
+  it('updates bundled display settings from Home messages', () => {
+    expect(
+      getDisplaySettingsUpdateFromMessage(
+        {
+          action: 'DISPLAY_SETTINGS_CHANGED',
+          accent: 'teal',
+          language: 'he',
+          textSize: 'large',
+          theme: 'dark',
+        },
+        current,
+      ),
+    ).toEqual({
+      accent: 'teal',
+      language: 'he',
+      textSize: 'large',
+      theme: 'dark',
+    });
+    expect(getDisplaySettingsUpdateFromMessage({ action: 'DISPLAY_SETTINGS_CHANGED', theme: 'system' }, current)).toBeNull();
+  });
+
+  it('applies language to the document and i18n runtime', () => {
+    applyDisplaySettings({
+      accent: 'purple',
+      language: 'ar',
+      textSize: 'huge',
+      theme: 'dark',
+    });
+
+    expect(document.documentElement.dataset.accent).toBe('purple');
+    expect(document.documentElement.dataset.language).toBe('ar');
+    expect(document.documentElement.dataset.textSize).toBe('huge');
+    expect(document.documentElement.dataset.theme).toBe('dark');
+    expect(document.documentElement.dir).toBe('rtl');
+    expect(document.documentElement.lang).toBe('ar');
+    expect(document.documentElement.style.colorScheme).toBe('dark');
+    expect(getTranslationLanguage()).toBe('ar');
+  });
+
   it('ignores invalid and unknown messages', () => {
-    // Home delivers discrete *_CHANGED events only; there is no combined DISPLAY_SETTINGS_CHANGED.
-    expect(getDisplaySettingsUpdateFromMessage({ action: 'DISPLAY_SETTINGS_CHANGED', theme: 'dark' }, current)).toBeNull();
     expect(getDisplaySettingsUpdateFromMessage({ action: 'THEME_CHANGED', theme: 'system' }, current)).toBeNull();
     expect(getDisplaySettingsUpdateFromMessage({ action: 'ACCENT_CHANGED', accent: 'neon' }, current)).toBeNull();
+    expect(getDisplaySettingsUpdateFromMessage({ action: 'LANGUAGE_CHANGED', language: 'system' }, current)).toBeNull();
     expect(getDisplaySettingsUpdateFromMessage({ action: 'TEXT_SIZE_CHANGED', textSize: 'tiny' }, current)).toBeNull();
     expect(getDisplaySettingsUpdateFromMessage({ action: 'UNKNOWN' }, current)).toBeNull();
   });

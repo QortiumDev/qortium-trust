@@ -6,6 +6,7 @@ import {
 import { compactAddress, formatNumber, formatPercent, statusLabel, statusTone } from '../format';
 import type { IdentityProfile, NodeStatus, TrustStatus } from '../types';
 import type { IdentityProps } from '../viewTypes';
+import { t } from '../i18n';
 
 export function IdentityAvatar({
   address,
@@ -53,12 +54,12 @@ export function StatusBadge({ status }: { status: TrustStatus }) {
 export function NodeSyncPill({ nodeStatus }: { nodeStatus: NodeStatus | null }) {
   const synced = !!nodeStatus && !nodeStatus.isSynchronizing;
   const label = !nodeStatus
-    ? 'Connecting'
+    ? t('node.connecting')
     : nodeStatus.isSynchronizing
-      ? `Syncing ${formatPercent(nodeStatus.syncPercent)}`
-      : 'Synced';
+      ? t('node.syncing', { percent: formatPercent(nodeStatus.syncPercent) })
+      : t('node.synced');
   const title =
-    nodeStatus?.height !== undefined ? `Block height ${formatNumber(nodeStatus.height)}` : 'Node status';
+    nodeStatus?.height !== undefined ? t('node.blockHeight', { height: formatNumber(nodeStatus.height) }) : t('node.status');
 
   return (
     <span className={`node-pill ${synced ? 'node-pill--ok' : 'node-pill--busy'}`} title={title}>
