@@ -212,17 +212,3 @@ export function createTrustGraphModel(
     height: layout.height,
   };
 }
-
-export function filterDerivations(derivations: TrustDerivation[], query: string) {
-  const normalizedQuery = query.trim().toLowerCase();
-
-  if (!normalizedQuery) {
-    return derivations;
-  }
-
-  return derivations.filter(
-    (derivation) =>
-      derivation.accountAddress.toLowerCase().includes(normalizedQuery) ||
-      derivation.accountPublicKey.toLowerCase().includes(normalizedQuery),
-  );
-}

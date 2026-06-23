@@ -11,6 +11,11 @@ const NAME_MAX_BYTES = 2 * 1024 * 1024;
 // permanently null for the lifetime of the session.
 const NEGATIVE_CACHE_COOLDOWN_MS = 5 * 60 * 1000;
 
+// Upper bound on the negative-cache size so a long session browsing many distinct accounts can't
+// grow it without limit. When full, the oldest entries are evicted first — they are also the most
+// likely to be past the cooldown and eligible for a retry anyway (perf-003).
+const NEGATIVE_CACHE_MAX_ENTRIES = 1000;
+
 // Raster image types we are willing to assemble into a data URI in the dev fallback.
 // SVG/XML are intentionally excluded (#30 hardening).
 const RASTER_IMAGE_MIME_TYPES = new Set(['image/png', 'image/jpeg', 'image/gif', 'image/webp']);
@@ -213,9 +218,27 @@ async function resolveAvatarSrc(name: string, address: string, actions?: QdnActi
   } catch {
     // Record the failure so an unpublished/unbuilt avatar is not retried on every
     // profile churn, but is retried once the cooldown elapses (#11).
-    avatarNegativeCache.set(address, { at: Date.now() });
+    rememberAvatarFailure(address);
 
     return null;
+  }
+}
+
+// Insert a negative-cache entry, evicting the oldest entries first to stay within the size cap. Map
+// iteration order is insertion order, so the first key is the oldest (perf-003).
+function rememberAvatarFailure(address: string) {
+  // Re-insert at the end so the freshest failure is treated as most-recent for eviction.
+  avatarNegativeCache.delete(address);
+  avatarNegativeCache.set(address, { at: Date.now() });
+
+  while (avatarNegativeCache.size > NEGATIVE_CACHE_MAX_ENTRIES) {
+    const oldest = avatarNegativeCache.keys().next().value;
+
+    if (oldest === undefined) {
+      break;
+    }
+
+    avatarNegativeCache.delete(oldest);
   }
 }
 
