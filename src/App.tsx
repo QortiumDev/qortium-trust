@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import trustIconUrl from './assets/qortium-trust-protoicon-black-transparent.png';
 import { createTrustGraphModel, filterDerivations, type TrustGraphNode } from './graphModel';
-import { loadIdentityProfile } from './identityProfiles';
+import { loadIdentityProfiles } from './identityProfiles';
 import { getBridgeState } from './qdnRequest';
 import { resolveQdnAssetUrl } from './qdnAsset';
 import {
@@ -16,7 +16,7 @@ import {
   getRatingCooldown,
   getResourceRatings,
   getTrustChanges,
-  getTrustDerivation,
+  getTrustDerivationPage,
   getTrustExplanation,
   getTrustPolicy,
   getTrustProfile,
@@ -187,6 +187,9 @@ export default function App() {
   const [accountSort, setAccountSort] = useState<AccountSortState>(DEFAULT_ACCOUNT_SORT);
   const [category, setCategory] = useState<AccountRatingCategory>('SUBJECT');
   const [data, setData] = useState<ExplorerState>(EMPTY_EXPLORER_STATE);
+  // Total accounts in the active category (from the listing's X-Total-Count header); null when the
+  // count is unknown (browser-dev fallback). Drives the "showing first N of M" hint on the table.
+  const [derivationTotal, setDerivationTotal] = useState<number | null>(null);
   const [displaySettings, setDisplaySettings] = useState(getInitialDisplaySettings);
   const [detail, setDetail] = useState<AccountDetailState>({
     explanation: null,
@@ -240,12 +243,12 @@ export default function App() {
     }
 
     try {
-      const [bridge, nodeStatus, summary, policy, derivations, ratings, changes, resources] = await Promise.all([
+      const [bridge, nodeStatus, summary, policy, derivationPage, ratings, changes, resources] = await Promise.all([
         getBridgeState(),
         getNodeStatus(),
         getTrustSummary(),
         getTrustPolicy(),
-        getTrustDerivation({ category, limit: 250, live, ...serverDerivationSort }),
+        getTrustDerivationPage({ category, limit: 250, live, ...serverDerivationSort }),
         getAccountRatings({ category, limit: 1000 }),
         getTrustChanges({ category, limit: 25 }),
         getResourceRatings({ limit: 25, reverse: true }),
@@ -258,13 +261,14 @@ export default function App() {
       setData({
         bridge,
         changes,
-        derivations,
+        derivations: derivationPage.derivations,
         nodeStatus,
         policy,
         ratings,
         resources,
         summary,
       });
+      setDerivationTotal(derivationPage.total);
     } catch (loadError) {
       if (isLatest() && !silent) {
         setError(loadError instanceof Error ? loadError.message : t('error.trustLoadFailed'));
@@ -285,8 +289,8 @@ export default function App() {
   const refreshRatingSlices = useCallback(async (refreshCategory: AccountRatingCategory = category) => {
     const token = ++loadTokenRef.current;
 
-    const [derivations, ratings] = await Promise.all([
-      getTrustDerivation({ category: refreshCategory, limit: 250, live, ...serverDerivationSort }),
+    const [derivationPage, ratings] = await Promise.all([
+      getTrustDerivationPage({ category: refreshCategory, limit: 250, live, ...serverDerivationSort }),
       getAccountRatings({ category: refreshCategory, limit: 1000 }),
     ]);
 
@@ -294,7 +298,8 @@ export default function App() {
       return;
     }
 
-    setData((current) => ({ ...current, derivations, ratings }));
+    setData((current) => ({ ...current, derivations: derivationPage.derivations, ratings }));
+    setDerivationTotal(derivationPage.total);
   }, [category, live, serverDerivationSort]);
 
   // Rater-scoped fetch of the current user's own ratings (#2): independent of the capped edge fetch
@@ -580,23 +585,27 @@ export default function App() {
     let cancelled = false;
     const actions = data.bridge?.actions ?? [];
 
-    Promise.allSettled(missingAddresses.map((address) => loadIdentityProfile(address, actions))).then((results) => {
-      if (cancelled) {
-        return;
-      }
-
-      setIdentityProfiles((current) => {
-        const next = { ...current };
-
-        for (const result of results) {
-          if (result.status === 'fulfilled') {
-            next[result.value.address] = result.value;
-          }
+    // One batched RESOLVE_IDENTITIES call when Home supports it, else bounded-concurrency per-address
+    // resolution — never the unbounded fan-out this used to do (perf-002).
+    void loadIdentityProfiles(missingAddresses, actions)
+      .then((profiles) => {
+        if (cancelled) {
+          return;
         }
 
-        return next;
+        setIdentityProfiles((current) => {
+          const next = { ...current };
+
+          for (const profile of profiles) {
+            next[profile.address] = profile;
+          }
+
+          return next;
+        });
+      })
+      .catch((identityError) => {
+        console.warn('Failed to resolve identities', identityError);
       });
-    });
 
     return () => {
       cancelled = true;
@@ -921,6 +930,7 @@ export default function App() {
                   category={category}
                   derivations={filteredDerivations}
                   live={live}
+                  loadedCount={data.derivations.length}
                   onRate={setOpenRateAddress}
                   onRatingSubmitted={handleRatingSubmitted}
                   onResetFilters={() => {
@@ -938,6 +948,7 @@ export default function App() {
                   selectedAddress={selectedAddress ?? undefined}
                   sort={accountSort}
                   statusFilter={statusFilter}
+                  totalCount={derivationTotal}
                   youRatedByAddress={youRatedByAddress}
                 />
               ) : view === 'graph' ? (

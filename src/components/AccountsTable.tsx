@@ -80,6 +80,7 @@ export function AccountsTable({
   category,
   derivations,
   live,
+  loadedCount,
   onRate,
   onRatingSubmitted,
   onResetFilters,
@@ -94,6 +95,7 @@ export function AccountsTable({
   selectedAddress,
   sort,
   statusFilter = 'ALL',
+  totalCount = null,
   youRatedByAddress,
 }: {
   category: AccountRatingCategory;
@@ -101,6 +103,9 @@ export function AccountsTable({
   // Minting columns (Level/Blocks) are only populated on live derivations; in snapshot mode they
   // render as "—" because Core returns 0 placeholders there (#9).
   live: boolean;
+  // Accounts fetched for this category (pre client-side filter) and the full category size from the
+  // listing's X-Total-Count header; together they drive the "showing first N of M" caption.
+  loadedCount?: number;
   onRate: (address: string | null) => void;
   onRatingSubmitted: (entry: PendingRatingEntry) => void;
   onResetFilters?: () => void;
@@ -115,6 +120,7 @@ export function AccountsTable({
   selectedAddress?: string;
   sort: AccountSortState;
   statusFilter?: TrustStatus | 'ALL';
+  totalCount?: number | null;
   youRatedByAddress: RatingsByAddress;
 }) {
   // Close any open quick-rate popover when the sort or category changes, since the row it was
@@ -182,10 +188,21 @@ export function AccountsTable({
   }
 
   const mintingSortDisabledReason = live ? undefined : t('sort.unavailableSnapshot');
+  // Only surface the cap hint on the unfiltered list (it describes the server fetch window, which
+  // would be misleading beside a client-filtered subset) and only when the server actually has more
+  // accounts than were fetched. `loadedCount` is the pre-filter fetched count.
+  const filtering = query.trim().length > 0 || statusFilter !== 'ALL';
+  const showCountHint =
+    !filtering && typeof totalCount === 'number' && typeof loadedCount === 'number' && totalCount > loadedCount;
 
   return (
     <div className="table-wrap">
       <table className="accounts-table">
+        {showCountHint ? (
+          <caption className="table-caption">
+            {t('accounts.showingCount', { loaded: loadedCount as number, total: totalCount as number })}
+          </caption>
+        ) : null}
         <thead>
           <tr>
             <th aria-sort={getAriaSort(sort, 'account')}>

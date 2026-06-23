@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import {
   getAvatarFallbackCharacter,
   getIdentityLabel,
@@ -14,9 +14,22 @@ export function IdentityAvatar({
   size = 'normal',
 }: IdentityProps & { size?: 'small' | 'normal' | 'large' }) {
   const label = getIdentityLabel(profile, address);
+  const avatarSrc = profile?.avatarSrc ?? null;
+  // The batch RESOLVE_IDENTITIES path returns avatar URLs without a publish check, so a named
+  // account with no avatar yields a URL that 404s; fall back to the glyph on load error instead of
+  // rendering a broken image. Keyed by src so a later-resolved avatar for the same row still shows.
+  const [brokenSrc, setBrokenSrc] = useState<string | null>(null);
 
-  if (profile?.avatarSrc) {
-    return <img alt="" className={`identity-avatar identity-avatar-${size}`} src={profile.avatarSrc} title={label} />;
+  if (avatarSrc && avatarSrc !== brokenSrc) {
+    return (
+      <img
+        alt=""
+        className={`identity-avatar identity-avatar-${size}`}
+        onError={() => setBrokenSrc(avatarSrc)}
+        src={avatarSrc}
+        title={label}
+      />
+    );
   }
 
   return (

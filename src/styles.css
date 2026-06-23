@@ -1033,6 +1033,16 @@ table {
   width: 100%;
 }
 
+/* "Showing first N of M accounts" hint; left-aligned and muted so it reads as a footnote rather
+   than competing with the column headers. text-align follows the document direction (RTL-safe). */
+.table-caption {
+  caption-side: top;
+  color: var(--muted);
+  font-size: var(--font-size-small);
+  padding: 8px 13px;
+  text-align: start;
+}
+
 th,
 td {
   border-bottom: 1px solid var(--line);
