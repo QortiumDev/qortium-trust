@@ -879,8 +879,8 @@ export default function App() {
     <main className="app-shell">
       <header className="app-header">
         <div className="app-header__identity">
-          <span className="app-header__mark" aria-hidden="true">
-            <img alt="" src={trustIconSrc} />
+          <span className="app-header__mark">
+            <img alt="" aria-hidden="true" src={trustIconSrc} />
           </span>
           <div>
             <div className="eyebrow">Qortium</div>

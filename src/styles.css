@@ -6,7 +6,7 @@
   --panel-subtle: #f8fbfb;
   --surface: #f9fbfb;
   --text: #1e2528;
-  --muted: #68777e;
+  --muted: #5f6d73;
   --line: #d9e1e4;
   --line-strong: #c3d0d5;
   --accent: #21824a;
@@ -14,6 +14,10 @@
   --accent-soft: #dff0e6;
   --accent-pill-bg: #e8f6ed;
   --avatar-bg: #dff0e6;
+  /* Readable text colour for use on a solid var(--accent) background. Mirrors the
+     --color-accent-contrast pattern in qortium-home: #ffffff for dark accents, a
+     dark hue-matched value for mid-tone accents where white fails AA 4.5:1. */
+  --accent-contrast: #ffffff;
   --text-scale: 1;
   --font-size-small: calc(13px * var(--text-scale));
   --font-size-ui: calc(16px * var(--text-scale));
@@ -113,6 +117,9 @@
   --skeleton-a: #20282d;
   --skeleton-b: #2b353c;
   --shadow: 0 18px 40px rgba(0, 0, 0, 0.32);
+  /* Dark-theme accent colours are pastel/light; white text fails completely (1.55–2.14:1).
+     Default dark contrast for the green accent — per-accent overrides follow below. */
+  --accent-contrast: #0e1411;
 }
 
 :root[data-accent='green'] {
@@ -121,6 +128,8 @@
   --accent-soft: #dff0e6;
   --accent-pill-bg: #e8f6ed;
   --avatar-bg: #dff0e6;
+  /* #ffffff on #21824a = 4.82:1 ✓ */
+  --accent-contrast: #ffffff;
 }
 
 :root[data-accent='blue'] {
@@ -129,6 +138,8 @@
   --accent-soft: #e2edff;
   --accent-pill-bg: #eaf2ff;
   --avatar-bg: #e2edff;
+  /* #ffffff on #2a79f3 = 4.10:1 ✗ → #000000 = 5.13:1 ✓ */
+  --accent-contrast: #000000;
 }
 
 :root[data-accent='orange'] {
@@ -137,6 +148,8 @@
   --accent-soft: #f7ead8;
   --accent-pill-bg: #fff2df;
   --avatar-bg: #f7ead8;
+  /* #ffffff on #c77714 = 3.46:1 ✗ → #1e1400 = 5.26:1 ✓ */
+  --accent-contrast: #1e1400;
 }
 
 :root[data-accent='purple'] {
@@ -145,6 +158,8 @@
   --accent-soft: #eee7fb;
   --accent-pill-bg: #f2ecff;
   --avatar-bg: #eee7fb;
+  /* #ffffff on #7b44da = 5.70:1 ✓ */
+  --accent-contrast: #ffffff;
 }
 
 :root[data-accent='red'] {
@@ -153,6 +168,8 @@
   --accent-soft: #f9e5e5;
   --accent-pill-bg: #ffeded;
   --avatar-bg: #f9e5e5;
+  /* #ffffff on #d53e3e = 4.58:1 ✓ */
+  --accent-contrast: #ffffff;
 }
 
 :root[data-accent='teal'] {
@@ -161,6 +178,8 @@
   --accent-soft: #dff2f1;
   --accent-pill-bg: #e8f7f6;
   --avatar-bg: #dff2f1;
+  /* #ffffff on #17a398 = 3.12:1 ✗ → #1e1400 = 5.82:1 ✓ */
+  --accent-contrast: #1e1400;
 }
 
 :root[data-accent='cyan'] {
@@ -169,6 +188,8 @@
   --accent-soft: #dff1fb;
   --accent-pill-bg: #e9f6fd;
   --avatar-bg: #dff1fb;
+  /* #ffffff on #1298d8 = 3.23:1 ✗ → #1e1400 = 5.63:1 ✓ */
+  --accent-contrast: #1e1400;
 }
 
 :root[data-accent='pink'] {
@@ -177,6 +198,8 @@
   --accent-soft: #f8e3ee;
   --accent-pill-bg: #fdeaf3;
   --avatar-bg: #f8e3ee;
+  /* #ffffff on #d43f86 = 4.33:1 ✗ → #000000 = 4.85:1 ✓ */
+  --accent-contrast: #000000;
 }
 
 :root[data-accent='yellow'] {
@@ -185,6 +208,8 @@
   --accent-soft: #f6eed8;
   --accent-pill-bg: #fff6de;
   --avatar-bg: #f6eed8;
+  /* #ffffff on #b88214 = 3.36:1 ✗ → #1e1400 = 5.40:1 ✓ */
+  --accent-contrast: #1e1400;
 }
 
 :root[data-theme='dark'][data-accent='green'] {
@@ -193,6 +218,8 @@
   --accent-soft: rgba(135, 217, 155, 0.14);
   --accent-pill-bg: rgba(135, 217, 155, 0.12);
   --avatar-bg: rgba(135, 217, 155, 0.16);
+  /* Dark green is a light pastel; #ffffff = 1.69:1 ✗ → #0e1411 = 11.03:1 ✓ */
+  --accent-contrast: #0e1411;
 }
 
 :root[data-theme='dark'][data-accent='blue'] {
@@ -201,6 +228,8 @@
   --accent-soft: rgba(138, 190, 254, 0.14);
   --accent-pill-bg: rgba(138, 190, 254, 0.12);
   --avatar-bg: rgba(138, 190, 254, 0.16);
+  /* Dark blue is a light pastel; #ffffff = 1.93:1 ✗ → #061733 = 9.23:1 ✓ */
+  --accent-contrast: #061733;
 }
 
 :root[data-theme='dark'][data-accent='orange'] {
@@ -209,6 +238,8 @@
   --accent-soft: rgba(241, 177, 109, 0.14);
   --accent-pill-bg: rgba(241, 177, 109, 0.12);
   --avatar-bg: rgba(241, 177, 109, 0.16);
+  /* Dark orange is a light pastel; #ffffff = 1.87:1 ✗ → #2a1c00 = 8.90:1 ✓ */
+  --accent-contrast: #2a1c00;
 }
 
 :root[data-theme='dark'][data-accent='purple'] {
@@ -217,6 +248,8 @@
   --accent-soft: rgba(202, 162, 255, 0.14);
   --accent-pill-bg: rgba(202, 162, 255, 0.12);
   --avatar-bg: rgba(202, 162, 255, 0.16);
+  /* Dark purple is a light pastel; #ffffff = 2.07:1 ✗ → #1c0c3d = 8.66:1 ✓ */
+  --accent-contrast: #1c0c3d;
 }
 
 :root[data-theme='dark'][data-accent='red'] {
@@ -225,6 +258,8 @@
   --accent-soft: rgba(241, 154, 154, 0.14);
   --accent-pill-bg: rgba(241, 154, 154, 0.12);
   --avatar-bg: rgba(241, 154, 154, 0.16);
+  /* Dark red is a light pastel; #ffffff = 2.14:1 ✗ → #301111 = 8.10:1 ✓ */
+  --accent-contrast: #301111;
 }
 
 :root[data-theme='dark'][data-accent='teal'] {
@@ -233,6 +268,8 @@
   --accent-soft: rgba(110, 217, 209, 0.14);
   --accent-pill-bg: rgba(110, 217, 209, 0.12);
   --avatar-bg: rgba(110, 217, 209, 0.16);
+  /* Dark teal is a light pastel; #ffffff = 1.68:1 ✗ → #072523 = 9.64:1 ✓ */
+  --accent-contrast: #072523;
 }
 
 :root[data-theme='dark'][data-accent='cyan'] {
@@ -241,6 +278,8 @@
   --accent-soft: rgba(136, 210, 255, 0.14);
   --accent-pill-bg: rgba(136, 210, 255, 0.12);
   --avatar-bg: rgba(136, 210, 255, 0.16);
+  /* Dark cyan is a light pastel; #ffffff = 1.65:1 ✗ → #03243d = 9.60:1 ✓ */
+  --accent-contrast: #03243d;
 }
 
 :root[data-theme='dark'][data-accent='pink'] {
@@ -249,6 +288,8 @@
   --accent-soft: rgba(248, 167, 207, 0.14);
   --accent-pill-bg: rgba(248, 167, 207, 0.12);
   --avatar-bg: rgba(248, 167, 207, 0.16);
+  /* Dark pink is a light pastel; #ffffff = 1.84:1 ✗ → #2a0d23 = 9.68:1 ✓ */
+  --accent-contrast: #2a0d23;
 }
 
 :root[data-theme='dark'][data-accent='yellow'] {
@@ -257,6 +298,8 @@
   --accent-soft: rgba(244, 203, 103, 0.14);
   --accent-pill-bg: rgba(244, 203, 103, 0.12);
   --avatar-bg: rgba(244, 203, 103, 0.16);
+  /* Dark yellow is a light pastel; #ffffff = 1.55:1 ✗ → #2f2100 = 10.15:1 ✓ */
+  --accent-contrast: #2f2100;
 }
 
 * {
@@ -281,7 +324,7 @@ button {
 
 button:disabled {
   cursor: not-allowed;
-  opacity: 0.65;
+  opacity: 1;
 }
 
 .app-shell {
@@ -305,25 +348,26 @@ button:disabled {
 }
 
 .app-header__mark {
-  align-items: center;
-  background: var(--accent-soft);
-  border: 1px solid var(--line-strong);
-  border-radius: 7px;
   display: inline-flex;
   flex: 0 0 auto;
-  height: 42px;
-  justify-content: center;
-  width: 42px;
+  height: 44px;
+  width: 44px;
+  flex-shrink: 0;
 }
 
 .app-header__mark img {
+  height: 44px;
+  width: 44px;
   display: block;
-  height: 34px;
-  width: 34px;
+  object-fit: contain;
+}
+
+:root[data-theme='light'] .app-header__mark img {
+  filter: invert(1);
 }
 
 .eyebrow {
-  color: var(--accent);
+  color: var(--text);
   font-size: var(--font-size-small);
   font-weight: 700;
   letter-spacing: 0;
@@ -374,7 +418,7 @@ h3 {
 
 .runtime-pill {
   background: var(--accent-pill-bg);
-  color: var(--accent-strong);
+  color: var(--text);
 }
 
 .icon-button {
@@ -427,7 +471,7 @@ h3 {
 .icon-button--active {
   background: var(--accent-soft);
   border-color: var(--accent-strong);
-  color: var(--accent-strong);
+  color: var(--text);
 }
 
 .toolbar {
@@ -527,7 +571,7 @@ h3 {
 
 .segmented-control button.active {
   background: var(--accent-soft);
-  color: var(--accent-strong);
+  color: var(--text);
 }
 
 .search-field {
@@ -647,7 +691,9 @@ select {
 
 .data-mode-badge--snapshot {
   background: var(--badge-neutral-bg, var(--row-hover));
-  color: var(--muted);
+  /* var(--muted) on --badge-neutral-bg = 4.11:1 in light (fails AA 4.5:1).
+     --badge-neutral-text is already paired with this bg: 5.67:1 light / 7.35:1 dark. */
+  color: var(--badge-neutral-text);
 }
 
 .workspace {
@@ -683,7 +729,8 @@ select {
 }
 
 .back-button:hover {
-  color: var(--accent-strong);
+  border-color: var(--accent-strong);
+  color: var(--text);
 }
 
 .detail-header {
@@ -773,7 +820,7 @@ select {
 
 .graph-zoom-controls button:hover {
   border-color: var(--accent-strong);
-  color: var(--accent-strong);
+  color: var(--text);
 }
 
 /* One-line discoverability hint for the pan/zoom/hover affordances, pinned top-left clear of the
@@ -1166,17 +1213,16 @@ th {
 
 .sort-header:hover,
 .sort-header.active {
-  color: var(--accent-strong);
+  color: var(--text);
 }
 
 .sort-header:disabled {
-  color: var(--muted);
+  color: var(--badge-neutral-text);
   cursor: not-allowed;
-  opacity: 0.65;
 }
 
 .sort-header:disabled:hover {
-  color: var(--muted);
+  color: var(--badge-neutral-text);
 }
 
 tbody tr {
@@ -1253,7 +1299,7 @@ tbody tr:hover,
 
 .identity-avatar-fallback {
   background: var(--avatar-bg);
-  color: var(--accent-strong);
+  color: var(--text);
   font-weight: 900;
 }
 
@@ -1347,7 +1393,7 @@ tbody tr:hover,
 .sort-rank {
   background: var(--accent-soft);
   border-radius: 999px;
-  color: var(--accent-strong);
+  color: var(--text);
   font-size: 11px;
   font-weight: 800;
   line-height: 1;
@@ -1427,14 +1473,23 @@ tbody tr:hover,
   background: var(--accent);
   border: 1px solid var(--accent-strong);
   border-radius: 8px;
-  color: #fff;
+  /* Use the theme-aware contrast token so text is readable on any accent colour in both
+     light and dark themes. Hard-coded #fff fails AA on light mid-tone accents (blue 4.10,
+     orange 3.46, teal 3.12 …) and catastrophically on all dark pastels (1.55–2.14:1). */
+  color: var(--accent-contrast);
   font-weight: 800;
   min-height: 44px;
   padding: 9px 16px;
 }
 
+.rating-submit:disabled {
+  background: var(--panel-strong);
+  border-color: var(--line-strong);
+  color: var(--badge-neutral-text);
+}
+
 .rating-submit:hover:not(:disabled) {
-  background: var(--accent-strong);
+  background: var(--accent);
 }
 
 .rating-status {
@@ -1453,7 +1508,11 @@ tbody tr:hover,
 }
 
 .rating-pending strong {
-  color: var(--accent-strong);
+  color: var(--text);
+}
+
+.rating-pending .muted {
+  color: var(--text);
 }
 
 .rating-pending p {
@@ -1499,7 +1558,7 @@ tbody tr:hover,
 
 .rating-message.positive {
   background: var(--accent-soft);
-  color: var(--accent-strong);
+  color: var(--text);
 }
 
 .rating-message.negative {
@@ -1601,7 +1660,7 @@ tbody tr:hover,
 
 .empty-state-reset:hover {
   border-color: var(--accent-strong);
-  color: var(--accent-strong);
+  color: var(--text);
 }
 
 /* Account-detail column wrappers (children of the .detail-columns 2-col grid). */
@@ -1671,7 +1730,13 @@ tbody tr:hover,
 
 .rate-button:hover:not(:disabled) {
   border-color: var(--accent-strong);
-  color: var(--accent-strong);
+  color: var(--text);
+}
+
+.rate-button:disabled {
+  background: var(--panel-strong);
+  border-color: var(--line-strong);
+  color: var(--badge-neutral-text);
 }
 
 /* Rendered in a portal on <body> with fixed positioning (left/top set inline from the trigger's
