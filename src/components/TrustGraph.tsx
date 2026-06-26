@@ -133,12 +133,27 @@ export function TrustGraph({
   );
 
   const handleWheel = useCallback(
-    (event: React.WheelEvent<SVGSVGElement>) => {
+    (event: WheelEvent) => {
       event.preventDefault();
+      event.stopPropagation();
       zoomBy(event.deltaY < 0 ? 1.12 : 1 / 1.12, event.clientX, event.clientY);
     },
     [zoomBy],
   );
+
+  useEffect(() => {
+    const svg = svgRef.current;
+
+    if (!svg) {
+      return;
+    }
+
+    svg.addEventListener('wheel', handleWheel, { passive: false });
+
+    return () => {
+      svg.removeEventListener('wheel', handleWheel);
+    };
+  }, [handleWheel]);
 
   const handlePointerDown = useCallback((event: React.PointerEvent<SVGSVGElement>) => {
     if (event.button !== 0) {
@@ -272,7 +287,6 @@ export function TrustGraph({
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={endPan}
-        onWheel={handleWheel}
         ref={svgRef}
         role="group"
         style={{ aspectRatio: `${graph.width} / ${graph.height}` }}
