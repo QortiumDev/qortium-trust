@@ -1,3 +1,11 @@
+@font-face {
+  font-family: "Inter";
+  src: url("./assets/fonts/inter/inter-latin-wght-normal.woff2") format("woff2");
+  font-display: swap;
+  font-style: normal;
+  font-weight: 100 900;
+}
+
 :root {
   color-scheme: light;
   --bg: #f5f7f8;
@@ -300,6 +308,54 @@
   --avatar-bg: rgba(244, 203, 103, 0.16);
   /* Dark yellow is a light pastel; #ffffff = 1.55:1 ✗ → #2f2100 = 10.15:1 ✓ */
   --accent-contrast: #2f2100;
+}
+
+:root[data-ui='modern'] {
+  --bg: #f2efe6;
+  --panel: #ffffff;
+  --panel-strong: #f7f4ec;
+  --panel-subtle: #f7f4ec;
+  --surface: #ffffff;
+  --text: #0d0d0d;
+  --muted: #6b6b6b;
+  --line: #ddd9d0;
+  --line-strong: #ddd9d0;
+  --graph-node-fill: #ffffff;
+  --row-hover: #f7f4ec;
+  --scroll-shadow: rgba(13, 13, 13, 0.16);
+  --empty-overlay-bg: rgba(255, 255, 255, 0.92);
+  --badge-neutral-bg: #f7f4ec;
+  --badge-neutral-text: #6b6b6b;
+  --badge-silver-bg: #f7f4ec;
+  --badge-silver-text: #6b6b6b;
+  --skeleton-a: #f7f4ec;
+  --skeleton-b: #ffffff;
+  --shadow: none;
+
+  font-family: "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+:root[data-theme='dark'][data-ui='modern'] {
+  --bg: #111318;
+  --panel: #1c1f28;
+  --panel-strong: #222633;
+  --panel-subtle: #222633;
+  --surface: #1c1f28;
+  --text: #e4e8f0;
+  --muted: #8892a4;
+  --line: #2e3340;
+  --line-strong: #2e3340;
+  --graph-node-fill: #222633;
+  --row-hover: #252a36;
+  --scroll-shadow: rgba(0, 0, 0, 0.45);
+  --empty-overlay-bg: rgba(28, 31, 40, 0.92);
+  --badge-neutral-bg: #222633;
+  --badge-neutral-text: #8892a4;
+  --badge-silver-bg: #222633;
+  --badge-silver-text: #8892a4;
+  --skeleton-a: #222633;
+  --skeleton-b: #2e3340;
+  --shadow: none;
 }
 
 * {
@@ -1924,5 +1980,105 @@ tbody tr:hover,
       radial-gradient(farthest-side at 100% 50%, var(--scroll-shadow), transparent) right center / 12px 100%
         no-repeat;
     background-attachment: local, local, scroll, scroll;
+  }
+}
+
+:root[data-ui='modern'] body {
+  background: var(--bg);
+}
+
+:root[data-ui='modern'] .app-shell {
+  padding: 24px 16px 32px;
+}
+
+:root[data-ui='modern'] .app-header {
+  align-items: center;
+  background: var(--panel);
+  border-bottom: 1.5px solid var(--line);
+  box-shadow: none;
+  margin: 0 auto 16px;
+  min-height: 52px;
+  padding: 8px 14px;
+  width: min(100%, 56.25em);
+}
+
+:root[data-ui='modern'] .app-header__mark,
+:root[data-ui='modern'] .app-header__mark img {
+  height: 36px;
+  width: 36px;
+}
+
+:root[data-ui='modern'] .workspace {
+  margin-inline: auto;
+  width: min(100%, 56.25em);
+}
+
+:root[data-ui='modern'] .toolbar,
+:root[data-ui='modern'] .error-banner,
+:root[data-ui='modern'] .info-banner,
+:root[data-ui='modern'] .policy-footer {
+  margin-left: auto;
+  margin-right: auto;
+  width: min(100%, 56.25em);
+}
+
+:root[data-ui='modern'] .main-panel,
+:root[data-ui='modern'] .graph-surface,
+:root[data-ui='modern'] .table-wrap,
+:root[data-ui='modern'] .detail-grid > div,
+:root[data-ui='modern'] .rate-popover,
+:root[data-ui='modern'] .error-banner,
+:root[data-ui='modern'] .info-banner,
+:root[data-ui='modern'] .rating-pending,
+:root[data-ui='modern'] .rating-message,
+:root[data-ui='modern'] .skeleton-block,
+:root[data-ui='modern'] .skeleton-table {
+  border-radius: 8px;
+  border-width: 1.5px;
+  box-shadow: none;
+}
+
+:root[data-ui='modern'] .icon-button,
+:root[data-ui='modern'] .live-toggle,
+:root[data-ui='modern'] .segmented-control,
+:root[data-ui='modern'] .search-field,
+:root[data-ui='modern'] select,
+:root[data-ui='modern'] .back-button,
+:root[data-ui='modern'] .rate-button,
+:root[data-ui='modern'] .rating-submit,
+:root[data-ui='modern'] .empty-state-reset,
+:root[data-ui='modern'] .graph-zoom-controls button {
+  border-width: 1.5px;
+}
+
+:root[data-ui='modern'] .icon-button,
+:root[data-ui='modern'] .back-button,
+:root[data-ui='modern'] .rate-button,
+:root[data-ui='modern'] .rating-submit,
+:root[data-ui='modern'] .empty-state-reset,
+:root[data-ui='modern'] .graph-zoom-controls button {
+  border-radius: 50px;
+}
+
+:root[data-ui='modern'] .segmented-control button {
+  border-radius: 50px;
+}
+
+@media (min-width: 900px) {
+  :root[data-ui='modern'] .app-shell {
+    padding-left: 32px;
+    padding-right: 32px;
+  }
+}
+
+@media (max-width: 640px) {
+  :root[data-ui='modern'] .app-header {
+    align-items: flex-start;
+    flex-direction: column;
+    padding: 10px 12px;
+  }
+
+  :root[data-ui='modern'] .workspace {
+    width: 100%;
   }
 }
