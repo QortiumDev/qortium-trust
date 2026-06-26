@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-import { describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { TrustGraphModel } from '../graphModel';
 import { TrustGraph } from './TrustGraph';
 
@@ -20,6 +20,23 @@ const graph: TrustGraphModel = {
   ],
   width: 400,
 };
+
+class MockImage {
+  static instances: MockImage[] = [];
+
+  onerror: (() => void) | null = null;
+  onload: (() => void) | null = null;
+  src = '';
+
+  constructor() {
+    MockImage.instances.push(this);
+  }
+}
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+  MockImage.instances = [];
+});
 
 describe('TrustGraph wheel zoom', () => {
   it('prevents graph wheel zoom from scrolling the page', () => {
@@ -78,7 +95,9 @@ describe('TrustGraph controls and avatars', () => {
     expect(onToggleExpanded).toHaveBeenCalledTimes(1);
   });
 
-  it('falls back to the registered-name character when an avatar image fails', () => {
+  it('renders an avatar image only after the source preloads successfully', async () => {
+    vi.stubGlobal('Image', MockImage);
+
     const { container } = render(
       <TrustGraph
         graph={graph}
@@ -86,12 +105,31 @@ describe('TrustGraph controls and avatars', () => {
         profiles={{ Qalice: { address: 'Qalice', avatarSrc: 'http://node/avatar.png', name: 'Alice' } }}
       />,
     );
-    const image = container.querySelector('image');
-
-    expect(image).not.toBeNull();
-    fireEvent.error(image as SVGImageElement);
 
     expect(container.querySelector('image')).toBeNull();
     expect(container.querySelector('.graph-node-initial')?.textContent).toBe('A');
+
+    MockImage.instances[0]?.onload?.();
+
+    await waitFor(() => expect(container.querySelector('image')).not.toBeNull());
+  });
+
+  it('keeps the registered-name character when an avatar image fails to preload', async () => {
+    vi.stubGlobal('Image', MockImage);
+
+    const { container } = render(
+      <TrustGraph
+        graph={graph}
+        onSelect={vi.fn()}
+        profiles={{ Qalice: { address: 'Qalice', avatarSrc: 'http://node/avatar.png', name: 'Alice' } }}
+      />,
+    );
+
+    expect(container.querySelector('image')).toBeNull();
+
+    MockImage.instances[0]?.onerror?.();
+
+    await waitFor(() => expect(container.querySelector('.graph-node-initial')?.textContent).toBe('A'));
+    expect(container.querySelector('image')).toBeNull();
   });
 });
