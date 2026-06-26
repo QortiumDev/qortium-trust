@@ -73,7 +73,7 @@ export const en = {
   'fetch.trustPolicy': 'Trust policy',
   'fetch.trustProfile': 'Trust profile',
   'fetch.trustSummary': 'Trust summary',
-  'graph.hint': 'Drag to pan. Scroll to zoom. Hover to highlight.',
+  'graph.hint': 'Drag to pan. Scroll to zoom. Tap a node to focus.',
   'graph.label': 'Trust graph',
   'graph.loading': 'Loading graph...',
   'graph.nodeLabel': '{label} - {status} L{level}',

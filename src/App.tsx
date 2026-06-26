@@ -533,12 +533,14 @@ export default function App() {
             categoryData?.score ?? 0,
           ];
         }),
-        data.ratings.map((rating) => [
-          rating.raterAddress,
-          rating.targetAddress,
-          rating.rating,
-          rating.ratingConfidence,
-        ]),
+        data.ratings
+          .filter((rating) => rating.rating !== 0)
+          .map((rating) => [
+            rating.raterAddress,
+            rating.targetAddress,
+            rating.rating,
+            rating.ratingConfidence,
+          ]),
       ]),
     [category, data.ratings, filteredDerivations],
   );
@@ -871,11 +873,17 @@ export default function App() {
   };
 
   const selectNode = (node: TrustGraphNode) => {
+    setSelectedAddress((current) => (current === node.address ? null : node.address));
+  };
+
+  const openNodeDetail = (node: TrustGraphNode) => {
+    setGraphExpanded(false);
+    setView('accounts');
     setSelectedAddress(node.address);
   };
 
   const trustIconSrc = getQdnAssetUrl(trustIconUrl);
-  const showAccountDetail = selectedDerivation && !graphExpanded;
+  const showAccountDetail = selectedDerivation && !graphExpanded && view !== 'graph';
 
   return (
     <main className={`app-shell ${graphExpanded ? 'app-shell--graph-expanded' : ''}`}>
@@ -1008,6 +1016,7 @@ export default function App() {
                     derivations={filteredDerivations}
                     isLoading
                     isExpanded={graphExpanded}
+                    onOpenDetail={openNodeDetail}
                     onSelect={selectNode}
                     onToggleExpanded={() => setGraphExpanded((current) => !current)}
                     profiles={identityProfiles}
@@ -1050,6 +1059,7 @@ export default function App() {
                     category={category}
                     derivations={filteredDerivations}
                     isExpanded={graphExpanded}
+                    onOpenDetail={openNodeDetail}
                     onSelect={selectNode}
                     onToggleExpanded={() => setGraphExpanded((current) => !current)}
                     profiles={identityProfiles}

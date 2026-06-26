@@ -10,7 +10,11 @@ const graph: TrustGraphModel = {
   nodes: [
     {
       address: 'Qalice',
+      inboundWeight: 0,
+      linkCount: 0,
       level: 1,
+      outboundWeight: 0,
+      radius: 14,
       score: 10,
       seedMember: false,
       status: 'GOLD',
@@ -19,6 +23,43 @@ const graph: TrustGraphModel = {
     },
   ],
   width: 400,
+};
+const linkedGraph: TrustGraphModel = {
+  ...graph,
+  links: [
+    {
+      category: 'SUBJECT',
+      confidence: 2,
+      id: 'Qalice-Qbob-SUBJECT',
+      rating: 3,
+      source: 'Qalice',
+      target: 'Qbob',
+    },
+    {
+      category: 'SUBJECT',
+      confidence: 1,
+      id: 'Qbob-Qalice-SUBJECT',
+      rating: -1,
+      source: 'Qbob',
+      target: 'Qalice',
+    },
+  ],
+  nodes: [
+    graph.nodes[0],
+    {
+      address: 'Qbob',
+      inboundWeight: 6,
+      linkCount: 2,
+      level: 0,
+      outboundWeight: 1,
+      radius: 20,
+      score: 0,
+      seedMember: false,
+      status: 'UNVERIFIED',
+      x: 260,
+      y: 120,
+    },
+  ],
 };
 
 class MockImage {
@@ -93,6 +134,31 @@ describe('TrustGraph controls and avatars', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Expand graph' }));
 
     expect(onToggleExpanded).toHaveBeenCalledTimes(1);
+  });
+
+  it('renders directional arrows and a compact selected-node panel', () => {
+    const onOpenDetail = vi.fn();
+    const { container } = render(
+      <TrustGraph
+        graph={linkedGraph}
+        onOpenDetail={onOpenDetail}
+        onSelect={vi.fn()}
+        profiles={{ Qalice: { address: 'Qalice', avatarSrc: null, name: 'Alice' } }}
+        selectedAddress="Qalice"
+      />,
+    );
+    const links = container.querySelectorAll('.graph-link');
+
+    expect(links).toHaveLength(2);
+    expect(links[0]?.getAttribute('marker-end')).toBe('url(#trust-arrow-positive)');
+    expect(links[1]?.getAttribute('marker-end')).toBe('url(#trust-arrow-negative)');
+    expect(links[0]?.getAttribute('d')).toContain('Q');
+    expect(links[1]?.getAttribute('d')).toContain('Q');
+    expect(screen.getByText('Selected account')).toBeTruthy();
+    expect(screen.getByText('Votes in')).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: 'View details' }));
+    expect(onOpenDetail).toHaveBeenCalledWith(expect.objectContaining({ address: 'Qalice' }));
   });
 
   it('renders an avatar image only after the source preloads successfully', async () => {

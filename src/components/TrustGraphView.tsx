@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
-import { createTrustGraphModel, type TrustGraphNode } from '../graphModel';
+import { createTrustGraphModel, focusTrustGraphModel, type TrustGraphNode } from '../graphModel';
+import { useAnimatedTrustGraph } from '../useAnimatedTrustGraph';
 import { TrustGraph } from './TrustGraph';
 import type { AccountRating, AccountRatingCategory, IdentityProfilesByAddress, TrustDerivation } from '../types';
 
@@ -11,6 +12,7 @@ export default function TrustGraphView({
   derivations,
   isLoading,
   isExpanded,
+  onOpenDetail,
   onSelect,
   onToggleExpanded,
   profiles,
@@ -22,6 +24,7 @@ export default function TrustGraphView({
   derivations: TrustDerivation[];
   isLoading?: boolean;
   isExpanded?: boolean;
+  onOpenDetail?: (node: TrustGraphNode) => void;
   onSelect: (node: TrustGraphNode) => void;
   onToggleExpanded?: () => void;
   profiles: IdentityProfilesByAddress;
@@ -36,12 +39,18 @@ export default function TrustGraphView({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- gated on the precomputed input signature.
     [signature],
   );
+  const focusedGraph = useMemo(
+    () => focusTrustGraphModel(graph, selectedAddress),
+    [graph, selectedAddress],
+  );
+  const animatedGraph = useAnimatedTrustGraph(focusedGraph, signature);
 
   return (
     <TrustGraph
-      graph={graph}
+      graph={animatedGraph}
       isLoading={isLoading}
       isExpanded={isExpanded}
+      onOpenDetail={onOpenDetail}
       onSelect={onSelect}
       onToggleExpanded={onToggleExpanded}
       profiles={profiles}
