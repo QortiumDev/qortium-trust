@@ -482,6 +482,7 @@ export function TrustGraph({
                   key={node.address}
                   onClick={() => handleNodeActivate(node)}
                   onKeyDown={(event) => handleNodeKeyDown(event, node)}
+                  onPointerDown={(event) => event.stopPropagation()}
                   role="button"
                   tabIndex={connectedAddresses.has(node.address) ? 0 : -1}
                 >

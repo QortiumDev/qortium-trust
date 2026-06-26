@@ -161,6 +161,24 @@ describe('TrustGraph controls and avatars', () => {
     expect(onOpenDetail).toHaveBeenCalledWith(expect.objectContaining({ address: 'Qalice' }));
   });
 
+  it('selects a node when the pointer starts on the node', () => {
+    const onSelect = vi.fn();
+
+    render(
+      <TrustGraph
+        graph={linkedGraph}
+        onSelect={onSelect}
+        profiles={{ Qalice: { address: 'Qalice', avatarSrc: null, name: 'Alice' } }}
+      />,
+    );
+    const node = screen.getByRole('button', { name: /Alice/ });
+
+    fireEvent.pointerDown(node, { button: 0, clientX: 120, clientY: 120, pointerId: 1 });
+    fireEvent.click(node);
+
+    expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ address: 'Qalice' }));
+  });
+
   it('renders an avatar image only after the source preloads successfully', async () => {
     vi.stubGlobal('Image', MockImage);
 
