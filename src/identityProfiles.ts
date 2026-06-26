@@ -32,21 +32,11 @@ export function normalizeRegisteredName(name: string | null | undefined) {
   return typeof name === 'string' && name.length > 0 ? name : null;
 }
 
-const BASE58_ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
-
-export function getAvatarFallbackCharacter(name: string | null | undefined, address: string) {
+export function getAvatarFallbackCharacter(name: string | null | undefined, _address: string) {
   const registeredName = normalizeRegisteredName(name);
 
   if (registeredName) {
     return Array.from(registeredName)[0] ?? '?';
-  }
-
-  // Unnamed accounts get a distinguishable initial from the first base58 character
-  // of their address so different accounts do not all collapse to the same glyph.
-  for (const character of address ?? '') {
-    if (BASE58_ALPHABET.includes(character)) {
-      return character;
-    }
   }
 
   return '?';

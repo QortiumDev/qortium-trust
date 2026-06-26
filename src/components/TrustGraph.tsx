@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { CircleDot, RotateCcw, ZoomIn, ZoomOut } from 'lucide-react';
+import { CircleDot, Maximize2, Minimize2, RotateCcw, ZoomIn, ZoomOut } from 'lucide-react';
 import { getAvatarFallbackCharacter, getIdentityLabel } from '../identityProfiles';
 import { compactAddress, ratingTone, statusLabel, statusTone } from '../format';
 import type { TrustGraphModel, TrustGraphNode } from '../graphModel';
@@ -22,7 +22,9 @@ const PAN_CLICK_THRESHOLD = 4;
 export function TrustGraph({
   graph,
   isLoading,
+  isExpanded = false,
   onSelect,
+  onToggleExpanded,
   profiles,
   selectedAddress,
 }: {
@@ -31,13 +33,17 @@ export function TrustGraph({
   // placeholder sized to the surface instead of the generic table skeleton. Optional: when the
   // shell does not pass it the graph just renders normally.
   isLoading?: boolean;
+  isExpanded?: boolean;
   onSelect: (node: TrustGraphNode) => void;
+  onToggleExpanded?: () => void;
   profiles: IdentityProfilesByAddress;
   selectedAddress?: string;
 }) {
   const svgRef = useRef<SVGSVGElement | null>(null);
+  const [brokenAvatarSrcByAddress, setBrokenAvatarSrcByAddress] = useState<Record<string, string>>({});
   const [view, setView] = useState<GraphView>(IDENTITY_VIEW);
   const [hoveredAddress, setHoveredAddress] = useState<string | undefined>(undefined);
+  const expandedControlLabel = isExpanded ? 'Collapse graph' : 'Expand graph';
   // Tracks an in-progress pan: the pointer origin and whether it has moved past the click threshold.
   const panRef = useRef<{ pointerId: number; startX: number; startY: number; moved: boolean } | null>(
     null,
@@ -260,6 +266,18 @@ export function TrustGraph({
   if (isLoading) {
     return (
       <div className="graph-surface graph-surface--loading" role="status" aria-live="polite">
+        {onToggleExpanded ? (
+          <div className="graph-zoom-controls">
+            <button
+              aria-label={expandedControlLabel}
+              onClick={onToggleExpanded}
+              title={expandedControlLabel}
+              type="button"
+            >
+              {isExpanded ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
+            </button>
+          </div>
+        ) : null}
         <div className="graph-loading">
           <div className="graph-loading__orbit">
             <span className="graph-loading__node graph-loading__node--center" />
@@ -333,6 +351,10 @@ export function TrustGraph({
               const radius = node.seedMember ? 15 : 12;
               const clipId = `avatar-clip-${index}`;
               const focused = !adjacency || adjacency.has(node.address);
+              const avatarSrc =
+                profile?.avatarSrc && brokenAvatarSrcByAddress[node.address] !== profile.avatarSrc
+                  ? profile.avatarSrc
+                  : null;
 
               return (
                 <g
@@ -362,11 +384,17 @@ export function TrustGraph({
                     </clipPath>
                   </defs>
                   <circle cx={node.x} cy={node.y} r={radius} />
-                  {profile?.avatarSrc ? (
+                  {avatarSrc ? (
                     <image
                       clipPath={`url(#${clipId})`}
                       height={(radius - 2) * 2}
-                      href={profile.avatarSrc}
+                      href={avatarSrc}
+                      onError={() =>
+                        setBrokenAvatarSrcByAddress((current) => ({
+                          ...current,
+                          [node.address]: avatarSrc,
+                        }))
+                      }
                       preserveAspectRatio="xMidYMid slice"
                       width={(radius - 2) * 2}
                       x={node.x - radius + 2}
@@ -409,6 +437,16 @@ export function TrustGraph({
         >
           <RotateCcw size={15} />
         </button>
+        {onToggleExpanded ? (
+          <button
+            aria-label={expandedControlLabel}
+            onClick={onToggleExpanded}
+            title={expandedControlLabel}
+            type="button"
+          >
+            {isExpanded ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
+          </button>
+        ) : null}
       </div>
       <div className="graph-legend" aria-label={t('label.graphLegend')}>
         <div className="graph-legend__group">

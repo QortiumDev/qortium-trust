@@ -388,6 +388,12 @@ button:disabled {
   padding: 24px;
 }
 
+.app-shell--graph-expanded {
+  min-height: 100dvh;
+  overflow: hidden;
+  padding: 0;
+}
+
 .app-header {
   align-items: center;
   display: flex;
@@ -757,6 +763,10 @@ select {
   width: 100%;
 }
 
+.workspace--graph-expanded {
+  min-height: 100dvh;
+}
+
 .main-panel {
   background: var(--panel);
   border: 1px solid var(--line);
@@ -765,6 +775,15 @@ select {
   min-height: 650px;
   min-width: 0;
   padding: 14px;
+}
+
+.main-panel--graph-expanded {
+  background: var(--surface);
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  min-height: 100dvh;
+  padding: 0;
 }
 
 .detail-back {
@@ -832,6 +851,13 @@ select {
   position: relative;
 }
 
+.main-panel--graph-expanded .graph-surface {
+  border: 0;
+  border-radius: 0;
+  height: 100dvh;
+  min-height: 100dvh;
+}
+
 .trust-graph {
   cursor: grab;
   display: block;
@@ -845,6 +871,12 @@ select {
   width: 100%;
 }
 
+.main-panel--graph-expanded .trust-graph {
+  height: 100dvh;
+  max-height: 100dvh;
+  min-height: 100dvh;
+}
+
 .trust-graph:active {
   cursor: grabbing;
 }
@@ -856,6 +888,7 @@ select {
   position: absolute;
   right: 12px;
   top: 12px;
+  z-index: 3;
 }
 
 .graph-zoom-controls button {
@@ -2011,6 +2044,21 @@ tbody tr:hover,
 :root[data-ui='modern'] .workspace {
   margin-inline: auto;
   width: min(100%, 56.25em);
+}
+
+:root[data-ui='modern'] .app-shell.app-shell--graph-expanded {
+  padding: 0;
+}
+
+:root[data-ui='modern'] .app-shell--graph-expanded .workspace {
+  margin-inline: 0;
+  width: 100%;
+}
+
+:root[data-ui='modern'] .app-shell--graph-expanded .main-panel,
+:root[data-ui='modern'] .app-shell--graph-expanded .graph-surface {
+  border-radius: 0;
+  border-width: 0;
 }
 
 :root[data-ui='modern'] .toolbar,

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from 'vitest';
-import { render } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import type { TrustGraphModel } from '../graphModel';
 import { TrustGraph } from './TrustGraph';
 
@@ -57,5 +57,41 @@ describe('TrustGraph wheel zoom', () => {
     } finally {
       document.body.removeEventListener('wheel', pageWheel);
     }
+  });
+});
+
+describe('TrustGraph controls and avatars', () => {
+  it('calls the expand toggle from the graph controls', () => {
+    const onToggleExpanded = vi.fn();
+
+    render(
+      <TrustGraph
+        graph={graph}
+        onSelect={vi.fn()}
+        onToggleExpanded={onToggleExpanded}
+        profiles={{}}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Expand graph' }));
+
+    expect(onToggleExpanded).toHaveBeenCalledTimes(1);
+  });
+
+  it('falls back to the registered-name character when an avatar image fails', () => {
+    const { container } = render(
+      <TrustGraph
+        graph={graph}
+        onSelect={vi.fn()}
+        profiles={{ Qalice: { address: 'Qalice', avatarSrc: 'http://node/avatar.png', name: 'Alice' } }}
+      />,
+    );
+    const image = container.querySelector('image');
+
+    expect(image).not.toBeNull();
+    fireEvent.error(image as SVGImageElement);
+
+    expect(container.querySelector('image')).toBeNull();
+    expect(container.querySelector('.graph-node-initial')?.textContent).toBe('A');
   });
 });

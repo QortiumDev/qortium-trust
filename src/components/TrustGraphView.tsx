@@ -10,7 +10,9 @@ export default function TrustGraphView({
   category,
   derivations,
   isLoading,
+  isExpanded,
   onSelect,
+  onToggleExpanded,
   profiles,
   ratings,
   selectedAddress,
@@ -19,7 +21,9 @@ export default function TrustGraphView({
   category: AccountRatingCategory;
   derivations: TrustDerivation[];
   isLoading?: boolean;
+  isExpanded?: boolean;
   onSelect: (node: TrustGraphNode) => void;
+  onToggleExpanded?: () => void;
   profiles: IdentityProfilesByAddress;
   ratings: AccountRating[];
   selectedAddress?: string;
@@ -37,7 +41,9 @@ export default function TrustGraphView({
     <TrustGraph
       graph={graph}
       isLoading={isLoading}
+      isExpanded={isExpanded}
       onSelect={onSelect}
+      onToggleExpanded={onToggleExpanded}
       profiles={profiles}
       selectedAddress={selectedAddress}
     />
