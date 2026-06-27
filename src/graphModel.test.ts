@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createTrustGraphModel } from './graphModel';
+import { createTrustGraphModel, focusTrustGraphModel } from './graphModel';
 import { filterDerivations } from './derivationFilter';
 import type { AccountRating, TrustDerivation } from './types';
 
@@ -79,6 +79,69 @@ describe('trust graph model', () => {
         target: 'Qalice',
       },
     ]);
+  });
+
+  it('omits zero ratings from links and placeholder nodes', () => {
+    const graph = createTrustGraphModel(
+      derivations,
+      [
+        {
+          ...ratings[0],
+          raterAddress: 'Qzero',
+          raterPublicKey: 'zero-public',
+          rating: 0,
+        },
+      ],
+      'SUBJECT',
+    );
+
+    expect(graph.links).toHaveLength(0);
+    expect(graph.nodes.map((node) => node.address)).toEqual(['Qalice']);
+  });
+
+  it('sizes highly connected nodes larger than isolated nodes', () => {
+    const graph = createTrustGraphModel(
+      [
+        ...derivations,
+        {
+          ...derivations[0],
+          accountAddress: 'Qtarget',
+          accountPublicKey: 'target-public',
+          mintingSeedMember: false,
+        },
+        {
+          ...derivations[0],
+          accountAddress: 'Qisolated',
+          accountPublicKey: 'isolated-public',
+          mintingSeedMember: false,
+        },
+      ],
+      [
+        { ...ratings[0], raterAddress: 'Qa', targetAddress: 'Qtarget', rating: 4, ratingConfidence: 2 },
+        { ...ratings[0], raterAddress: 'Qb', targetAddress: 'Qtarget', rating: 3, ratingConfidence: 2 },
+        { ...ratings[0], raterAddress: 'Qc', targetAddress: 'Qtarget', rating: -2, ratingConfidence: 2 },
+      ],
+      'SUBJECT',
+    );
+    const target = graph.nodes.find((node) => node.address === 'Qtarget');
+    const isolated = graph.nodes.find((node) => node.address === 'Qisolated');
+
+    expect(target?.radius).toBeGreaterThan(isolated?.radius ?? 0);
+  });
+
+  it('moves a focused node closer to the graph center', () => {
+    const base = createTrustGraphModel(derivations, ratings, 'SUBJECT');
+    const focused = focusTrustGraphModel(base, 'Qalice');
+    const baseNode = base.nodes.find((node) => node.address === 'Qalice');
+    const focusedNode = focused.nodes.find((node) => node.address === 'Qalice');
+    const center = { x: base.width / 2, y: base.height / 2 };
+
+    expect(baseNode).toBeDefined();
+    expect(focusedNode).toBeDefined();
+    expect(distance(focusedNode!, center)).toBeLessThanOrEqual(distance(baseNode!, center));
+    expect(focused.nodes.map((node) => node.address).sort()).toEqual(
+      base.nodes.map((node) => node.address).sort(),
+    );
   });
 
   it('frames every node inside the reported canvas bounds', () => {

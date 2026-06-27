@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { CircleDot, RotateCcw, ZoomIn, ZoomOut } from 'lucide-react';
+import { CircleDot, Maximize2, Minimize2, RotateCcw, ZoomIn, ZoomOut } from 'lucide-react';
 import { getAvatarFallbackCharacter, getIdentityLabel } from '../identityProfiles';
 import { compactAddress, ratingTone, statusLabel, statusTone } from '../format';
 import type { TrustGraphModel, TrustGraphNode } from '../graphModel';
@@ -11,6 +11,7 @@ import { t } from '../i18n';
 // frames the whole settled layout at identity, so {x:0, y:0, k:1} shows everything; pan/zoom layer
 // on top of that.
 type GraphView = { x: number; y: number; k: number };
+type AvatarLoadStatus = 'loading' | 'loaded' | 'failed';
 
 const IDENTITY_VIEW: GraphView = { x: 0, y: 0, k: 1 };
 const MIN_ZOOM = 0.3;
@@ -22,7 +23,11 @@ const PAN_CLICK_THRESHOLD = 4;
 export function TrustGraph({
   graph,
   isLoading,
+  isExpanded = false,
+  onClearSelection,
+  onOpenDetail,
   onSelect,
+  onToggleExpanded,
   profiles,
   selectedAddress,
 }: {
@@ -31,13 +36,19 @@ export function TrustGraph({
   // placeholder sized to the surface instead of the generic table skeleton. Optional: when the
   // shell does not pass it the graph just renders normally.
   isLoading?: boolean;
+  isExpanded?: boolean;
+  onClearSelection?: () => void;
+  onOpenDetail?: (node: TrustGraphNode) => void;
   onSelect: (node: TrustGraphNode) => void;
+  onToggleExpanded?: () => void;
   profiles: IdentityProfilesByAddress;
   selectedAddress?: string;
 }) {
   const svgRef = useRef<SVGSVGElement | null>(null);
+  const avatarLoadStatusRef = useRef<Record<string, AvatarLoadStatus>>({});
+  const [avatarLoadStatusBySrc, setAvatarLoadStatusBySrc] = useState<Record<string, AvatarLoadStatus>>({});
   const [view, setView] = useState<GraphView>(IDENTITY_VIEW);
-  const [hoveredAddress, setHoveredAddress] = useState<string | undefined>(undefined);
+  const expandedControlLabel = isExpanded ? 'Collapse graph' : 'Expand graph';
   // Tracks an in-progress pan: the pointer origin and whether it has moved past the click threshold.
   const panRef = useRef<{ pointerId: number; startX: number; startY: number; moved: boolean } | null>(
     null,
@@ -46,11 +57,55 @@ export function TrustGraph({
   // gestures pinch-to-zoom on touch (RESP-03) while a single pointer keeps panning.
   const pointersRef = useRef(new Map<number, { x: number; y: number }>());
   const pinchRef = useRef<{ distance: number } | null>(null);
+  const suppressNextSurfaceClickRef = useRef(false);
 
   const nodeByAddress = useMemo(
     () => new Map(graph.nodes.map((node) => [node.address, node] as const)),
     [graph.nodes],
   );
+  const avatarSources = useMemo(() => {
+    const sources = new Set<string>();
+
+    for (const node of graph.nodes) {
+      const avatarSrc = profiles[node.address]?.avatarSrc;
+
+      if (avatarSrc) {
+        sources.add(avatarSrc);
+      }
+    }
+
+    return [...sources];
+  }, [graph.nodes, profiles]);
+
+  const setAvatarLoadStatus = useCallback((src: string, status: AvatarLoadStatus) => {
+    avatarLoadStatusRef.current[src] = status;
+    setAvatarLoadStatusBySrc((current) =>
+      current[src] === status
+        ? current
+        : {
+            ...current,
+            [src]: status,
+          },
+    );
+  }, []);
+
+  useEffect(() => {
+    if (typeof Image === 'undefined') {
+      return;
+    }
+
+    for (const src of avatarSources) {
+      if (avatarLoadStatusRef.current[src]) {
+        continue;
+      }
+
+      avatarLoadStatusRef.current[src] = 'loading';
+      const image = new Image();
+      image.onload = () => setAvatarLoadStatus(src, 'loaded');
+      image.onerror = () => setAvatarLoadStatus(src, 'failed');
+      image.src = src;
+    }
+  }, [avatarSources, setAvatarLoadStatus]);
 
   // Addresses that participate in at least one edge. Only these get tabIndex={0}: an isolated node
   // has no connections to spotlight, so adding it to the tab order would just bloat keyboard
@@ -64,9 +119,9 @@ export function TrustGraph({
     return connected;
   }, [graph.links]);
 
-  // Neighbours of the active (hovered, else selected) node, so we can spotlight its edges and dim
-  // the rest — the same focus affordance the BrightID explorer uses on node click.
-  const activeAddress = hoveredAddress ?? selectedAddress;
+  // Neighbours of the selected node, so we can spotlight its edges and dim the rest. Selection is
+  // click/tap based rather than hover based so it works on touch screens.
+  const activeAddress = selectedAddress;
   const adjacency = useMemo(() => {
     if (!activeAddress) {
       return null;
@@ -81,6 +136,47 @@ export function TrustGraph({
     }
     return neighbours;
   }, [activeAddress, graph.links]);
+  const linkDirectionSet = useMemo(
+    () => new Set(graph.links.map((link) => `${link.source}\0${link.target}`)),
+    [graph.links],
+  );
+  const selectedNode = selectedAddress ? nodeByAddress.get(selectedAddress) : undefined;
+  const selectedProfile = selectedAddress ? profiles[selectedAddress] : undefined;
+  const selectedLinks = useMemo(
+    () =>
+      selectedAddress
+        ? graph.links.filter((link) => link.source === selectedAddress || link.target === selectedAddress)
+        : [],
+    [graph.links, selectedAddress],
+  );
+  const selectedSummary = useMemo(() => {
+    if (!selectedNode) {
+      return null;
+    }
+
+    let inbound = 0;
+    let outbound = 0;
+    let positive = 0;
+    let negative = 0;
+
+    for (const link of selectedLinks) {
+      if (link.target === selectedNode.address) {
+        inbound += 1;
+      }
+
+      if (link.source === selectedNode.address) {
+        outbound += 1;
+      }
+
+      if (link.rating > 0) {
+        positive += 1;
+      } else if (link.rating < 0) {
+        negative += 1;
+      }
+    }
+
+    return { inbound, negative, outbound, positive };
+  }, [selectedLinks, selectedNode]);
 
   // Reset the view whenever the graph identity changes (category switch, search, data refresh) so a
   // new layout starts fully framed instead of inheriting the previous pan/zoom.
@@ -133,19 +229,39 @@ export function TrustGraph({
   );
 
   const handleWheel = useCallback(
-    (event: React.WheelEvent<SVGSVGElement>) => {
+    (event: WheelEvent) => {
       event.preventDefault();
+      event.stopPropagation();
       zoomBy(event.deltaY < 0 ? 1.12 : 1 / 1.12, event.clientX, event.clientY);
     },
     [zoomBy],
   );
+
+  useEffect(() => {
+    const svg = svgRef.current;
+
+    if (!svg) {
+      return;
+    }
+
+    svg.addEventListener('wheel', handleWheel, { passive: false });
+
+    return () => {
+      svg.removeEventListener('wheel', handleWheel);
+    };
+  }, [handleWheel]);
 
   const handlePointerDown = useCallback((event: React.PointerEvent<SVGSVGElement>) => {
     if (event.button !== 0) {
       return;
     }
     pointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
-    event.currentTarget.setPointerCapture(event.pointerId);
+    try {
+      event.currentTarget.setPointerCapture(event.pointerId);
+    } catch {
+      // Synthetic events and some embedded-webview edge cases may not expose an active pointer to
+      // capture. Panning still works through the tracked pointer map when capture is unavailable.
+    }
 
     if (pointersRef.current.size === 2) {
       // Second finger down → start a pinch and abandon any single-pointer pan.
@@ -191,6 +307,7 @@ export function TrustGraph({
       const dy = ((event.clientY - pan.startY) / rect.height) * graph.height;
       if (!pan.moved && Math.hypot(event.clientX - pan.startX, event.clientY - pan.startY) > PAN_CLICK_THRESHOLD) {
         pan.moved = true;
+        suppressNextSurfaceClickRef.current = true;
       }
       pan.startX = event.clientX;
       pan.startY = event.clientY;
@@ -200,6 +317,8 @@ export function TrustGraph({
   );
 
   const endPan = useCallback((event: React.PointerEvent<SVGSVGElement>) => {
+    const moved = panRef.current?.moved ?? false;
+
     pointersRef.current.delete(event.pointerId);
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
@@ -215,19 +334,38 @@ export function TrustGraph({
       const [[pointerId, point]] = [...pointersRef.current.entries()];
       panRef.current = { pointerId, startX: point.x, startY: point.y, moved: true };
     } else if (pointersRef.current.size === 0) {
+      suppressNextSurfaceClickRef.current ||= moved;
       panRef.current = null;
     }
   }, []);
 
   // Suppress the synthetic click that follows a pan so dragging across a node doesn't select it.
   const handleNodeActivate = useCallback(
-    (node: TrustGraphNode) => {
+    (event: React.MouseEvent<SVGGElement>, node: TrustGraphNode) => {
+      event.stopPropagation();
       if (panRef.current?.moved) {
         return;
       }
       onSelect(node);
     },
     [onSelect],
+  );
+  const handleSurfaceClick = useCallback(
+    (event: React.MouseEvent<SVGSVGElement>) => {
+      if (suppressNextSurfaceClickRef.current) {
+        suppressNextSurfaceClickRef.current = false;
+        return;
+      }
+
+      if ((event.target as Element | null)?.closest?.('.graph-node')) {
+        return;
+      }
+
+      if (selectedAddress) {
+        onClearSelection?.();
+      }
+    },
+    [onClearSelection, selectedAddress],
   );
 
   // Keyboard activation: Enter/Space select the focused node, mirroring a click. preventDefault on
@@ -245,6 +383,18 @@ export function TrustGraph({
   if (isLoading) {
     return (
       <div className="graph-surface graph-surface--loading" role="status" aria-live="polite">
+        {onToggleExpanded ? (
+          <div className="graph-zoom-controls">
+            <button
+              aria-label={expandedControlLabel}
+              onClick={onToggleExpanded}
+              title={expandedControlLabel}
+              type="button"
+            >
+              {isExpanded ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
+            </button>
+          </div>
+        ) : null}
         <div className="graph-loading">
           <div className="graph-loading__orbit">
             <span className="graph-loading__node graph-loading__node--center" />
@@ -268,16 +418,42 @@ export function TrustGraph({
       <svg
         aria-label={t('graph.label')}
         className={`trust-graph ${adjacency ? 'has-focus' : ''}`}
+        onClick={handleSurfaceClick}
         onPointerCancel={endPan}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={endPan}
-        onWheel={handleWheel}
         ref={svgRef}
         role="group"
         style={{ aspectRatio: `${graph.width} / ${graph.height}` }}
         viewBox={`0 0 ${graph.width} ${graph.height}`}
       >
+        <defs>
+          <marker
+            id="trust-arrow-positive"
+            markerHeight="8"
+            markerUnits="userSpaceOnUse"
+            markerWidth="8"
+            orient="auto"
+            refX="7.2"
+            refY="4"
+            viewBox="0 0 8 8"
+          >
+            <path d="M0,0 L8,4 L0,8 Z" fill="var(--positive)" />
+          </marker>
+          <marker
+            id="trust-arrow-negative"
+            markerHeight="8"
+            markerUnits="userSpaceOnUse"
+            markerWidth="8"
+            orient="auto"
+            refX="7.2"
+            refY="4"
+            viewBox="0 0 8 8"
+          >
+            <path d="M0,0 L8,4 L0,8 Z" fill="var(--negative)" />
+          </marker>
+        </defs>
         <g transform={`translate(${view.x} ${view.y}) scale(${view.k})`}>
           <g className="graph-links">
             {graph.links.map((link) => {
@@ -289,16 +465,16 @@ export function TrustGraph({
               }
 
               const focused = !adjacency || (adjacency.has(link.source) && adjacency.has(link.target));
+              const tone = ratingTone(link.rating);
+              const reverse = linkDirectionSet.has(`${link.target}\0${link.source}`);
 
               return (
-                <line
-                  className={`graph-link graph-link-${ratingTone(link.rating)} ${focused ? '' : 'dimmed'}`}
+                <path
+                  className={`graph-link graph-link-${tone} ${focused ? '' : 'dimmed'}`}
+                  d={getLinkPath(source, target, reverse, graph.nodes)}
                   key={link.id}
-                  strokeWidth={Math.max(1, link.confidence)}
-                  x1={source.x}
-                  x2={target.x}
-                  y1={source.y}
-                  y2={target.y}
+                  markerEnd={`url(#trust-arrow-${tone === 'negative' ? 'negative' : 'positive'})`}
+                  strokeWidth={getGraphLinkWidth(link.rating, focused)}
                 >
                   <title>
                     {t('graph.edgeTitle', {
@@ -308,7 +484,7 @@ export function TrustGraph({
                       target: compactAddress(link.target),
                     })}
                   </title>
-                </line>
+                </path>
               );
             })}
           </g>
@@ -316,9 +492,13 @@ export function TrustGraph({
             {graph.nodes.map((node, index) => {
               const profile = profiles[node.address];
               const label = getIdentityLabel(profile, node.address);
-              const radius = node.seedMember ? 15 : 12;
+              const radius = node.radius;
               const clipId = `avatar-clip-${index}`;
               const focused = !adjacency || adjacency.has(node.address);
+              const avatarSrc =
+                profile?.avatarSrc && avatarLoadStatusBySrc[profile.avatarSrc] === 'loaded'
+                  ? profile.avatarSrc
+                  : null;
 
               return (
                 <g
@@ -331,14 +511,9 @@ export function TrustGraph({
                     node.address === selectedAddress ? 'selected' : ''
                   } ${focused ? '' : 'dimmed'}`}
                   key={node.address}
-                  onBlur={() =>
-                    setHoveredAddress((current) => (current === node.address ? undefined : current))
-                  }
-                  onClick={() => handleNodeActivate(node)}
-                  onFocus={() => setHoveredAddress(node.address)}
+                  onClick={(event) => handleNodeActivate(event, node)}
                   onKeyDown={(event) => handleNodeKeyDown(event, node)}
-                  onPointerEnter={() => setHoveredAddress(node.address)}
-                  onPointerLeave={() => setHoveredAddress((current) => (current === node.address ? undefined : current))}
+                  onPointerDown={(event) => event.stopPropagation()}
                   role="button"
                   tabIndex={connectedAddresses.has(node.address) ? 0 : -1}
                 >
@@ -348,11 +523,11 @@ export function TrustGraph({
                     </clipPath>
                   </defs>
                   <circle cx={node.x} cy={node.y} r={radius} />
-                  {profile?.avatarSrc ? (
+                  {avatarSrc ? (
                     <image
                       clipPath={`url(#${clipId})`}
                       height={(radius - 2) * 2}
-                      href={profile.avatarSrc}
+                      href={avatarSrc}
                       preserveAspectRatio="xMidYMid slice"
                       width={(radius - 2) * 2}
                       x={node.x - radius + 2}
@@ -363,7 +538,7 @@ export function TrustGraph({
                       {getAvatarFallbackCharacter(profile?.name, node.address)}
                     </text>
                   )}
-                  <text className="graph-node-label" x={node.x} y={node.y + 32}>
+                  <text className="graph-node-label" x={node.x} y={node.y + radius + 18}>
                     {compactIdentityGraphLabel(profile, node.address)}
                   </text>
                   <title>
@@ -395,6 +570,16 @@ export function TrustGraph({
         >
           <RotateCcw size={15} />
         </button>
+        {onToggleExpanded ? (
+          <button
+            aria-label={expandedControlLabel}
+            onClick={onToggleExpanded}
+            title={expandedControlLabel}
+            type="button"
+          >
+            {isExpanded ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
+          </button>
+        ) : null}
       </div>
       <div className="graph-legend" aria-label={t('label.graphLegend')}>
         <div className="graph-legend__group">
@@ -434,12 +619,6 @@ export function TrustGraph({
             </svg>
             {t('status.negative')}
           </span>
-          <span className="graph-legend__item">
-            <svg className="graph-legend__edge" viewBox="0 0 24 8" aria-hidden="true">
-              <line className="graph-legend__line graph-legend__line--neutral" x1="1" y1="4" x2="23" y2="4" />
-            </svg>
-            {t('status.neutral')}
-          </span>
         </div>
       </div>
       {graph.links.length === 0 ? (
@@ -448,6 +627,116 @@ export function TrustGraph({
           <span>{t('empty.graphEdges')}</span>
         </div>
       ) : null}
+      {selectedNode && selectedSummary ? (
+        <div className="graph-selection-panel" role="status">
+          <div className="graph-selection-panel__identity">
+            <span className="graph-selection-panel__eyebrow">Selected account</span>
+            <strong>{getIdentityLabel(selectedProfile, selectedNode.address)}</strong>
+            <span className="mono">{compactAddress(selectedNode.address)}</span>
+          </div>
+          <dl>
+            <div>
+              <dt>{t('label.status')}</dt>
+              <dd>{statusLabel(selectedNode.status)}</dd>
+            </div>
+            <div>
+              <dt>{t('label.level')}</dt>
+              <dd>{selectedNode.level}</dd>
+            </div>
+            <div>
+              <dt>{t('label.score')}</dt>
+              <dd>{selectedNode.score}</dd>
+            </div>
+            <div>
+              <dt>Votes in</dt>
+              <dd>{selectedSummary.inbound}</dd>
+            </div>
+            <div>
+              <dt>Votes out</dt>
+              <dd>{selectedSummary.outbound}</dd>
+            </div>
+            <div>
+              <dt>{t('status.positive')}</dt>
+              <dd>{selectedSummary.positive}</dd>
+            </div>
+            <div>
+              <dt>{t('status.negative')}</dt>
+              <dd>{selectedSummary.negative}</dd>
+            </div>
+          </dl>
+          {onOpenDetail ? (
+            <button type="button" onClick={() => onOpenDetail(selectedNode)}>
+              View details
+            </button>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
+}
+
+function getGraphLinkWidth(rating: number, focused: boolean) {
+  return 1.4 + Math.min(4, Math.abs(rating)) * 0.72 + (focused ? 0.8 : 0);
+}
+
+function getLinkPath(source: TrustGraphNode, target: TrustGraphNode, reciprocal: boolean, nodes: TrustGraphNode[]) {
+  const dx = target.x - source.x;
+  const dy = target.y - source.y;
+  const length = Math.hypot(dx, dy) || 1;
+  const ux = dx / length;
+  const uy = dy / length;
+  const startX = source.x + ux * (source.radius + 2);
+  const startY = source.y + uy * (source.radius + 2);
+  const endX = target.x - ux * (target.radius + 10);
+  const endY = target.y - uy * (target.radius + 10);
+  const offset = getRouteOffset(source, target, nodes, length, reciprocal);
+
+  if (Math.abs(offset) < 1) {
+    return `M ${startX} ${startY} L ${endX} ${endY}`;
+  }
+
+  const controlX = (startX + endX) / 2 + (-uy) * offset;
+  const controlY = (startY + endY) / 2 + ux * offset;
+
+  return `M ${startX} ${startY} Q ${controlX} ${controlY} ${endX} ${endY}`;
+}
+
+function getRouteOffset(
+  source: TrustGraphNode,
+  target: TrustGraphNode,
+  nodes: TrustGraphNode[],
+  length: number,
+  reciprocal: boolean,
+) {
+  const dx = target.x - source.x;
+  const dy = target.y - source.y;
+  const pairSign = source.address.localeCompare(target.address) < 0 ? 1 : -1;
+  let offset = reciprocal ? Math.min(72, Math.max(32, length * 0.18)) * pairSign : 0;
+
+  for (const node of nodes) {
+    if (node.address === source.address || node.address === target.address) {
+      continue;
+    }
+
+    const projection = ((node.x - source.x) * dx + (node.y - source.y) * dy) / (length * length);
+
+    if (projection <= 0.08 || projection >= 0.92) {
+      continue;
+    }
+
+    const closestX = source.x + dx * projection;
+    const closestY = source.y + dy * projection;
+    const distance = Math.hypot(node.x - closestX, node.y - closestY);
+    const clearance = node.radius + 18;
+
+    if (distance >= clearance) {
+      continue;
+    }
+
+    const cross = dx * (node.y - source.y) - dy * (node.x - source.x);
+    const awayFromNode = cross >= 0 ? -1 : 1;
+    offset += awayFromNode * Math.min(46, clearance - distance + 18);
+  }
+
+  return Math.max(-110, Math.min(110, offset));
 }

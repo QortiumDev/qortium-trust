@@ -207,6 +207,7 @@ export default function App() {
   const [detailReloadToken, setDetailReloadToken] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [identityProfiles, setIdentityProfiles] = useState<IdentityProfilesByAddress>({});
+  const [graphExpanded, setGraphExpanded] = useState(false);
   // Default to live derivations so the Level/Blocks/vote-weight columns carry real minting data off
   // each row (#9) — snapshot rows return 0 for those. Toggling Live off shows the on-chain snapshot.
   const [live, setLive] = useState(true);
@@ -532,12 +533,14 @@ export default function App() {
             categoryData?.score ?? 0,
           ];
         }),
-        data.ratings.map((rating) => [
-          rating.raterAddress,
-          rating.targetAddress,
-          rating.rating,
-          rating.ratingConfidence,
-        ]),
+        data.ratings
+          .filter((rating) => rating.rating !== 0)
+          .map((rating) => [
+            rating.raterAddress,
+            rating.targetAddress,
+            rating.rating,
+            rating.ratingConfidence,
+          ]),
       ]),
     [category, data.ratings, filteredDerivations],
   );
@@ -870,13 +873,25 @@ export default function App() {
   };
 
   const selectNode = (node: TrustGraphNode) => {
+    setSelectedAddress((current) => (current === node.address ? null : node.address));
+  };
+
+  const clearGraphSelection = () => {
+    setSelectedAddress(null);
+  };
+
+  const openNodeDetail = (node: TrustGraphNode) => {
+    setGraphExpanded(false);
+    setView('accounts');
     setSelectedAddress(node.address);
   };
 
   const trustIconSrc = getQdnAssetUrl(trustIconUrl);
+  const showAccountDetail = selectedDerivation && !graphExpanded && view !== 'graph';
 
   return (
-    <main className="app-shell">
+    <main className={`app-shell ${graphExpanded ? 'app-shell--graph-expanded' : ''}`}>
+      {!graphExpanded ? (
       <header className="app-header">
         <div className="app-header__identity">
           <span className="app-header__mark">
@@ -906,7 +921,9 @@ export default function App() {
           </button>
         </div>
       </header>
+      ) : null}
 
+      {!graphExpanded ? (
       <section className="toolbar">
         <div className="toolbar__category">
           <CategoryTabs category={category} onChange={setCategory} />
@@ -959,15 +976,16 @@ export default function App() {
           ) : null}
         </div>
       </section>
+      ) : null}
 
-      {error ? (
+      {error && !graphExpanded ? (
         <div className="error-banner" role="alert">
           <AlertTriangle size={18} />
           {error}
         </div>
       ) : null}
 
-      {data.bridge && !ratingActionAvailable ? (
+      {data.bridge && !ratingActionAvailable && !graphExpanded ? (
         // Read-only context (opened outside Home, or RATE_ACCOUNT unavailable): explain why rating is
         // disabled rather than leaving the disabled controls unexplained (UX-001). Gated on a resolved
         // bridge so it doesn't flash during the initial load.
@@ -977,9 +995,9 @@ export default function App() {
         </div>
       ) : null}
 
-      <section className="workspace">
-        <div className="main-panel">
-          {selectedDerivation ? (
+      <section className={`workspace ${graphExpanded ? 'workspace--graph-expanded' : ''}`}>
+        <div className={`main-panel ${graphExpanded ? 'main-panel--graph-expanded' : ''}`}>
+          {showAccountDetail ? (
             <AccountDetail
               category={category}
               detail={detail}
@@ -1001,7 +1019,11 @@ export default function App() {
                     category={category}
                     derivations={filteredDerivations}
                     isLoading
+                    isExpanded={graphExpanded}
+                    onClearSelection={clearGraphSelection}
+                    onOpenDetail={openNodeDetail}
                     onSelect={selectNode}
+                    onToggleExpanded={() => setGraphExpanded((current) => !current)}
                     profiles={identityProfiles}
                     ratings={data.ratings}
                     selectedAddress={selectedAddress ?? undefined}
@@ -1041,7 +1063,11 @@ export default function App() {
                   <TrustGraphView
                     category={category}
                     derivations={filteredDerivations}
+                    isExpanded={graphExpanded}
+                    onClearSelection={clearGraphSelection}
+                    onOpenDetail={openNodeDetail}
                     onSelect={selectNode}
+                    onToggleExpanded={() => setGraphExpanded((current) => !current)}
                     profiles={identityProfiles}
                     ratings={data.ratings}
                     selectedAddress={selectedAddress ?? undefined}
@@ -1063,7 +1089,7 @@ export default function App() {
         </div>
       </section>
 
-      <PolicyFooter policy={data.policy} summary={data.summary} />
+      {!graphExpanded ? <PolicyFooter policy={data.policy} summary={data.summary} /> : null}
 
       {toast ? (
         <div className="toast" role="status">

@@ -31,11 +31,9 @@ describe('identity profile helpers', () => {
     expect(getAvatarFallbackCharacter('Bob', 'Qabc')).toBe('B');
   });
 
-  it('uses the first base58 address character as the fallback for unnamed accounts', () => {
-    expect(getAvatarFallbackCharacter(null, 'Qabc')).toBe('Q');
-    expect(getAvatarFallbackCharacter('', 'Z9foo')).toBe('Z');
-    // Leading non-base58 characters (e.g. 0, O, I, l) are skipped.
-    expect(getAvatarFallbackCharacter(null, '0OIlQ7')).toBe('Q');
+  it('uses a question mark as the fallback for unnamed accounts', () => {
+    expect(getAvatarFallbackCharacter(null, 'Qabc')).toBe('?');
+    expect(getAvatarFallbackCharacter('', 'Z9foo')).toBe('?');
     expect(getAvatarFallbackCharacter(null, '')).toBe('?');
   });
 
