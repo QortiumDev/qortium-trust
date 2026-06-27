@@ -37,6 +37,7 @@
   --gold: #a06b00;
   --silver: #687782;
   --bronze: #8f5b2e;
+  --unverified: #2b7f94;
   --graph-node-fill: #ffffff;
   --row-hover: #f0f7f8;
   --scroll-shadow: rgba(27, 45, 52, 0.16);
@@ -105,6 +106,7 @@
   --gold: #f0c765;
   --silver: #9aaab2;
   --bronze: #d89b67;
+  --unverified: #74cee0;
   --graph-node-fill: #20282d;
   --row-hover: #1e2a30;
   --scroll-shadow: rgba(0, 0, 0, 0.45);
@@ -993,7 +995,8 @@ select {
 }
 
 .graph-legend__ring--neutral {
-  border-color: var(--muted);
+  border-color: var(--unverified);
+  border-style: dashed;
 }
 
 .graph-legend__ring--negative {
@@ -1281,7 +1284,8 @@ select {
 }
 
 .graph-node-neutral circle {
-  stroke: var(--muted);
+  stroke: var(--unverified);
+  stroke-dasharray: 5 4;
 }
 
 .empty-overlay {

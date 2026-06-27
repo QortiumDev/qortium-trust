@@ -876,6 +876,10 @@ export default function App() {
     setSelectedAddress((current) => (current === node.address ? null : node.address));
   };
 
+  const clearGraphSelection = () => {
+    setSelectedAddress(null);
+  };
+
   const openNodeDetail = (node: TrustGraphNode) => {
     setGraphExpanded(false);
     setView('accounts');
@@ -1016,6 +1020,7 @@ export default function App() {
                     derivations={filteredDerivations}
                     isLoading
                     isExpanded={graphExpanded}
+                    onClearSelection={clearGraphSelection}
                     onOpenDetail={openNodeDetail}
                     onSelect={selectNode}
                     onToggleExpanded={() => setGraphExpanded((current) => !current)}
@@ -1059,6 +1064,7 @@ export default function App() {
                     category={category}
                     derivations={filteredDerivations}
                     isExpanded={graphExpanded}
+                    onClearSelection={clearGraphSelection}
                     onOpenDetail={openNodeDetail}
                     onSelect={selectNode}
                     onToggleExpanded={() => setGraphExpanded((current) => !current)}

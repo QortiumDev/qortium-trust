@@ -61,6 +61,53 @@ const linkedGraph: TrustGraphModel = {
     },
   ],
 };
+const obstructedGraph: TrustGraphModel = {
+  height: 300,
+  links: [
+    {
+      category: 'SUBJECT',
+      confidence: 1,
+      id: 'Qalice-Qbob-SUBJECT',
+      rating: 1,
+      source: 'Qalice',
+      target: 'Qbob',
+    },
+  ],
+  nodes: [
+    {
+      ...graph.nodes[0],
+      x: 80,
+      y: 120,
+    },
+    {
+      address: 'Qmiddle',
+      inboundWeight: 0,
+      linkCount: 0,
+      level: 0,
+      outboundWeight: 0,
+      radius: 22,
+      score: 0,
+      seedMember: false,
+      status: 'UNVERIFIED',
+      x: 180,
+      y: 120,
+    },
+    {
+      address: 'Qbob',
+      inboundWeight: 1,
+      linkCount: 1,
+      level: 0,
+      outboundWeight: 0,
+      radius: 14,
+      score: 0,
+      seedMember: false,
+      status: 'UNVERIFIED',
+      x: 280,
+      y: 120,
+    },
+  ],
+  width: 400,
+};
 
 class MockImage {
   static instances: MockImage[] = [];
@@ -159,6 +206,32 @@ describe('TrustGraph controls and avatars', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'View details' }));
     expect(onOpenDetail).toHaveBeenCalledWith(expect.objectContaining({ address: 'Qalice' }));
+  });
+
+  it('clears the selected node when the graph background is clicked', () => {
+    const onClearSelection = vi.fn();
+
+    render(
+      <TrustGraph
+        graph={linkedGraph}
+        onClearSelection={onClearSelection}
+        onSelect={vi.fn()}
+        profiles={{ Qalice: { address: 'Qalice', avatarSrc: null, name: 'Alice' } }}
+        selectedAddress="Qalice"
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('group', { name: 'Trust graph' }));
+
+    expect(onClearSelection).toHaveBeenCalledTimes(1);
+  });
+
+  it('curves a link around a non-endpoint node on its direct path', () => {
+    const { container } = render(
+      <TrustGraph graph={obstructedGraph} onSelect={vi.fn()} profiles={{}} />,
+    );
+
+    expect(container.querySelector('.graph-link')?.getAttribute('d')).toContain('Q');
   });
 
   it('selects a node when the pointer starts on the node', () => {

@@ -12,6 +12,7 @@ export default function TrustGraphView({
   derivations,
   isLoading,
   isExpanded,
+  onClearSelection,
   onOpenDetail,
   onSelect,
   onToggleExpanded,
@@ -24,6 +25,7 @@ export default function TrustGraphView({
   derivations: TrustDerivation[];
   isLoading?: boolean;
   isExpanded?: boolean;
+  onClearSelection?: () => void;
   onOpenDetail?: (node: TrustGraphNode) => void;
   onSelect: (node: TrustGraphNode) => void;
   onToggleExpanded?: () => void;
@@ -50,6 +52,7 @@ export default function TrustGraphView({
       graph={animatedGraph}
       isLoading={isLoading}
       isExpanded={isExpanded}
+      onClearSelection={onClearSelection}
       onOpenDetail={onOpenDetail}
       onSelect={onSelect}
       onToggleExpanded={onToggleExpanded}
