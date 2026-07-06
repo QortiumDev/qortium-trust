@@ -40,7 +40,7 @@ By default the publish helper uploads `dist/` as `qdn://APP/Trust/Trust` through
 `http://127.0.0.1:24891`, using the local preview account files under
 `~/git/qortium/preview`. The helper uses `QORTIUM_TRUST_NODE_API_KEY` or
 `QORTIUM_TRUST_NODE_API_KEY_PATH` when set, then tries the API key for the
-active local Core process, and finally falls back to `~/git/qortium/preview/apikey.txt`.
+active local Core process, and finally falls back to `~/.config/qortium-core/runtime/apikey.txt`.
 Set `QORTIUM_TRUST_QDN_NAME`, `QORTIUM_TRUST_QDN_IDENTIFIER`,
 `QORTIUM_TRUST_QDN_TITLE`, or `QORTIUM_TRUST_QDN_SERVICE` to publish another QDN
 resource. The expected local render URL is
