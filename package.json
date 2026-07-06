@@ -1,6 +1,6 @@
 {
   "name": "qortium-trust",
-  "version": "0.1.0",
+  "version": "1.0.1",
   "private": true,
   "license": "0BSD",
   "description": "A QDN trust explorer app for Qortium Home.",

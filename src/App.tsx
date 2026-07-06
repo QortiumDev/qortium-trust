@@ -2,21 +2,18 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } fro
 import {
   AlertTriangle,
   Info,
-  RefreshCw,
-  Search,
-  X,
+  Maximize2,
+  Minimize2,
+  ShieldCheck,
 } from 'lucide-react';
-import trustIconUrl from './assets/qortium-trust-protoicon-black-transparent.png';
 import { filterDerivations } from './derivationFilter';
 import type { TrustGraphNode } from './graphModel';
 import { loadIdentityProfiles } from './identityProfiles';
 import { getBridgeState } from './qdnRequest';
-import { resolveQdnAssetUrl } from './qdnAsset';
 import {
   getAccountRatings,
   getNodeStatus,
   getRatingCooldown,
-  getResourceRatings,
   getTrustChanges,
   getTrustDerivationPage,
   getTrustExplanation,
@@ -31,14 +28,8 @@ import {
   getInitialDisplaySettings,
 } from './displaySettings';
 import {
-  categoryDescription,
   categoryLabel,
-  formatDate,
-  formatNumber,
-  formatRuntimeLabel,
-  statusLabel,
   TRUST_CATEGORIES,
-  TRUST_STATUSES,
 } from './format';
 import type {
   AccountRating,
@@ -46,9 +37,6 @@ import type {
   IdentityProfilesByAddress,
   SelfAccount,
   TrustDerivation,
-  TrustPolicy,
-  TrustStatus,
-  TrustSummary,
 } from './types';
 import type {
   AccountDetailState,
@@ -63,21 +51,14 @@ import type {
 import { changeAccountSortState, getTrustDerivationServerSort } from './accountSort';
 import { PENDING_CONFIRM_POLL_MS, pendingRatingKey } from './ratingControl';
 import { t, type TranslationKey } from './i18n';
-import { NodeSyncPill } from './components/Identity';
 import { AccountsTable } from './components/AccountsTable';
 import { ChangesTable } from './components/ChangesTable';
-import { ResourceRatingsTable } from './components/ResourceRatingsTable';
 import { AccountDetail } from './components/AccountDetail';
 
 // Lazily loaded so d3-force + the graph simulation land in a separate chunk the default Accounts
 // view never downloads (bundle-001).
 const TrustGraphView = lazy(() => import('./components/TrustGraphView'));
-
-type QdnRenderWindow = Window &
-  typeof globalThis & {
-    _qdnContext?: unknown;
-    _qdnIdentifier?: unknown;
-  };
+const APP_VERSION = __APP_VERSION__;
 
 // Default view: the accounts you have rated highest first, then most blocks minted.
 const DEFAULT_ACCOUNT_SORT: AccountSortState = [
@@ -92,29 +73,10 @@ const EMPTY_EXPLORER_STATE: ExplorerState = {
   nodeStatus: null,
   policy: null,
   ratings: [],
-  resources: [],
   summary: null,
 };
 
-function getQdnAssetUrl(assetUrl: string) {
-  if (typeof window === 'undefined') {
-    return assetUrl;
-  }
-
-  const qdnWindow = window as QdnRenderWindow;
-
-  return resolveQdnAssetUrl(assetUrl, {
-    context: qdnWindow._qdnContext,
-    identifier: qdnWindow._qdnIdentifier,
-    origin: window.location.origin,
-    pathname: window.location.pathname,
-    search: window.location.search,
-  });
-}
-
-// The trust category (Minters/Voters/Guides/Designers) selector. A segmented tab switcher so the
-// four roles are visible at a glance; the per-role description renders alongside it in the toolbar.
-function CategoryTabs({
+function CategorySelect({
   category,
   onChange,
 }: {
@@ -122,31 +84,27 @@ function CategoryTabs({
   onChange: (category: AccountRatingCategory) => void;
 }) {
   return (
-    <div className="segmented-control" aria-label={t('label.trustCategory')}>
+    <select
+      aria-label={t('label.trustCategory')}
+      onChange={(event) => onChange(event.target.value as AccountRatingCategory)}
+      value={category}
+    >
       {TRUST_CATEGORIES.map((candidate) => (
-        <button
-          aria-pressed={candidate === category}
-          className={candidate === category ? 'active' : ''}
-          key={candidate}
-          onClick={() => onChange(candidate)}
-          type="button"
-        >
+        <option key={candidate} value={candidate}>
           {categoryLabel(candidate)}
-        </button>
+        </option>
       ))}
-    </div>
+    </select>
   );
 }
 
 const VIEW_OPTIONS: { labelKey: TranslationKey; value: ViewMode }[] = [
-  { labelKey: 'nav.accounts', value: 'accounts' },
   { labelKey: 'nav.graph', value: 'graph' },
+  { labelKey: 'nav.accounts', value: 'accounts' },
   { labelKey: 'nav.changes', value: 'changes' },
-  { labelKey: 'nav.resources', value: 'resources' },
 ];
 
-// The explorer view (Accounts/Graph/Changes/Resources) as a dropdown that sits next to the status
-// filter, keeping all the list-shaping controls together on one row.
+// The explorer view dropdown is paired with the trust-category dropdown in the graph overlay.
 function ViewSelect({
   onChange,
   selectRef,
@@ -172,19 +130,25 @@ function ViewSelect({
   );
 }
 
-function PolicyFooter({ policy, summary }: { policy: TrustPolicy | null; summary: TrustSummary | null }) {
-  if (!policy && !summary) {
-    return null;
-  }
+function FullscreenButton({
+  isFullscreen,
+  onToggle,
+}: {
+  isFullscreen: boolean;
+  onToggle: () => void;
+}) {
+  const label = isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen';
 
   return (
-    <footer className="policy-footer">
-      <span>{t('label.activeWeight')}: {categoryLabel(summary?.activeWeightCategory ?? policy?.activeWeightCategory ?? 'SUBJECT')}</span>
-      <span>{t('label.ratingCooldown')}: {formatNumber(policy?.accountRatingChangeCooldownBlocks)} {t('label.blocks')}</span>
-      <span>{t('label.positiveBranches')}: {formatNumber(policy?.positiveMinBranchCount)}</span>
-      <span>{t('label.suspiciousRaters')}: {formatNumber(policy?.suspiciousMinRaterCount)}</span>
-      <span>{t('label.snapshot')}: {formatDate(summary?.snapshotTimestamp)}</span>
-    </footer>
+    <button
+      aria-label={label}
+      className="fullscreen-toggle"
+      onClick={onToggle}
+      title={label}
+      type="button"
+    >
+      {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+    </button>
   );
 }
 
@@ -207,21 +171,16 @@ export default function App() {
   const [detailReloadToken, setDetailReloadToken] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [identityProfiles, setIdentityProfiles] = useState<IdentityProfilesByAddress>({});
-  const [graphExpanded, setGraphExpanded] = useState(false);
-  // Default to live derivations so the Level/Blocks/vote-weight columns carry real minting data off
-  // each row (#9) — snapshot rows return 0 for those. Toggling Live off shows the on-chain snapshot.
-  const [live, setLive] = useState(true);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  // Keep live derivations as the internal default so level/block/vote-weight fields stay populated.
+  const live = true;
   const [loading, setLoading] = useState(true);
   const [openRateAddress, setOpenRateAddress] = useState<string | null>(null);
   const [pendingRatings, setPendingRatings] = useState<PendingRatingsByKey>({});
   const [query, setQuery] = useState('');
-  const [searchOpen, setSearchOpen] = useState(false);
   const [selectedAddress, setSelectedAddress] = useState<string | null>(null);
   const [self, setSelf] = useState<SelfAccount | null>(null);
-  const [statusFilter, setStatusFilter] = useState<TrustStatus | 'ALL'>('ALL');
-  const [view, setView] = useState<ViewMode>('accounts');
-  const searchInputRef = useRef<HTMLInputElement>(null);
-  const searchToggleRef = useRef<HTMLButtonElement>(null);
+  const [view, setView] = useState<ViewMode>('graph');
   const viewSelectRef = useRef<HTMLSelectElement>(null);
   // Set when leaving the detail takeover so we restore focus to the view selector once the list
   // re-mounts (the AccountDetail Back button it lived on has been unmounted).
@@ -251,7 +210,7 @@ export default function App() {
     }
 
     try {
-      const [bridge, nodeStatus, summary, policy, derivationPage, ratings, changes, resources] = await Promise.all([
+      const [bridge, nodeStatus, summary, policy, derivationPage, ratings, changes] = await Promise.all([
         getBridgeState(),
         getNodeStatus(),
         getTrustSummary(),
@@ -259,7 +218,6 @@ export default function App() {
         getTrustDerivationPage({ category, limit: 250, live, ...serverDerivationSort }),
         getAccountRatings({ category, limit: 1000 }),
         getTrustChanges({ category, limit: 25 }),
-        getResourceRatings({ limit: 25, reverse: true }),
       ]);
 
       if (!isLatest()) {
@@ -273,7 +231,6 @@ export default function App() {
         nodeStatus,
         policy,
         ratings,
-        resources,
         summary,
       });
       setDerivationTotal(derivationPage.total);
@@ -289,11 +246,11 @@ export default function App() {
         setLoading(false);
       }
     }
-  }, [category, live, serverDerivationSort]);
+  }, [category, serverDerivationSort]);
 
   // Refetch only the slices a new rating changes — the category derivations and ratings — and merge
-  // them into state so the other arrays (changes/resources/summary/policy) keep stable references
-  // (#12), avoiding a full 8-call reload and downstream re-derivation per confirmation.
+  // them into state so the other arrays (changes/summary/policy) keep stable references (#12),
+  // avoiding a full reload and downstream re-derivation per confirmation.
   const refreshRatingSlices = useCallback(async (refreshCategory: AccountRatingCategory = category) => {
     const token = ++loadTokenRef.current;
 
@@ -308,7 +265,7 @@ export default function App() {
 
     setData((current) => ({ ...current, derivations: derivationPage.derivations, ratings }));
     setDerivationTotal(derivationPage.total);
-  }, [category, live, serverDerivationSort]);
+  }, [category, serverDerivationSort]);
 
   // Rater-scoped fetch of the current user's own ratings (#2): independent of the capped edge fetch
   // so the "You rated" column / default sort / pending-clear stay correct past 1000 active ratings.
@@ -423,27 +380,6 @@ export default function App() {
     };
   }, []);
 
-  // Clear the query on close so a hidden search never silently filters the list. On close (e.g. via
-  // Escape in the input, which unmounts it) return focus to the toggle so keyboard users keep an anchor.
-  const toggleSearch = useCallback(() => {
-    setSearchOpen((open) => {
-      const next = !open;
-
-      if (!next) {
-        setQuery('');
-        searchToggleRef.current?.focus();
-      }
-
-      return next;
-    });
-  }, []);
-
-  useEffect(() => {
-    if (searchOpen) {
-      searchInputRef.current?.focus();
-    }
-  }, [searchOpen]);
-
   const handleBack = useCallback(() => {
     restoreListFocusRef.current = true;
     setSelectedAddress(null);
@@ -472,15 +408,11 @@ export default function App() {
   const normalizedQuery = query.trim().toLowerCase();
 
   const filteredDerivations = useMemo(() => {
-    // Empty-query short-circuit (#13): data.derivations is already unique by address, so apply only
-    // the status filter and skip the Map de-dupe + identityProfiles dependency. This keeps profile
-    // batches from invalidating the list (and the downstream graph memo).
+    // Empty-query short-circuit (#13): data.derivations is already unique by address, so skip the
+    // Map de-dupe + identityProfiles dependency. This keeps profile batches from invalidating the
+    // list and the downstream graph memo.
     if (!normalizedQuery) {
-      if (statusFilter === 'ALL') {
-        return data.derivations;
-      }
-
-      return data.derivations.filter((derivation) => derivation.derivedTrustStatus === statusFilter);
+      return data.derivations;
     }
 
     const searched = filterDerivations(data.derivations, query).concat(
@@ -491,12 +423,8 @@ export default function App() {
     );
     const uniqueSearched = [...new Map(searched.map((derivation) => [derivation.accountAddress, derivation])).values()];
 
-    if (statusFilter === 'ALL') {
-      return uniqueSearched;
-    }
-
-    return uniqueSearched.filter((derivation) => derivation.derivedTrustStatus === statusFilter);
-  }, [data.derivations, identityProfiles, normalizedQuery, query, statusFilter]);
+    return uniqueSearched;
+  }, [data.derivations, identityProfiles, normalizedQuery, query]);
 
   // Derive from the unfiltered list so the full-width detail survives search/status-filter changes
   // and search close. The table row highlight and graph still key off filteredDerivations.
@@ -881,111 +809,34 @@ export default function App() {
   };
 
   const openNodeDetail = (node: TrustGraphNode) => {
-    setGraphExpanded(false);
+    setIsFullscreen(false);
     setView('accounts');
     setSelectedAddress(node.address);
   };
 
-  const trustIconSrc = getQdnAssetUrl(trustIconUrl);
-  const showAccountDetail = selectedDerivation && !graphExpanded && view !== 'graph';
+  const showAccountDetail = selectedDerivation && !isFullscreen && view !== 'graph';
 
   return (
-    <main className={`app-shell ${graphExpanded ? 'app-shell--graph-expanded' : ''}`}>
-      {!graphExpanded ? (
+    <main className={`app-shell ${isFullscreen ? 'app-shell--fullscreen' : ''}`}>
+      {!isFullscreen ? (
       <header className="app-header">
         <div className="app-header__identity">
           <span className="app-header__mark">
-            <img alt="" aria-hidden="true" src={trustIconSrc} />
+            <ShieldCheck aria-hidden="true" size={36} strokeWidth={2.7} />
           </span>
-          <div>
-            <div className="eyebrow">Qortium</div>
-            <h1>Trust Explorer</h1>
-          </div>
-        </div>
-        <div className="header-actions">
-          <NodeSyncPill nodeStatus={data.nodeStatus} />
-          <button
-            aria-expanded={searchOpen}
-            aria-label={searchOpen ? t('search.hideAccounts') : t('action.searchAccounts')}
-            className={`icon-button ${searchOpen ? 'icon-button--active' : ''}`}
-            onClick={toggleSearch}
-            ref={searchToggleRef}
-            title={t('action.searchAccounts')}
-            type="button"
-          >
-            <Search size={18} />
-          </button>
-          <span className="runtime-pill">{formatRuntimeLabel(data.bridge?.ui)}</span>
-          <button aria-label={t('action.refresh')} className="icon-button" disabled={loading} onClick={() => void loadData()} title={t('action.refresh')} type="button">
-            <RefreshCw size={18} />
-          </button>
+          <h1>Trust {APP_VERSION}</h1>
         </div>
       </header>
       ) : null}
 
-      {!graphExpanded ? (
-      <section className="toolbar">
-        <div className="toolbar__category">
-          <CategoryTabs category={category} onChange={setCategory} />
-          <p className="category-description">{categoryDescription(category)}</p>
-        </div>
-        <div className="toolbar__controls">
-          {searchOpen ? (
-            <div className="search-field">
-              <Search size={17} />
-              <input
-                aria-label={t('search.placeholder')}
-                onChange={(event) => setQuery(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Escape') {
-                    toggleSearch();
-                  }
-                }}
-                placeholder={t('search.placeholder')}
-                ref={searchInputRef}
-                value={query}
-              />
-              <button aria-label={t('action.closeSearch')} className="search-field__close" onClick={toggleSearch} type="button">
-                <X size={15} />
-              </button>
-            </div>
-          ) : null}
-          <ViewSelect onChange={handleViewChange} selectRef={viewSelectRef} view={view} />
-          <label
-            className={`live-toggle ${live ? 'live-toggle--on' : ''}`}
-            title={t('toggle.liveTitle')}
-          >
-            <input checked={live} onChange={(event) => setLive(event.target.checked)} type="checkbox" />
-            <span>{t('label.live')}</span>
-          </label>
-          {view === 'accounts' || view === 'graph' ? (
-            // The status filter feeds filteredDerivations, which only the Accounts and Graph views
-            // consume; hide it on Changes/Resources where it has no effect (UX-002).
-            <select
-              aria-label={t('label.trustStatus')}
-              onChange={(event) => setStatusFilter(event.target.value as TrustStatus | 'ALL')}
-              value={statusFilter}
-            >
-              <option value="ALL">{t('label.allStatuses')}</option>
-              {TRUST_STATUSES.map((status) => (
-                <option key={status} value={status}>
-                  {statusLabel(status)}
-                </option>
-              ))}
-            </select>
-          ) : null}
-        </div>
-      </section>
-      ) : null}
-
-      {error && !graphExpanded ? (
+      {error && !isFullscreen ? (
         <div className="error-banner" role="alert">
           <AlertTriangle size={18} />
           {error}
         </div>
       ) : null}
 
-      {data.bridge && !ratingActionAvailable && !graphExpanded ? (
+      {data.bridge && !ratingActionAvailable && !isFullscreen ? (
         // Read-only context (opened outside Home, or RATE_ACCOUNT unavailable): explain why rating is
         // disabled rather than leaving the disabled controls unexplained (UX-001). Gated on a resolved
         // bridge so it doesn't flash during the initial load.
@@ -995,8 +846,22 @@ export default function App() {
         </div>
       ) : null}
 
-      <section className={`workspace ${graphExpanded ? 'workspace--graph-expanded' : ''}`}>
-        <div className={`main-panel ${graphExpanded ? 'main-panel--graph-expanded' : ''}`}>
+      <section className={`workspace ${isFullscreen ? 'workspace--fullscreen' : ''}`}>
+        <div
+          className={`main-panel ${isFullscreen ? 'main-panel--fullscreen' : ''} ${
+            view === 'graph' ? 'main-panel--graph-view' : ''
+          }`}
+        >
+          <div className={`view-controls ${view === 'graph' ? 'view-controls--over-graph' : ''}`}>
+            <div className="view-controls__selectors">
+              <ViewSelect onChange={handleViewChange} selectRef={viewSelectRef} view={view} />
+              <CategorySelect category={category} onChange={setCategory} />
+            </div>
+            <FullscreenButton
+              isFullscreen={isFullscreen}
+              onToggle={() => setIsFullscreen((current) => !current)}
+            />
+          </div>
           {showAccountDetail ? (
             <AccountDetail
               category={category}
@@ -1019,11 +884,10 @@ export default function App() {
                     category={category}
                     derivations={filteredDerivations}
                     isLoading
-                    isExpanded={graphExpanded}
+                    isExpanded={isFullscreen}
                     onClearSelection={clearGraphSelection}
                     onOpenDetail={openNodeDetail}
                     onSelect={selectNode}
-                    onToggleExpanded={() => setGraphExpanded((current) => !current)}
                     profiles={identityProfiles}
                     ratings={data.ratings}
                     selectedAddress={selectedAddress ?? undefined}
@@ -1042,7 +906,6 @@ export default function App() {
                   onRatingSubmitted={handleRatingSubmitted}
                   onResetFilters={() => {
                     setQuery('');
-                    setStatusFilter('ALL');
                   }}
                   onSelect={selectDerivation}
                   onSort={changeAccountSort}
@@ -1054,7 +917,7 @@ export default function App() {
                   self={self}
                   selectedAddress={selectedAddress ?? undefined}
                   sort={accountSort}
-                  statusFilter={statusFilter}
+                  statusFilter="ALL"
                   totalCount={derivationTotal}
                   youRatedByAddress={youRatedByAddress}
                 />
@@ -1063,33 +926,28 @@ export default function App() {
                   <TrustGraphView
                     category={category}
                     derivations={filteredDerivations}
-                    isExpanded={graphExpanded}
+                    isExpanded={isFullscreen}
                     onClearSelection={clearGraphSelection}
                     onOpenDetail={openNodeDetail}
                     onSelect={selectNode}
-                    onToggleExpanded={() => setGraphExpanded((current) => !current)}
                     profiles={identityProfiles}
                     ratings={data.ratings}
                     selectedAddress={selectedAddress ?? undefined}
                     signature={graphSignature}
                   />
                 </Suspense>
-              ) : view === 'changes' ? (
+              ) : (
                 <ChangesTable
                   changes={data.changes}
                   onSelectAccount={setSelectedAddress}
                   profiles={identityProfiles}
                   selectableAddresses={selectableAddresses}
                 />
-              ) : (
-                <ResourceRatingsTable resources={data.resources} />
               )}
             </>
           )}
         </div>
       </section>
-
-      {!graphExpanded ? <PolicyFooter policy={data.policy} summary={data.summary} /> : null}
 
       {toast ? (
         <div className="toast" role="status">

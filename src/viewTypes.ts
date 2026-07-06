@@ -4,7 +4,6 @@ import type {
   BridgeState,
   IdentityProfile,
   NodeStatus,
-  ResourceRatingSummary,
   TrustDerivation,
   TrustPolicy,
   TrustStatusChange,
@@ -13,7 +12,7 @@ import type {
   AccountTrustProfile,
 } from './types';
 
-export type ViewMode = 'accounts' | 'graph' | 'changes' | 'resources';
+export type ViewMode = 'accounts' | 'graph' | 'changes';
 
 export type AccountSortKey =
   | 'account'
@@ -46,7 +45,6 @@ export type ExplorerState = {
   nodeStatus: NodeStatus | null;
   policy: TrustPolicy | null;
   ratings: AccountRating[];
-  resources: ResourceRatingSummary[];
   summary: TrustSummary | null;
 };
 
