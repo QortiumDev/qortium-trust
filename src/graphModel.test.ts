@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { createTrustGraphModel, focusTrustGraphModel } from './graphModel';
+import {
+  createTrustGraphModel,
+  createTrustGraphModelFromServer,
+  filterTrustGraphEdges,
+  focusTrustGraphModel,
+} from './graphModel';
 import { filterDerivations } from './derivationFilter';
-import type { AccountRating, TrustDerivation } from './types';
+import type { AccountRating, TrustDerivation, TrustGraph } from './types';
 
 const derivations: TrustDerivation[] = [
   {
@@ -58,11 +63,100 @@ const ratings: AccountRating[] = [
   },
 ];
 
+const serverGraph: TrustGraph = {
+  category: 'SUBJECT',
+  nodes: ['Qroot', 'Qincoming', 'Qoutgoing'].map((address) => ({
+    address,
+    level: 1,
+    score: 10,
+    seedMember: false,
+    status: 'BRONZE',
+  })),
+  edges: [
+    { confidence: 2, rating: 3, source: 'Qincoming', target: 'Qroot' },
+    { confidence: 1, rating: -2, source: 'Qroot', target: 'Qoutgoing' },
+    { confidence: 1, rating: 1, source: 'Qincoming', target: 'Qoutgoing' },
+  ],
+};
+
 function distance(a: { x: number; y: number }, b: { x: number; y: number }) {
   return Math.hypot(a.x - b.x, a.y - b.y);
 }
 
 describe('trust graph model', () => {
+  it('builds a visual model from the typed server graph shape', () => {
+    const graph = createTrustGraphModelFromServer(serverGraph);
+
+    expect(graph.nodes.map((node) => node.address).sort()).toEqual([
+      'Qincoming',
+      'Qoutgoing',
+      'Qroot',
+    ]);
+    expect(graph.links).toHaveLength(3);
+    expect(graph.links[0]).toMatchObject({
+      category: 'SUBJECT',
+      confidence: 2,
+      rating: 3,
+      source: 'Qincoming',
+      target: 'Qroot',
+    });
+  });
+
+  it('defaults a rooted graph to direct incident edges', () => {
+    const graph = createTrustGraphModelFromServer(serverGraph, { rootAddress: 'Qroot' });
+
+    expect(graph.links.map((link) => [link.source, link.target])).toEqual([
+      ['Qincoming', 'Qroot'],
+      ['Qroot', 'Qoutgoing'],
+    ]);
+    expect(graph.nodes.map((node) => node.address).sort()).toEqual([
+      'Qincoming',
+      'Qoutgoing',
+      'Qroot',
+    ]);
+  });
+
+  it('filters rooted edges by direction relative to the root', () => {
+    expect(
+      filterTrustGraphEdges(serverGraph.edges, {
+        direction: 'incoming',
+        rootAddress: 'Qroot',
+      }).map((edge) => [edge.source, edge.target]),
+    ).toEqual([['Qincoming', 'Qroot']]);
+
+    expect(
+      filterTrustGraphEdges(serverGraph.edges, {
+        direction: 'outgoing',
+        rootAddress: 'Qroot',
+      }).map((edge) => [edge.source, edge.target]),
+    ).toEqual([['Qroot', 'Qoutgoing']]);
+  });
+
+  it('filters edges by positive or negative sign', () => {
+    expect(
+      filterTrustGraphEdges(serverGraph.edges, {
+        rootAddress: 'Qroot',
+        sign: 'positive',
+      }).map((edge) => edge.rating),
+    ).toEqual([3]);
+
+    expect(
+      filterTrustGraphEdges(serverGraph.edges, {
+        rootAddress: 'Qroot',
+        sign: 'negative',
+      }).map((edge) => edge.rating),
+    ).toEqual([-2]);
+  });
+
+  it('keeps induced neighbor edges only when explicitly requested', () => {
+    const graph = createTrustGraphModelFromServer(serverGraph, {
+      incidentOnly: false,
+      rootAddress: 'Qroot',
+    });
+
+    expect(graph.links).toHaveLength(3);
+  });
+
   it('creates nodes from derivations and rating endpoints', () => {
     const graph = createTrustGraphModel(derivations, ratings, 'SUBJECT');
 

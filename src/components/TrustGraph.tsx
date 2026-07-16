@@ -48,7 +48,7 @@ export function TrustGraph({
   const avatarLoadStatusRef = useRef<Record<string, AvatarLoadStatus>>({});
   const [avatarLoadStatusBySrc, setAvatarLoadStatusBySrc] = useState<Record<string, AvatarLoadStatus>>({});
   const [view, setView] = useState<GraphView>(IDENTITY_VIEW);
-  const expandedControlLabel = isExpanded ? 'Collapse graph' : 'Expand graph';
+  const expandedControlLabel = isExpanded ? t('action.collapseGraph') : t('action.expandGraph');
   // Tracks an in-progress pan: the pointer origin and whether it has moved past the click threshold.
   const panRef = useRef<{ pointerId: number; startX: number; startY: number; moved: boolean } | null>(
     null,
@@ -411,7 +411,7 @@ export function TrustGraph({
   }
 
   return (
-    <div className="graph-surface">
+    <div className={`graph-surface${selectedNode ? ' graph-surface--selected' : ''}`}>
       <p className="graph-hint">
         {t('graph.hint')}
       </p>
@@ -621,6 +621,23 @@ export function TrustGraph({
           </span>
         </div>
       </div>
+      {graph.links.length > 0 ? (
+        <section className="graph-edge-list" aria-label={t('label.ratings')}>
+          <strong>{t('label.ratings')}</strong>
+          <ol aria-label={t('label.ratings')}>
+            {graph.links.map((link) => (
+              <li key={link.id}>
+                {t('graph.edgeTitle', {
+                  confidence: link.confidence,
+                  rating: link.rating,
+                  source: getGraphEdgeIdentityLabel(profiles[link.source], link.source),
+                  target: getGraphEdgeIdentityLabel(profiles[link.target], link.target),
+                })}
+              </li>
+            ))}
+          </ol>
+        </section>
+      ) : null}
       {graph.links.length === 0 ? (
         <div className="empty-overlay">
           <CircleDot size={18} />
@@ -630,7 +647,7 @@ export function TrustGraph({
       {selectedNode && selectedSummary ? (
         <div className="graph-selection-panel" role="status">
           <div className="graph-selection-panel__identity">
-            <span className="graph-selection-panel__eyebrow">Selected account</span>
+            <span className="graph-selection-panel__eyebrow">{t('label.account')}</span>
             <strong>{getIdentityLabel(selectedProfile, selectedNode.address)}</strong>
             <span className="mono">{compactAddress(selectedNode.address)}</span>
           </div>
@@ -648,12 +665,12 @@ export function TrustGraph({
               <dd>{selectedNode.score}</dd>
             </div>
             <div>
-              <dt>Votes in</dt>
+              <dt>{t('label.ratingsReceived')}</dt>
               <dd>{selectedSummary.inbound}</dd>
             </div>
             <div>
-              <dt>Votes out</dt>
-              <dd>{selectedSummary.outbound}</dd>
+              <dt>{t('label.ratings')}</dt>
+              <dd>{t('rating.outboundCount', { count: selectedSummary.outbound })}</dd>
             </div>
             <div>
               <dt>{t('status.positive')}</dt>
@@ -666,13 +683,22 @@ export function TrustGraph({
           </dl>
           {onOpenDetail ? (
             <button type="button" onClick={() => onOpenDetail(selectedNode)}>
-              View details
+              {t('action.viewDetails')}
             </button>
           ) : null}
         </div>
       ) : null}
     </div>
   );
+}
+
+function getGraphEdgeIdentityLabel(
+  profile: IdentityProfilesByAddress[string] | undefined,
+  address: string,
+) {
+  const label = getIdentityLabel(profile, address);
+
+  return label === address ? compactAddress(address) : `${label} (${compactAddress(address)})`;
 }
 
 function getGraphLinkWidth(rating: number, focused: boolean) {

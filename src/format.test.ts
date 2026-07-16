@@ -16,10 +16,18 @@ describe('categoryLabel', () => {
 
 describe('categoryDescription', () => {
   it('returns the role description for each trust category', () => {
-    expect(categoryDescription('SUBJECT')).toBe('Trust this account as a block minter.');
-    expect(categoryDescription('PLAYER')).toBe('Trust this account to rate accounts.');
-    expect(categoryDescription('TRAINER')).toBe('Trust this account to explain the trust network.');
-    expect(categoryDescription('MANAGER')).toBe('Trust this account for governance votes.');
+    expect(categoryDescription('SUBJECT')).toBe(
+      'Recognize this person as a known community member whose final standing can support minting and consensus weight.',
+    );
+    expect(categoryDescription('PLAYER')).toBe(
+      'Trust this person to evaluate community members fairly through their ratings.',
+    );
+    expect(categoryDescription('TRAINER')).toBe(
+      'Trust this person to explain the system accurately and help others use it responsibly.',
+    );
+    expect(categoryDescription('MANAGER')).toBe(
+      'Trust this person to understand the platform and help shape how trust flows through the community.',
+    );
   });
 
   it('returns an empty string for an unexpected wire value', () => {

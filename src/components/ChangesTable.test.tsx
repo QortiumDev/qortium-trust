@@ -20,7 +20,7 @@ const change = (address: string): TrustStatusChange => ({
 });
 
 describe('ChangesTable drill-in', () => {
-  it('activates only rows whose account is in the loaded list (click + Enter)', () => {
+  it('activates only account-name buttons whose account is in the loaded list', () => {
     const onSelectAccount = vi.fn();
 
     render(
@@ -32,22 +32,19 @@ describe('ChangesTable drill-in', () => {
       />,
     );
 
-    const rows = screen.getAllByRole('row').filter((row) => row.tagName === 'TR' && row.hasAttribute('tabindex'));
-    // Only the in-list account row is interactive (tabindex set).
-    expect(rows).toHaveLength(1);
+    const inList = screen.getByRole('button', { name: /open qinlist/i });
+    const outside = screen.getByRole('button', { name: /open qoutside/i });
+    expect(inList).not.toHaveProperty('disabled', true);
+    expect(outside).toHaveProperty('disabled', true);
 
-    fireEvent.click(rows[0]);
+    fireEvent.click(inList);
     expect(onSelectAccount).toHaveBeenCalledWith('Qinlist');
-
-    fireEvent.keyDown(rows[0], { key: 'Enter' });
-    expect(onSelectAccount).toHaveBeenCalledTimes(2);
   });
 
-  it('renders no interactive rows when no drill-in handler is provided', () => {
+  it('disables account-name buttons when no drill-in handler is provided', () => {
     render(<ChangesTable changes={[change('Qinlist')]} profiles={{}} selectableAddresses={new Set(['Qinlist'])} />);
 
-    // The table still renders (header + body rows) but none are keyboard-activatable.
     expect(screen.getAllByRole('row').length).toBeGreaterThan(0);
-    expect(screen.getAllByRole('row').some((row) => row.hasAttribute('tabindex'))).toBe(false);
+    expect(screen.getByRole('button', { name: /open qinlist/i })).toHaveProperty('disabled', true);
   });
 });

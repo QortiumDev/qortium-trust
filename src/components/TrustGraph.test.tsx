@@ -201,11 +201,32 @@ describe('TrustGraph controls and avatars', () => {
     expect(links[1]?.getAttribute('marker-end')).toBe('url(#trust-arrow-negative)');
     expect(links[0]?.getAttribute('d')).toContain('Q');
     expect(links[1]?.getAttribute('d')).toContain('Q');
-    expect(screen.getByText('Selected account')).toBeTruthy();
-    expect(screen.getByText('Votes in')).toBeTruthy();
+    expect(screen.getByText('Account')).toBeTruthy();
+    expect(screen.getByText('Ratings received')).toBeTruthy();
 
     fireEvent.click(screen.getByRole('button', { name: 'View details' }));
     expect(onOpenDetail).toHaveBeenCalledWith(expect.objectContaining({ address: 'Qalice' }));
+  });
+
+  it('provides the rendered relationships as an accessible textual list', () => {
+    render(
+      <TrustGraph
+        graph={linkedGraph}
+        onSelect={vi.fn()}
+        profiles={{
+          Qalice: { address: 'Qalice', avatarSrc: null, name: 'Alice' },
+          Qbob: { address: 'Qbob', avatarSrc: null, name: 'Bob' },
+        }}
+      />,
+    );
+
+    const list = screen.getByRole('list', { name: 'Ratings' });
+    const items = Array.from(list.querySelectorAll('li')).map((item) => item.textContent);
+
+    expect(items).toEqual([
+      'Alice (Qalice) → Bob (Qbob): 3 (confidence 2)',
+      'Bob (Qbob) → Alice (Qalice): -1 (confidence 1)',
+    ]);
   });
 
   it('clears the selected node when the graph background is clicked', () => {

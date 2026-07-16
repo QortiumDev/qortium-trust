@@ -30,7 +30,7 @@ export function ChangesTable({
 
   return (
     <div aria-label={t('nav.changes')} className="table-wrap" role="region" tabIndex={0}>
-      <table>
+      <table className="changes-table">
         <thead>
           <tr>
             <th>{t('label.account')}</th>
@@ -45,45 +45,45 @@ export function ChangesTable({
         <tbody>
           {changes.map((change) => {
             const profile = profiles[change.accountAddress];
-            const selectable = !!onSelectAccount && (selectableAddresses?.has(change.accountAddress) ?? false);
+            const selectable =
+              !!onSelectAccount &&
+              (selectableAddresses ? selectableAddresses.has(change.accountAddress) : true);
 
             return (
               <tr
                 className={selectable ? 'account-row' : undefined}
                 key={`${change.accountAddress}-${change.category}-${change.snapshotHeight}`}
                 onClick={selectable ? () => onSelectAccount?.(change.accountAddress) : undefined}
-                onKeyDown={
-                  selectable
-                    ? (event) => {
-                        if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
-                          event.preventDefault();
-                          onSelectAccount?.(change.accountAddress);
-                        }
-                      }
-                    : undefined
-                }
-                tabIndex={selectable ? 0 : undefined}
               >
-                <td>
-                  <div className="identity-cell">
+                <td data-label={t('label.account')}>
+                  <button
+                    aria-label={`Open ${profile?.name ?? change.accountAddress}`}
+                    className="identity-cell identity-link"
+                    disabled={!selectable}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onSelectAccount?.(change.accountAddress);
+                    }}
+                    type="button"
+                  >
                     <MemoIdentityAvatar address={change.accountAddress} profile={profile} size="small" />
                     <IdentityLabel address={change.accountAddress} profile={profile} />
-                  </div>
+                  </button>
                 </td>
-                <td>{categoryLabel(change.category)}</td>
-                <td>
+                <td data-label={t('label.category')}>{categoryLabel(change.category)}</td>
+                <td data-label={t('label.before')}>
                   <MemoStatusBadge status={change.previousTrustStatus} />
                 </td>
-                <td>
+                <td data-label={t('label.new')}>
                   <MemoStatusBadge status={change.newTrustStatus} />
                 </td>
-                <td>
+                <td data-label={t('label.score')}>
                   {formatNumber(change.previousScore)}
                   {' -> '}
                   {formatNumber(change.newScore)}
                 </td>
-                <td>{formatNumber(change.snapshotHeight)}</td>
-                <td>{formatDate(change.snapshotTimestamp)}</td>
+                <td data-label={t('label.height')}>{formatNumber(change.snapshotHeight)}</td>
+                <td data-label={t('label.time')}>{formatDate(change.snapshotTimestamp)}</td>
               </tr>
             );
           })}

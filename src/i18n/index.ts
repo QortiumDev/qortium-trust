@@ -25,7 +25,7 @@ export type { TranslationKey };
 
 export type TranslationParams = Record<string, string | number>;
 
-const CATALOGS: Partial<Record<QdnLanguage, Record<TranslationKey, string>>> = {
+const CATALOGS: Partial<Record<QdnLanguage, Partial<Record<TranslationKey, string>>>> = {
   en,
   ar,
   de,
