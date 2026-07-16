@@ -1,4 +1,12 @@
 @font-face {
+  font-family: "Lexend";
+  src: url("./assets/fonts/lexend/Lexend-Variable.ttf") format("truetype");
+  font-display: swap;
+  font-style: normal;
+  font-weight: 100 900;
+}
+
+@font-face {
   font-family: "Inter";
   src: url("./assets/fonts/inter/inter-latin-wght-normal.woff2") format("woff2");
   font-display: swap;
@@ -8,15 +16,23 @@
 
 :root {
   color-scheme: light;
-  --bg: #f5f7f8;
+  --bg: #f7f5ef;
+  --frame: #ebe7de;
+  --frame-surface: #f2efe7;
   --panel: #ffffff;
-  --panel-strong: #eef3f5;
-  --panel-subtle: #f8fbfb;
-  --surface: #f9fbfb;
-  --text: #1e2528;
-  --muted: #5f6d73;
-  --line: #d9e1e4;
-  --line-strong: #c3d0d5;
+  --panel-strong: #f0ece3;
+  --panel-subtle: #f5f1e9;
+  --surface: #ffffff;
+  --surface-raised: #ffffff;
+  --control-hover: #e7e1d6;
+  --control-selected: #e9f3ec;
+  --text: #18201f;
+  --text-secondary: #44504e;
+  --text-subtle: #67716f;
+  --text-faint: #89918e;
+  --muted: #67716f;
+  --line: #d7d0c4;
+  --line-strong: #b8aea0;
   --accent: #21824a;
   --accent-strong: #196a3a;
   --accent-soft: #dff0e6;
@@ -39,7 +55,7 @@
   --bronze: #8f5b2e;
   --unverified: #2b7f94;
   --graph-node-fill: #ffffff;
-  --row-hover: #f0f7f8;
+  --row-hover: #e7e1d6;
   --scroll-shadow: rgba(27, 45, 52, 0.16);
   --empty-overlay-bg: rgba(255, 255, 255, 0.9);
   --error-bg: #fff2f0;
@@ -57,11 +73,11 @@
   --badge-bronze-text: #7c4a28;
   --skeleton-a: #eef3f5;
   --skeleton-b: #f8fbfb;
-  --shadow: 0 14px 34px rgba(27, 45, 52, 0.08);
+  --shadow: 0 1px 2px rgb(35 31 24 / 4%), 0 8px 24px rgb(35 31 24 / 6%);
   background: var(--bg);
   color: var(--text);
   font-family:
-    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    "Lexend", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-size: var(--font-size-ui);
   line-height: var(--line-height-ui);
 }
@@ -92,23 +108,31 @@
 
 :root[data-theme='dark'] {
   color-scheme: dark;
-  --bg: #101417;
-  --panel: #171d21;
-  --panel-strong: #222b31;
-  --panel-subtle: #1b2328;
-  --surface: #13191d;
-  --text: #ecf3f5;
-  --muted: #9aacb4;
-  --line: #2d3940;
-  --line-strong: #46565f;
+  --bg: #0e1111;
+  --frame: #0b0e0e;
+  --frame-surface: #101414;
+  --panel: #161d1d;
+  --panel-strong: #243030;
+  --panel-subtle: #1b2424;
+  --surface: #161d1d;
+  --surface-raised: #1f2929;
+  --control-hover: #2c3939;
+  --control-selected: #213831;
+  --text: #f4f0e8;
+  --text-secondary: #cbd5d5;
+  --text-subtle: #a9b6b6;
+  --text-faint: #7f8d8d;
+  --muted: #a9b6b6;
+  --line: #364444;
+  --line-strong: #5a6b6b;
   --positive: #58d292;
   --negative: #ff8c8c;
   --gold: #f0c765;
   --silver: #9aaab2;
   --bronze: #d89b67;
   --unverified: #74cee0;
-  --graph-node-fill: #20282d;
-  --row-hover: #1e2a30;
+  --graph-node-fill: #1f2929;
+  --row-hover: #2c3939;
   --scroll-shadow: rgba(0, 0, 0, 0.45);
   --empty-overlay-bg: rgba(23, 29, 33, 0.92);
   --error-bg: #321c1f;
@@ -126,7 +150,7 @@
   --badge-bronze-text: #e8bd91;
   --skeleton-a: #20282d;
   --skeleton-b: #2b353c;
-  --shadow: 0 18px 40px rgba(0, 0, 0, 0.32);
+  --shadow: 0 1px 2px rgb(0 0 0 / 20%), 0 8px 20px rgb(0 0 0 / 25%);
   /* Dark-theme accent colours are pastel/light; white text fails completely (1.55–2.14:1).
      Default dark contrast for the green accent — per-accent overrides follow below. */
   --accent-contrast: #0e1411;
@@ -314,11 +338,19 @@
 
 :root[data-ui='modern'] {
   --bg: #f2efe6;
+  --frame: #f2efe6;
+  --frame-surface: #ffffff;
   --panel: #ffffff;
   --panel-strong: #f7f4ec;
   --panel-subtle: #f7f4ec;
   --surface: #ffffff;
+  --surface-raised: #ffffff;
+  --control-hover: #ddd9d0;
+  --control-selected: #ddd9d0;
   --text: #0d0d0d;
+  --text-secondary: #6b6b6b;
+  --text-subtle: #6b6b6b;
+  --text-faint: #6b6b6b;
   --muted: #6b6b6b;
   --line: #ddd9d0;
   --line-strong: #ddd9d0;
@@ -339,12 +371,20 @@
 
 :root[data-theme='dark'][data-ui='modern'] {
   --bg: #111318;
+  --frame: #111318;
+  --frame-surface: #1c1f28;
   --panel: #1c1f28;
   --panel-strong: #222633;
   --panel-subtle: #222633;
   --surface: #1c1f28;
+  --surface-raised: #222633;
+  --control-hover: #2e3340;
+  --control-selected: #252a36;
   --text: #e4e8f0;
-  --muted: #8892a4;
+  --text-secondary: #8892a4;
+  --text-subtle: #6f7a8c;
+  --text-faint: #6f7a8c;
+  --muted: #6f7a8c;
   --line: #2e3340;
   --line-strong: #2e3340;
   --graph-node-fill: #222633;
@@ -367,7 +407,14 @@
 body {
   background: var(--bg);
   margin: 0;
-  min-width: 320px;
+  min-width: 0;
+}
+
+html,
+body,
+#root {
+  min-width: 0;
+  width: 100%;
 }
 
 button,
@@ -716,6 +763,11 @@ select {
   gap: 10px;
   margin: 0 0 14px;
   padding: 10px 14px;
+}
+
+.info-banner > svg,
+.error-banner > svg {
+  flex: 0 0 auto;
 }
 
 /* Transient post-submit confirmation (UX-006), pinned bottom-centre clear of content. Honours
@@ -2361,39 +2413,71 @@ tbody tr:hover,
 }
 
 :root[data-ui='fun'] {
-  --bg: #fff8e8;
-  --panel: #fffdf7;
-  --panel-strong: #f4ebff;
-  --panel-subtle: #fff7fc;
-  --surface: #fffdf7;
-  --text: #24212e;
-  --muted: #625a71;
-  --line: #d9c8ec;
-  --line-strong: #bda5dc;
-  --row-hover: #f8efff;
-  --shadow: 0 8px 0 rgb(98 58 145 / 12%);
-  font-family: "Comic Neue", "Comic Sans MS", ui-rounded, system-ui, sans-serif;
+  --fun-ink: #07100c;
+  --fun-outline: var(--fun-ink);
+  --fun-focus: var(--fun-ink);
+  --fun-warm: #ffd447;
+  --fun-radius-sm: 14px 7px 12px 8px / 8px 12px 7px 14px;
+  --fun-radius-md: 22px 9px 19px 10px / 10px 19px 9px 22px;
+  --fun-radius-pill: 255px 18px 230px 18px / 18px 230px 18px 255px;
+  --fun-shadow-card: 5px 5px 0 var(--fun-ink);
+  --fun-shadow-card-hover: 7px 7px 0 var(--fun-ink);
+  --fun-shadow-control: 3px 3px 0 var(--fun-ink);
+  --fun-shadow-primary: 4px 4px 0 var(--fun-ink);
+  --bg: #eaf4ff;
+  --frame: #dfeaf3;
+  --frame-surface: #f6fbff;
+  --panel: #fffef8;
+  --panel-strong: #edf5ec;
+  --panel-subtle: #f2f7ed;
+  --surface: #fffef8;
+  --surface-raised: #fffef8;
+  --control-hover: #dcebdc;
+  --control-selected: color-mix(in srgb, var(--accent) 18%, var(--panel));
+  --text: #17201d;
+  --text-secondary: #3f4e49;
+  --text-subtle: #586761;
+  --text-faint: #718079;
+  --muted: #586761;
+  --line: var(--fun-outline);
+  --line-strong: var(--fun-outline);
+  --row-hover: #dcebdc;
+  --shadow: var(--fun-shadow-card);
+  font-family: "Comic Neue", "Trebuchet MS", ui-sans-serif, system-ui, sans-serif;
 }
 
 :root[data-theme='dark'][data-ui='fun'] {
-  --bg: #17131e;
-  --panel: #211a2b;
-  --panel-strong: #30233f;
-  --panel-subtle: #291f35;
-  --surface: #1d1726;
-  --text: #fff8e8;
-  --muted: #d0bfdc;
-  --line: #59446e;
-  --line-strong: #7b5e96;
-  --row-hover: #362745;
-  --shadow: 0 8px 0 rgb(0 0 0 / 24%);
+  --fun-ink: #020504;
+  --fun-outline: #9bb7ad;
+  --fun-focus: #fff9ed;
+  --bg: #07100f;
+  --frame: #091411;
+  --frame-surface: #101c19;
+  --panel: #172420;
+  --panel-strong: #263a34;
+  --panel-subtle: #1d2d28;
+  --surface: #172420;
+  --surface-raised: #22332e;
+  --control-hover: #314941;
+  --control-selected: color-mix(in srgb, var(--accent) 22%, var(--panel));
+  --text: #fff9ed;
+  --text-secondary: #d5dfda;
+  --text-subtle: #b5c3bd;
+  --text-faint: #91a19a;
+  --muted: #b5c3bd;
+  --line: var(--fun-outline);
+  --line-strong: var(--fun-outline);
+  --row-hover: #314941;
+  --shadow: var(--fun-shadow-card);
 }
 
 :root[data-ui='fun'] body {
   background:
-    radial-gradient(circle at 12% 8%, rgb(255 205 102 / 20%), transparent 22rem),
-    radial-gradient(circle at 88% 14%, rgb(173 118 255 / 16%), transparent 24rem),
+    radial-gradient(circle at 50% 0, var(--accent-soft), transparent 36%),
+    linear-gradient(rgb(7 16 12 / 3%) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(7 16 12 / 3%) 1px, transparent 1px),
     var(--bg);
+  background-size: auto, 28px 28px, 28px 28px, auto;
 }
 
 :root[data-ui='fun'] h1,
@@ -2401,7 +2485,8 @@ tbody tr:hover,
 :root[data-ui='fun'] h3,
 :root[data-ui='fun'] button,
 :root[data-ui='fun'] select {
-  font-family: "Trebuchet MS", ui-rounded, system-ui, sans-serif;
+  font-family: "Fredoka", "Comic Neue", ui-sans-serif, system-ui, sans-serif;
+  font-weight: 700;
 }
 
 :root[data-ui='fun'] .main-panel,
@@ -2409,8 +2494,9 @@ tbody tr:hover,
 :root[data-ui='fun'] .error-banner,
 :root[data-ui='fun'] .info-banner,
 :root[data-ui='fun'] .detail-grid > div {
-  border-radius: 18px;
-  border-width: 2px;
+  border-radius: var(--fun-radius-md);
+  border-width: 3px;
+  box-shadow: var(--fun-shadow-card);
 }
 
 :root[data-ui='fun'] .back-button,
@@ -2418,7 +2504,7 @@ tbody tr:hover,
 :root[data-ui='fun'] .rating-submit,
 :root[data-ui='fun'] .icon-button,
 :root[data-ui='fun'] select {
-  border-radius: 999px;
+  border-radius: var(--fun-radius-sm);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -2599,6 +2685,8 @@ tbody tr:hover,
 }
 
 .accounts-directory {
+  container-name: accounts-directory;
+  container-type: inline-size;
   overflow: visible;
 }
 
@@ -3036,6 +3124,67 @@ tbody tr:hover,
   }
 }
 
+/* Modern's canonical 56.25em dashboard cap can be narrower than a wide host
+   viewport. Drive the unified-table card conversion from its own available
+   width as well as the viewport so columns never collide or require a page-level
+   horizontal scrollbar. */
+@container accounts-directory (max-width: 1100px) {
+  .accounts-table--unified,
+  .accounts-table--unified tbody,
+  .accounts-table--unified tr,
+  .accounts-table--unified td {
+    display: block;
+    width: 100%;
+  }
+
+  .accounts-table--unified {
+    table-layout: auto;
+  }
+
+  .accounts-table--unified thead,
+  .accounts-table--unified caption {
+    display: none;
+  }
+
+  .accounts-table--unified tbody {
+    display: grid;
+    gap: 12px;
+  }
+
+  .accounts-table--unified tr {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    display: grid;
+    gap: 0;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    overflow: hidden;
+  }
+
+  .accounts-table--unified td {
+    border: 0;
+    border-top: 1px solid var(--line);
+    padding: 10px;
+  }
+
+  .accounts-table--unified td::before {
+    color: var(--muted);
+    content: attr(data-label);
+    display: block;
+    font-size: var(--font-size-small);
+    font-weight: 750;
+    margin-bottom: 6px;
+  }
+
+  .accounts-table--unified td:nth-child(-n + 3) {
+    grid-column: 1 / -1;
+  }
+
+  .accounts-table--unified td:first-child {
+    border-top: 0;
+  }
+}
+
 @media (max-width: 760px) {
   .app-header,
   .detail-role-workspace__header {
@@ -3145,5 +3294,350 @@ tbody tr:hover,
 
   .copy-value-button span {
     display: none;
+  }
+}
+
+/* Canonical Qortium UI-family parity. Classic remains the default; these rules
+   only change presentation and leave Trust data, graph, and rating behavior shared. */
+html {
+  scrollbar-gutter: stable;
+}
+
+.app-header {
+  background: var(--frame-surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  padding: 12px 14px;
+}
+
+:root[data-ui='modern'] .app-shell {
+  margin-inline: auto;
+  max-width: 56.25em;
+  /* Home already supplies the outer application frame. The generic 76px
+     standalone offset would duplicate that chrome and leave an empty band. */
+  padding: 24px 16px 32px;
+  width: 100%;
+}
+
+:root[data-ui='modern'] .app-shell.app-shell--fullscreen {
+  margin: 0;
+  max-width: none;
+  padding: 0;
+}
+
+:root[data-ui='modern'] .app-header,
+:root[data-ui='modern'] .workspace,
+:root[data-ui='modern'] .section-nav,
+:root[data-ui='modern'] .toolbar,
+:root[data-ui='modern'] .error-banner,
+:root[data-ui='modern'] .info-banner,
+:root[data-ui='modern'] .main-panel {
+  max-width: none;
+  width: 100%;
+}
+
+:root[data-ui='modern'] .app-header {
+  background: var(--panel);
+  border: 0;
+  border-bottom: 1.5px solid var(--line);
+  border-radius: 0;
+  box-shadow: none;
+  min-height: 52px;
+  padding: 8px 14px;
+}
+
+:root[data-ui='modern'] .section-nav {
+  border-bottom: 0;
+  gap: 8px;
+}
+
+:root[data-ui='modern'] .section-nav button {
+  border: 1.5px solid transparent;
+  border-radius: 50px;
+  min-height: 38px;
+  padding: 7px 14px;
+}
+
+:root[data-ui='modern'] .section-nav button:hover,
+:root[data-ui='modern'] .section-nav button.active {
+  background: var(--panel-strong);
+  border-color: var(--line);
+}
+
+:root[data-ui='modern'] .section-nav button.active {
+  color: var(--text);
+}
+
+:root[data-ui='modern'] .main-panel,
+:root[data-ui='modern'] .graph-surface,
+:root[data-ui='modern'] .table-wrap,
+:root[data-ui='modern'] .trust-flow-guide,
+:root[data-ui='modern'] .accounts-toolbar,
+:root[data-ui='modern'] .network-toolbar,
+:root[data-ui='modern'] .trust-path,
+:root[data-ui='modern'] .role-standing-card,
+:root[data-ui='modern'] .detail-role-workspace,
+:root[data-ui='modern'] .detail-rating-evidence > .mini-section {
+  border-radius: 8px;
+  border-width: 1.5px;
+  box-shadow: none;
+}
+
+:root[data-ui='modern'] .icon-button,
+:root[data-ui='modern'] .back-button,
+:root[data-ui='modern'] .copy-value-button,
+:root[data-ui='modern'] .rate-button,
+:root[data-ui='modern'] .rating-submit,
+:root[data-ui='modern'] .empty-state-reset,
+:root[data-ui='modern'] .load-more-row button,
+:root[data-ui='modern'] .graph-zoom-controls button {
+  border-radius: 50px;
+  border-width: 1.5px;
+}
+
+@media (min-width: 900px) {
+  :root[data-ui='modern'] .app-shell {
+    padding-inline: 32px;
+  }
+}
+
+:root[data-ui='fun'] .app-shell {
+  margin-inline: 0;
+  max-width: none;
+  width: 100%;
+}
+
+:root[data-ui='fun'] h1,
+:root[data-ui='fun'] h2,
+:root[data-ui='fun'] h3,
+:root[data-ui='fun'] button,
+:root[data-ui='fun'] .eyebrow,
+:root[data-ui='fun'] .runtime-pill,
+:root[data-ui='fun'] .node-pill,
+:root[data-ui='fun'] .badge,
+:root[data-ui='fun'] .data-mode-badge {
+  font-family: "Fredoka", "Comic Neue", ui-sans-serif, system-ui, sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+:root[data-ui='fun'] .app-title-row {
+  padding-bottom: 4px;
+  position: relative;
+}
+
+:root[data-ui='fun'] .app-title-row::after {
+  background: linear-gradient(90deg, var(--accent), var(--fun-warm));
+  border: 2px solid var(--fun-outline);
+  border-radius: var(--fun-radius-pill);
+  bottom: -5px;
+  box-shadow: 2px 2px 0 var(--fun-ink);
+  content: '';
+  height: 6px;
+  inset-inline-start: 0;
+  position: absolute;
+  transform: rotate(-1deg);
+  width: 4.5rem;
+}
+
+:root[data-ui='fun'] .app-header,
+:root[data-ui='fun'] .main-panel:not(.main-panel--graph-view),
+:root[data-ui='fun'] .trust-flow-guide,
+:root[data-ui='fun'] .accounts-toolbar,
+:root[data-ui='fun'] .network-toolbar,
+:root[data-ui='fun'] .trust-path,
+:root[data-ui='fun'] .detail-role-workspace,
+:root[data-ui='fun'] .detail-rating-evidence > .mini-section,
+:root[data-ui='fun'] .rate-popover,
+:root[data-ui='fun'] .error-banner,
+:root[data-ui='fun'] .info-banner {
+  border: 3px solid var(--fun-outline);
+  border-radius: var(--fun-radius-md);
+  box-shadow: var(--fun-shadow-card);
+}
+
+:root[data-theme='dark'][data-ui='fun'] .app-header,
+:root[data-theme='dark'][data-ui='fun'] .main-panel:not(.main-panel--graph-view),
+:root[data-theme='dark'][data-ui='fun'] .trust-flow-guide,
+:root[data-theme='dark'][data-ui='fun'] .accounts-toolbar,
+:root[data-theme='dark'][data-ui='fun'] .network-toolbar,
+:root[data-theme='dark'][data-ui='fun'] .trust-path,
+:root[data-theme='dark'][data-ui='fun'] .detail-role-workspace,
+:root[data-theme='dark'][data-ui='fun'] .detail-rating-evidence > .mini-section,
+:root[data-theme='dark'][data-ui='fun'] .rate-popover {
+  box-shadow: var(--fun-shadow-card), inset 0 0 0 1px rgb(255 255 255 / 8%);
+}
+
+:root[data-ui='fun'] .table-wrap,
+:root[data-ui='fun'] .graph-surface,
+:root[data-ui='fun'] .role-standing-card,
+:root[data-ui='fun'] .trust-flow-guide li,
+:root[data-ui='fun'] .trust-path__steps li,
+:root[data-ui='fun'] .requirement,
+:root[data-ui='fun'] .received-rating-groups details,
+:root[data-ui='fun'] .detail-grid > div {
+  border: 2px solid var(--fun-outline);
+  border-radius: var(--fun-radius-sm);
+}
+
+/* The graph is a data canvas: keep it level, shadow-free, and clear of the page grid. */
+:root[data-ui='fun'] .graph-surface {
+  background: var(--surface);
+  background-image: none;
+  box-shadow: none;
+  transform: none;
+}
+
+:root[data-ui='fun'] .table-wrap {
+  box-shadow: none;
+}
+
+:root[data-ui='fun'] .runtime-pill,
+:root[data-ui='fun'] .node-pill,
+:root[data-ui='fun'] .badge,
+:root[data-ui='fun'] .data-mode-badge,
+:root[data-ui='fun'] .rating-counts span {
+  border: 2px solid var(--fun-outline);
+  border-radius: var(--fun-radius-pill);
+}
+
+:root[data-ui='fun'] .search-field,
+:root[data-ui='fun'] .segmented-control,
+:root[data-ui='fun'] select,
+:root[data-ui='fun'] .live-toggle {
+  border: 2px solid var(--fun-outline);
+  border-radius: var(--fun-radius-sm);
+  box-shadow: 2px 2px 0 var(--fun-ink);
+}
+
+:root[data-ui='fun'] .icon-button,
+:root[data-ui='fun'] .back-button,
+:root[data-ui='fun'] .copy-value-button,
+:root[data-ui='fun'] .rate-button,
+:root[data-ui='fun'] .empty-state-reset,
+:root[data-ui='fun'] .load-more-row button,
+:root[data-ui='fun'] .graph-zoom-controls button,
+:root[data-ui='fun'] .section-nav button {
+  border: 2px solid var(--fun-outline);
+  border-radius: var(--fun-radius-sm);
+  box-shadow: var(--fun-shadow-control);
+}
+
+:root[data-ui='fun'] .rating-submit {
+  border: 3px solid var(--fun-outline);
+  border-radius: var(--fun-radius-sm);
+  box-shadow: var(--fun-shadow-primary);
+}
+
+:root[data-ui='fun'] .section-nav {
+  border-bottom: 0;
+  gap: 10px;
+  padding-block: 5px;
+}
+
+:root[data-ui='fun'] .section-nav button {
+  background: var(--panel);
+  border-bottom-width: 2px;
+  color: var(--muted);
+}
+
+:root[data-ui='fun'] .section-nav button:hover,
+:root[data-ui='fun'] .section-nav button.active,
+:root[data-ui='fun'] .segmented-control button.active,
+:root[data-ui='fun'] .role-standing-card--active {
+  background: var(--control-selected);
+  border-color: var(--fun-outline);
+  color: var(--text);
+}
+
+:root[data-ui='fun'] .icon-button:hover:not(:disabled),
+:root[data-ui='fun'] .back-button:hover:not(:disabled),
+:root[data-ui='fun'] .copy-value-button:hover:not(:disabled),
+:root[data-ui='fun'] .rate-button:hover:not(:disabled),
+:root[data-ui='fun'] .rating-submit:hover:not(:disabled),
+:root[data-ui='fun'] .empty-state-reset:hover:not(:disabled),
+:root[data-ui='fun'] .load-more-row button:hover:not(:disabled),
+:root[data-ui='fun'] .graph-zoom-controls button:hover:not(:disabled),
+:root[data-ui='fun'] .section-nav button:hover:not(:disabled),
+:root[data-ui='fun'] .role-standing-card:hover:not(:disabled) {
+  box-shadow: 5px 5px 0 var(--fun-ink);
+  transform: translate(-1px, -2px);
+}
+
+:root[data-ui='fun'] .icon-button:active:not(:disabled),
+:root[data-ui='fun'] .back-button:active:not(:disabled),
+:root[data-ui='fun'] .copy-value-button:active:not(:disabled),
+:root[data-ui='fun'] .rate-button:active:not(:disabled),
+:root[data-ui='fun'] .rating-submit:active:not(:disabled),
+:root[data-ui='fun'] .empty-state-reset:active:not(:disabled),
+:root[data-ui='fun'] .load-more-row button:active:not(:disabled),
+:root[data-ui='fun'] .graph-zoom-controls button:active:not(:disabled),
+:root[data-ui='fun'] .section-nav button:active:not(:disabled) {
+  box-shadow: 1px 1px 0 var(--fun-ink);
+  transform: translate(2px, 2px) scale(0.98);
+}
+
+:root[data-ui='fun'] :focus-visible {
+  outline: 3px solid var(--fun-focus);
+  outline-offset: 3px;
+}
+
+@media (max-width: 760px) {
+  :root[data-ui='modern'] .app-shell {
+    padding: 12px;
+  }
+
+  :root[data-ui='fun'] .app-header,
+  :root[data-ui='fun'] .main-panel:not(.main-panel--graph-view),
+  :root[data-ui='fun'] .trust-flow-guide,
+  :root[data-ui='fun'] .accounts-toolbar,
+  :root[data-ui='fun'] .network-toolbar,
+  :root[data-ui='fun'] .trust-path,
+  :root[data-ui='fun'] .detail-role-workspace,
+  :root[data-ui='fun'] .detail-rating-evidence > .mini-section,
+  :root[data-ui='fun'] .role-standing-card,
+  :root[data-ui='fun'] .icon-button:hover:not(:disabled),
+  :root[data-ui='fun'] .back-button:hover:not(:disabled),
+  :root[data-ui='fun'] .copy-value-button:hover:not(:disabled),
+  :root[data-ui='fun'] .rate-button:hover:not(:disabled),
+  :root[data-ui='fun'] .rating-submit:hover:not(:disabled),
+  :root[data-ui='fun'] .section-nav button:hover:not(:disabled) {
+    box-shadow: 3px 3px 0 var(--fun-ink);
+    transform: none;
+  }
+
+  :root[data-ui='fun'] .app-title-row::after {
+    transform: none;
+  }
+}
+
+:root[data-ui='fun'][data-text-size='extra-large'] .app-header,
+:root[data-ui='fun'][data-text-size='extra-large'] .main-panel:not(.main-panel--graph-view),
+:root[data-ui='fun'][data-text-size='extra-large'] .trust-flow-guide,
+:root[data-ui='fun'][data-text-size='extra-large'] .role-standing-card,
+:root[data-ui='fun'][data-text-size='huge'] .app-header,
+:root[data-ui='fun'][data-text-size='huge'] .main-panel:not(.main-panel--graph-view),
+:root[data-ui='fun'][data-text-size='huge'] .trust-flow-guide,
+:root[data-ui='fun'][data-text-size='huge'] .role-standing-card {
+  box-shadow: 3px 3px 0 var(--fun-ink);
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root[data-ui='fun'] .app-title-row::after,
+  :root[data-ui='fun'] .role-standing-card,
+  :root[data-ui='fun'] .icon-button:hover:not(:disabled),
+  :root[data-ui='fun'] .back-button:hover:not(:disabled),
+  :root[data-ui='fun'] .copy-value-button:hover:not(:disabled),
+  :root[data-ui='fun'] .rate-button:hover:not(:disabled),
+  :root[data-ui='fun'] .rating-submit:hover:not(:disabled),
+  :root[data-ui='fun'] .section-nav button:hover:not(:disabled),
+  :root[data-ui='fun'] .section-nav button:active:not(:disabled) {
+    transform: none;
+  }
+
+  :root[data-ui='modern'] button {
+    transition: none;
   }
 }

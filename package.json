@@ -13,6 +13,8 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@fontsource/comic-neue": "^5.2.7",
+    "@fontsource/fredoka": "^5.2.10",
     "d3-force": "^3.0.0",
     "lucide-react": "^0.577.0",
     "react": "^19.2.7",
