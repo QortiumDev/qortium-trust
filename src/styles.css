@@ -2383,7 +2383,7 @@ tbody tr:hover,
   }
 }
 
-/* Account-centered 1.4.1 shell: Classic and Fun use the available app window.
+/* Account-centered shell: Classic and Fun use the available app window.
    Modern remains the deliberately roomier, centered presentation. */
 .app-shell {
   padding: clamp(12px, 2vw, 24px);

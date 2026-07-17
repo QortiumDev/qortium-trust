@@ -37,14 +37,16 @@ complete explorer remains available in read-only mode.
 
 ## QAVS and UI styles
 
-Trust is at QAVS `1.4.1`: `1.4` is its minimum Qortium platform level and the
+Trust is at QAVS `1.4.2`: `1.4` is its minimum Qortium platform level and the
 patch number tracks the app release. `vite.config.ts` reads `package.json`,
 injects the visible version, and emits `dist/qortium-app.json` on every build.
 
 Classic and Fun use the available app window with responsive local constraints.
 Modern retains its intentionally wider outer margins. All three styles consume
 Home’s theme, accent, language, and text-size settings, including RTL and
-reduced-motion behavior.
+reduced-motion behavior. Typography switches live as well: Classic uses
+Lexend, Modern uses Inter, Fun uses Comic Neue with Fredoka display text, and
+technical values remain monospace.
 
 ## Development and verification
 
@@ -75,4 +77,4 @@ After publication, verify:
 
 - `/arbitrary/resource/status/APP/Trust/Trust?build=true` reports `READY`
 - `/render/APP/Trust/Trust` renders successfully
-- `/arbitrary/APP/Trust/Trust/qortium-app.json` reports version `1.4.1`
+- `/arbitrary/APP/Trust/Trust/qortium-app.json` reports version `1.4.2`
