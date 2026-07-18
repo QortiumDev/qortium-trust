@@ -9,7 +9,32 @@ import {
   type SimulationLinkDatum,
   type SimulationNodeDatum,
 } from 'd3-force';
-import type { AccountRating, AccountRatingCategory, TrustDerivation, TrustStatus } from './types';
+import type {
+  AccountRating,
+  AccountRatingCategory,
+  TrustDerivation,
+  TrustGraph as ServerTrustGraph,
+  TrustGraphEdge as ServerTrustGraphEdge,
+  TrustGraphNode as ServerTrustGraphNode,
+  TrustStatus,
+} from './types';
+
+export type TrustGraphDirection = 'both' | 'incoming' | 'outgoing';
+export type TrustGraphSign = 'both' | 'positive' | 'negative';
+
+export type TrustGraphFilterOptions = {
+  /**
+   * Direction is relative to `rootAddress`. It is ignored when there is no root.
+   */
+  direction?: TrustGraphDirection;
+  /**
+   * A rooted graph shows only ratings directly involving the root by default. Set this to false
+   * only for an explicitly requested induced/full neighborhood.
+   */
+  incidentOnly?: boolean;
+  rootAddress?: string;
+  sign?: TrustGraphSign;
+};
 
 export type TrustGraphNode = SimulationNodeDatum & {
   address: string;
@@ -58,6 +83,23 @@ function getNodeFromDerivation(derivation: TrustDerivation, category: AccountRat
     level: categoryData?.level ?? 0,
     score: categoryData?.score ?? 0,
     seedMember: derivation.mintingSeedMember,
+    radius: 12,
+    inboundWeight: 0,
+    outboundWeight: 0,
+    linkCount: 0,
+    x: 0,
+    y: 0,
+  };
+}
+
+function getNodeFromServer(node: ServerTrustGraphNode): TrustGraphNode {
+  return {
+    address: node.address,
+    publicKey: node.publicKey ?? undefined,
+    status: node.status,
+    level: node.level,
+    score: node.score,
+    seedMember: node.seedMember,
     radius: 12,
     inboundWeight: 0,
     outboundWeight: 0,
@@ -230,31 +272,128 @@ export function createTrustGraphModel(
   category: AccountRatingCategory,
   width = 960,
   baseHeight = 520,
+  options: TrustGraphFilterOptions = {},
+): TrustGraphModel {
+  return createTrustGraphModelFromServer(
+    {
+      category,
+      nodes: derivations.map((derivation) => {
+        const node = getNodeFromDerivation(derivation, category);
+
+        return {
+          address: node.address,
+          publicKey: node.publicKey,
+          status: node.status,
+          level: node.level,
+          score: node.score,
+          seedMember: node.seedMember,
+        };
+      }),
+      edges: ratings
+        .filter((rating) => rating.category === category)
+        .map((rating) => ({
+          source: rating.raterAddress,
+          target: rating.targetAddress,
+          rating: rating.rating,
+          confidence: rating.ratingConfidence,
+        })),
+    },
+    options,
+    width,
+    baseHeight,
+  );
+}
+
+export function filterTrustGraphEdges(
+  edges: ServerTrustGraphEdge[],
+  {
+    direction = 'both',
+    incidentOnly,
+    rootAddress,
+    sign = 'both',
+  }: TrustGraphFilterOptions = {},
+) {
+  const limitToIncidentEdges = Boolean(rootAddress) && (incidentOnly ?? true);
+
+  return edges.filter((edge) => {
+    if (edge.rating === 0) {
+      return false;
+    }
+
+    if (sign === 'positive' && edge.rating < 0) {
+      return false;
+    }
+
+    if (sign === 'negative' && edge.rating > 0) {
+      return false;
+    }
+
+    if (!rootAddress) {
+      return true;
+    }
+
+    if (direction === 'incoming') {
+      return edge.target === rootAddress;
+    }
+
+    if (direction === 'outgoing') {
+      return edge.source === rootAddress;
+    }
+
+    if (limitToIncidentEdges) {
+      return edge.source === rootAddress || edge.target === rootAddress;
+    }
+
+    return true;
+  });
+}
+
+export function createTrustGraphModelFromServer(
+  graph: ServerTrustGraph,
+  options: TrustGraphFilterOptions = {},
+  width = 960,
+  baseHeight = 520,
 ): TrustGraphModel {
   const nodesByAddress = new Map<string, TrustGraphNode>();
   const links: TrustGraphLink[] = [];
+  const filteredEdges = filterTrustGraphEdges(graph.edges, options);
+  const includedAddresses = new Set<string>();
 
-  for (const derivation of derivations) {
-    nodesByAddress.set(derivation.accountAddress, getNodeFromDerivation(derivation, category));
+  for (const edge of filteredEdges) {
+    includedAddresses.add(edge.source);
+    includedAddresses.add(edge.target);
   }
 
-  for (const rating of ratings) {
-    if (rating.category !== category || rating.rating === 0) {
-      continue;
-    }
+  if (options.rootAddress) {
+    includedAddresses.add(options.rootAddress);
+  }
 
-    addPlaceholderNode(nodesByAddress, rating.raterAddress, rating.raterPublicKey);
-    addPlaceholderNode(nodesByAddress, rating.targetAddress, rating.targetPublicKey);
+  const limitNodes = Boolean(options.rootAddress);
+
+  for (const node of graph.nodes) {
+    if (!limitNodes || includedAddresses.has(node.address)) {
+      nodesByAddress.set(node.address, getNodeFromServer(node));
+    }
+  }
+
+  const linkIdCounts = new Map<string, number>();
+
+  filteredEdges.forEach((edge) => {
+    addPlaceholderNode(nodesByAddress, edge.source);
+    addPlaceholderNode(nodesByAddress, edge.target);
+    const baseId = `${edge.source}-${edge.target}-${graph.category}`;
+    const duplicateIndex = linkIdCounts.get(baseId) ?? 0;
+    linkIdCounts.set(baseId, duplicateIndex + 1);
 
     links.push({
-      id: `${rating.raterAddress}-${rating.targetAddress}-${rating.category}`,
-      source: rating.raterAddress,
-      target: rating.targetAddress,
-      category: rating.category,
-      rating: rating.rating,
-      confidence: rating.ratingConfidence,
+      id: duplicateIndex === 0 ? baseId : `${baseId}-${duplicateIndex}`,
+      source: edge.source,
+      target: edge.target,
+      category: graph.category,
+      rating: edge.rating,
+      confidence: edge.confidence,
     });
-  }
+  });
 
   const nodes = [...nodesByAddress.values()];
   applyNodeWeights(nodes, links);

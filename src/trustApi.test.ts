@@ -5,7 +5,10 @@ import {
   buildResourceRatingsPath,
   buildTrustChangesPath,
   buildTrustDerivationPath,
+  buildTrustGraphPath,
+  getAccountRatingsPage,
   getTrustDerivationPage,
+  getTrustGraph,
   submitRating,
 } from './trustApi';
 import { hasHomeBridge, qdnRequest } from './qdnRequest';
@@ -64,6 +67,16 @@ describe('trust API path builders', () => {
     );
     expect(buildRatingCooldownPath({ target: 'tPub', rater: 'rPub' })).toBe(
       '/account-ratings/cooldown?target=tPub&rater=rPub',
+    );
+  });
+
+  it('builds full and rooted trust graph paths', () => {
+    expect(buildTrustGraphPath()).toBe('/account-ratings/trust-graph');
+    expect(buildTrustGraphPath({ category: 'TRAINER', root: 'Q root', depth: 1 })).toBe(
+      '/account-ratings/trust-graph?category=TRAINER&root=Q+root&depth=1',
+    );
+    expect(buildTrustGraphPath({ root: 'Qroot', depth: 0 })).toBe(
+      '/account-ratings/trust-graph?root=Qroot&depth=0',
     );
   });
 });
@@ -134,5 +147,51 @@ describe('getTrustDerivationPage total count', () => {
     qdnRequestMock.mockResolvedValueOnce(okResult([], { 'X-Total-Count': 'lots' }));
 
     await expect(getTrustDerivationPage({ category: 'SUBJECT' })).resolves.toEqual({ derivations: [], total: null });
+  });
+});
+
+describe('paginated rating and graph requests', () => {
+  const qdnRequestMock = vi.mocked(qdnRequest);
+
+  const okResult = (data: unknown) =>
+    ({ body: '', contentType: 'application/json', data, ok: true, status: 200, statusText: 'OK' }) as never;
+
+  beforeEach(() => {
+    qdnRequestMock.mockReset();
+  });
+
+  it('returns a next rating offset only for a full page', async () => {
+    qdnRequestMock.mockResolvedValueOnce(okResult([{ rating: 4 }, { rating: 2 }]));
+    await expect(getAccountRatingsPage({ rater: 'rPub', limit: 2, offset: 4 })).resolves.toEqual({
+      ratings: [{ rating: 4 }, { rating: 2 }],
+      nextOffset: 6,
+    });
+    expect(qdnRequestMock).toHaveBeenLastCalledWith({
+      action: 'FETCH_NODE_API',
+      maxBytes: 5 * 1024 * 1024,
+      path: '/account-ratings?limit=2&offset=4&rater=rPub',
+    });
+
+    qdnRequestMock.mockResolvedValueOnce(okResult([{ rating: 4 }]));
+    await expect(getAccountRatingsPage({ rater: 'rPub', limit: 2 })).resolves.toEqual({
+      ratings: [{ rating: 4 }],
+      nextOffset: null,
+    });
+  });
+
+  it('fetches the typed Core trust graph endpoint', async () => {
+    const graph = {
+      category: 'SUBJECT',
+      nodes: [{ address: 'Qa', publicKey: 'pub', status: 'SILVER', level: 2, score: 10, seedMember: false }],
+      edges: [{ source: 'Qa', target: 'Qb', rating: 3, confidence: 3 }],
+    };
+    qdnRequestMock.mockResolvedValueOnce(okResult(graph));
+
+    await expect(getTrustGraph({ category: 'SUBJECT', root: 'Qa', depth: 1 })).resolves.toEqual(graph);
+    expect(qdnRequestMock).toHaveBeenCalledWith({
+      action: 'FETCH_NODE_API',
+      maxBytes: 5 * 1024 * 1024,
+      path: '/account-ratings/trust-graph?category=SUBJECT&root=Qa&depth=1',
+    });
   });
 });

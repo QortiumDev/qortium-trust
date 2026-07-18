@@ -49,6 +49,7 @@ describe('QDN display settings helpers', () => {
     expect(normalizeTextSize(' huge ')).toBe('huge');
     expect(normalizeUiStyle('MODERN')).toBe('modern');
     expect(normalizeUiStyle(' classic ')).toBe('classic');
+    expect(normalizeUiStyle('FUN')).toBe('fun');
   });
 
   it('rejects unsupported display values', () => {

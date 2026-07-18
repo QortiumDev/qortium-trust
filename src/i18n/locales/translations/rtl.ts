@@ -1,6 +1,6 @@
 import { type TranslationKey } from '../en';
 
-type LocaleCatalog = Record<TranslationKey, string>;
+type LocaleCatalog = Partial<Record<TranslationKey, string>>;
 
 export const ar: LocaleCatalog = {
   'graph.edgeTitle': '{source} → {target}: {rating} (الثقة {confidence})',
@@ -24,13 +24,9 @@ export const ar: LocaleCatalog = {
   'action.submitRating': 'إرسال التقييم',
   'app.loading': 'جارٍ التحميل',
   'app.title': 'الثقة',
-  'category.designers.description': 'امنح الثقة لهذا الحساب في تصويتات الحوكمة.',
   'category.designers.label': 'المصممون',
-  'category.guides.description': 'امنح الثقة لهذا الحساب لشرح شبكة الثقة.',
   'category.guides.label': 'المرشدون',
-  'category.minters.description': 'امنح الثقة لهذا الحساب كمُعدِّن للكتل.',
   'category.minters.label': 'المُعدِّنون',
-  'category.voters.description': 'امنح الثقة لهذا الحساب لتقييم الحسابات.',
   'category.voters.label': 'المُصوِّتون',
   'empty.accounts': 'لا توجد حسابات بعد.',
   'empty.changes': 'لا توجد تغييرات بعد.',
@@ -206,13 +202,9 @@ export const he: LocaleCatalog = {
   'action.submitRating': 'שליחת דירוג',
   'app.loading': 'טוען',
   'app.title': 'אמון',
-  'category.designers.description': 'תן אמון בחשבון זה להצבעות ממשל.',
   'category.designers.label': 'מעצבים',
-  'category.guides.description': 'תן אמון בחשבון זה להסביר את רשת האמון.',
   'category.guides.label': 'מדריכים',
-  'category.minters.description': 'תן אמון בחשבון זה כמטביע בלוקים.',
   'category.minters.label': 'מטביעים',
-  'category.voters.description': 'תן אמון בחשבון זה לדרג חשבונות.',
   'category.voters.label': 'מצביעים',
   'empty.accounts': 'אין חשבונות עדיין.',
   'empty.changes': 'אין שינויים עדיין.',

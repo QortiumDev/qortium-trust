@@ -272,13 +272,52 @@ export type AccountTrustProfile = {
 export type TrustImpact = {
   raterPublicKey: string;
   raterAddress: string;
-  category: AccountRatingCategory;
+  /** Legacy client-enriched value; Core category-impact rows inherit category from their parent. */
+  category?: AccountRatingCategory;
   rating: number;
+  ratingDirection: 'POSITIVE' | 'NEGATIVE' | 'NONE' | string;
   ratingConfidence: number;
   evaluatorLevel: number;
   evaluatorScore: number;
   impact: number;
-  trustBranchKeys?: string[];
+  trustBranchKeys: string[];
+  trustBranchCount: number;
+};
+
+export type TrustConfiguredLevel = {
+  level: number;
+  threshold: number;
+  levelScoreCap: number;
+};
+
+export type TrustRequirement = {
+  name: string;
+  passed: boolean;
+  actual: string;
+  required: string;
+  description: string;
+};
+
+export type TrustCategoryExplanation = {
+  category: AccountRatingCategory;
+  score: number;
+  levelScore: number;
+  levelScoreCap: number;
+  level: number;
+  mappedTrustStatus: TrustStatus;
+  mappedTrustStatusValue: number;
+  mappedTrustWeightPercent: number;
+  inboundRatings: RatingCounts;
+  configuredLevels: TrustConfiguredLevel[];
+  positiveMinBranchCount: number;
+  suspiciousThreshold: number;
+  suspiciousLevelScoreCap: number;
+  suspiciousMinRaterCount: number;
+  suspiciousMinBranchCount: number;
+  suspiciousMinRatingConfidence: number;
+  requirements: TrustRequirement[];
+  topPositiveImpacts: TrustImpact[];
+  topNegativeImpacts: TrustImpact[];
 };
 
 export type AccountTrustExplanation = {
@@ -289,21 +328,34 @@ export type AccountTrustExplanation = {
   trustWeightPercent: number;
   activeWeightCategory: AccountRatingCategory;
   mintingSeedMember: boolean;
-  snapshotHeight: number | null;
-  snapshotTimestamp: number | null;
+  snapshotHeight?: number | null;
+  snapshotTimestamp?: number | null;
   live: boolean;
-  categories: {
-    category: AccountRatingCategory;
-    score: number;
-    levelScore: number;
-    levelScoreCap: number;
-    level: number;
-    mappedTrustStatus: TrustStatus;
-    mappedTrustStatusValue: number;
-    mappedTrustWeightPercent: number;
-    topPositiveImpacts: TrustImpact[];
-    topNegativeImpacts: TrustImpact[];
-  }[];
+  categories: TrustCategoryExplanation[];
+};
+
+export type TrustGraphNode = {
+  address: string;
+  publicKey?: string | null;
+  status: TrustStatus;
+  level: number;
+  score: number;
+  seedMember: boolean;
+};
+
+export type TrustGraphEdge = {
+  /** Address of the account that submitted the rating. */
+  source: string;
+  /** Address of the account that received the rating. */
+  target: string;
+  rating: number;
+  confidence: number;
+};
+
+export type TrustGraph = {
+  category: AccountRatingCategory;
+  nodes: TrustGraphNode[];
+  edges: TrustGraphEdge[];
 };
 
 /**

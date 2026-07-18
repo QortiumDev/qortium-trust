@@ -98,10 +98,10 @@ export function categoryLabel(category: AccountRatingCategory) {
 
 // One-line role descriptions surfaced under the category selector, in plain language.
 const CATEGORY_DESCRIPTIONS: Record<AccountRatingCategory, TranslationKey> = {
-  SUBJECT: 'category.minters.description',
-  PLAYER: 'category.voters.description',
-  TRAINER: 'category.guides.description',
-  MANAGER: 'category.designers.description',
+  SUBJECT: 'category.minters.detail',
+  PLAYER: 'category.voters.detail',
+  TRAINER: 'category.guides.detail',
+  MANAGER: 'category.designers.detail',
 };
 
 export function categoryDescription(category: AccountRatingCategory) {

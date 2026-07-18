@@ -27,7 +27,7 @@ export const LANGUAGE_VALUES = [
   'zh-TW',
 ] as const;
 export const TEXT_SIZE_VALUES = ['extra-small', 'small', 'medium', 'large', 'extra-large', 'huge'] as const;
-export const UI_STYLE_VALUES = ['classic', 'modern'] as const;
+export const UI_STYLE_VALUES = ['classic', 'modern', 'fun'] as const;
 
 export type QdnTheme = 'dark' | 'light';
 export type QdnAccent = typeof ACCENT_OPTIONS[number];

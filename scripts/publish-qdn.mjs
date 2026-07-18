@@ -379,9 +379,26 @@ async function signAndProcess(rawUnsignedBytes58, privateKey58, computePath = '/
     headers: getHeaders('text/plain'),
     body: signedBytes58,
   });
+  const trimmedResult = processResult.trim();
 
-  if (processResult.trim() !== 'true' && !processResult.includes('"type"')) {
-    throw new Error(`Transaction was not accepted: ${processResult}`);
+  if (trimmedResult !== 'true') {
+    let parsed;
+
+    try {
+      parsed = JSON.parse(trimmedResult);
+    } catch {
+      throw new Error(`Transaction was not accepted: ${trimmedResult.slice(0, 300)}`);
+    }
+
+    const accepted =
+      parsed &&
+      typeof parsed === 'object' &&
+      parsed.error === undefined &&
+      typeof parsed.type === 'string';
+
+    if (!accepted) {
+      throw new Error(`Transaction was not accepted: ${trimmedResult.slice(0, 300)}`);
+    }
   }
 
   return signedBytes58;
@@ -464,6 +481,37 @@ async function publishResource(account) {
   await signAndProcess(rawUnsignedBytes58, account.accountPrivateKey);
 }
 
+const packageVersion = readJson(path.join(repoRoot, 'package.json')).version;
+const distAssetsPath = path.join(distPath, 'assets');
+const distManifestPath = path.join(distPath, 'qortium-app.json');
+
+if (
+  !existsSync(path.join(distPath, 'index.html')) ||
+  !existsSync(distAssetsPath) ||
+  !existsSync(distManifestPath)
+) {
+  throw new Error(`No build found at ${distPath} — run \`npm run build\` first.`);
+}
+
+const distManifest = readJson(distManifestPath);
+const hasCurrentVersionStamp = readdirSync(distAssetsPath)
+  .filter((entry) => entry.endsWith('.js'))
+  .some((entry) => readFileSync(path.join(distAssetsPath, entry), 'utf8').includes(packageVersion));
+
+if (distManifest.version !== packageVersion || !hasCurrentVersionStamp) {
+  throw new Error(
+    `Build at ${distPath} does not match ${packageVersion} (package.json version) — ` +
+      'run `npm run build` before publishing.',
+  );
+}
+
+if (!isLoopbackNodeApiUrl() && process.env.QORTIUM_TRUST_ALLOW_REMOTE_SIGN !== '1') {
+  throw new Error(
+    `Refusing to send the account private key to non-loopback node ${nodeApiUrl}. ` +
+      'Use a local node or set QORTIUM_TRUST_ALLOW_REMOTE_SIGN=1 to override.',
+  );
+}
+
 const apiKeySource = getApiKeySource();
 const apiKey = apiKeySource.apiKey;
 const account = getLocalPreviewAccount();
@@ -483,19 +531,33 @@ if (!status || status.syncPercent !== 100 || status.isSynchronizing) {
 await ensureNameRegistered(publishName, account);
 await publishResource(account);
 
-const readyStatus = await waitFor(`${service}/${publishName}/${identifier}`, async () => {
-  const resourceStatus = await getResourceStatus();
+let lastObservedStatus = null;
+let readyStatus;
 
-  if (resourceStatus?.status === 'READY') {
-    return resourceStatus;
-  }
+try {
+  readyStatus = await waitFor(`${service}/${publishName}/${identifier}`, async () => {
+    const resourceStatus = await getResourceStatus();
 
-  if (resourceStatus?.status === 'BLOCKED' || resourceStatus?.status === 'BUILD_FAILED') {
-    throw new Error(`${service}/${publishName}/${identifier} status is ${resourceStatus.status}.`);
-  }
+    lastObservedStatus = resourceStatus?.status ?? lastObservedStatus;
 
-  return null;
-});
+    if (resourceStatus?.status === 'READY') {
+      return resourceStatus;
+    }
+
+    if (resourceStatus?.status === 'BLOCKED' || resourceStatus?.status === 'BUILD_FAILED') {
+      throw new Error(`${service}/${publishName}/${identifier} status is ${resourceStatus.status}.`);
+    }
+
+    return null;
+  });
+} catch (error) {
+  throw new Error(
+    `${error instanceof Error ? error.message : String(error)} ` +
+      `Note: the publish transaction WAS accepted; the node may still be building ` +
+      `${service}/${publishName}/${identifier} (last status: ${lastObservedStatus ?? 'unknown'}). ` +
+      'Check the resource status again before re-publishing.',
+  );
+}
 
 console.log(`Ready: qdn://${service}/${publishName}/${identifier}`);
 console.log(`Status: ${readyStatus.status}${readyStatus.description ? ` - ${readyStatus.description}` : ''}`);
