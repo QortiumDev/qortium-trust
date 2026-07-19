@@ -29,6 +29,7 @@ import { setTranslationLanguage, t } from './i18n';
 import { getBridgeState } from './qdnRequest';
 import { PENDING_CONFIRM_POLL_MS, pendingRatingKey } from './ratingControl';
 import { isSelectedAccountChangedMessage } from './selectedAccountMessage';
+import { getTrustRouteUrl, readTrustRoute, type TrustRoute } from './trustRoute';
 import {
   getAccountRatingsPage,
   getNodeStatus,
@@ -315,22 +316,17 @@ export default function App() {
   }, [displaySettings]);
 
   useEffect(() => {
-    const readAccountFromUrl = () => {
-      const params = new URLSearchParams(window.location.search);
-      setSelectedAddress(params.get('account') ?? params.get('target'));
-      const requestedView = params.get('view');
-
-      if (requestedView === 'accounts' || requestedView === 'graph' || requestedView === 'changes') {
-        setView(requestedView);
-      } else {
-        setView('accounts');
-      }
+    const readRouteFromUrl = () => {
+      const route = readTrustRoute(window.location.href);
+      setSelectedAddress(route.account);
+      setView(route.view);
+      setIsFullscreen(false);
     };
 
-    readAccountFromUrl();
-    window.addEventListener('popstate', readAccountFromUrl);
+    readRouteFromUrl();
+    window.addEventListener('popstate', readRouteFromUrl);
 
-    return () => window.removeEventListener('popstate', readAccountFromUrl);
+    return () => window.removeEventListener('popstate', readRouteFromUrl);
   }, []);
 
   useEffect(() => {
@@ -350,28 +346,24 @@ export default function App() {
     return () => window.removeEventListener('message', handleMessage);
   }, [refreshSelectedAccount]);
 
+  const navigateToRoute = useCallback((route: TrustRoute) => {
+    window.history.pushState({}, '', getTrustRouteUrl(window.location.href, route));
+    setSelectedAddress(route.account);
+    setView(route.view);
+    setIsFullscreen(false);
+  }, []);
+
   const openAccount = useCallback((address: string) => {
     if (!data.derivations.some((derivation) => derivation.accountAddress === address)) {
       setDerivationLimit(5_000);
     }
-    setSelectedAddress(address);
-    setIsFullscreen(false);
-    setView('accounts');
-    const url = new URL(window.location.href);
-    url.searchParams.set('account', address);
-    url.searchParams.set('view', 'accounts');
-    url.searchParams.delete('target');
-    window.history.pushState({}, '', url);
-  }, [data.derivations]);
+    navigateToRoute({ account: address, view: 'accounts' });
+  }, [data.derivations, navigateToRoute]);
 
   const handleBack = useCallback(() => {
     restoreListFocusRef.current = true;
-    setSelectedAddress(null);
-    const url = new URL(window.location.href);
-    url.searchParams.delete('account');
-    url.searchParams.delete('target');
-    window.history.pushState({}, '', url);
-  }, []);
+    navigateToRoute({ account: null, view: 'accounts' });
+  }, [navigateToRoute]);
 
   useEffect(() => {
     if (!selectedAddress && restoreListFocusRef.current) {
@@ -726,14 +718,7 @@ export default function App() {
   }, []);
 
   const handleViewChange = (next: ViewMode) => {
-    setView(next);
-    setSelectedAddress(null);
-    setIsFullscreen(false);
-    const url = new URL(window.location.href);
-    url.searchParams.set('view', next);
-    url.searchParams.delete('account');
-    url.searchParams.delete('target');
-    window.history.pushState({}, '', url);
+    navigateToRoute({ account: null, view: next });
   };
 
   const openNodeDetail = (node: TrustGraphNode) => {
