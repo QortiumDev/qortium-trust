@@ -25,7 +25,10 @@ Qortium’s community trust system. It runs inside Qortium Home through the
   pan, zoom, fullscreen, and keyboard-readable relationships.
 - Recent Changes is unified across roles, and account names link back to account
   detail wherever the account is present in the loaded directory.
-- Deep links use `?account=<address>` or the legacy `?target=<address>`.
+- Deep links use `?account=<address>` or the legacy `?target=<address>`. Account
+  and section changes create browser-history entries while retaining Home's
+  display and bridge query parameters, so Home Back and Forward can traverse
+  the in-app route history.
 - Home-mediated rating submission includes unlock prompts, cooldown checks,
   impact preview, optimistic pending state, and confirmation polling.
 - Home selected-account changes refresh the rater identity, available bridge
@@ -37,7 +40,7 @@ complete explorer remains available in read-only mode.
 
 ## QAVS and UI styles
 
-Trust is at QAVS `1.4.2`: `1.4` is its minimum Qortium platform level and the
+Trust is at QAVS `1.4.3`: `1.4` is its minimum Qortium platform level and the
 patch number tracks the app release. `vite.config.ts` reads `package.json`,
 injects the visible version, and emits `dist/qortium-app.json` on every build.
 
@@ -77,4 +80,4 @@ After publication, verify:
 
 - `/arbitrary/resource/status/APP/Trust/Trust?build=true` reports `READY`
 - `/render/APP/Trust/Trust` renders successfully
-- `/arbitrary/APP/Trust/Trust/qortium-app.json` reports version `1.4.2`
+- `/arbitrary/APP/Trust/Trust/qortium-app.json` reports version `1.4.3`
