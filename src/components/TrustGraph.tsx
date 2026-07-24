@@ -11,7 +11,6 @@ import { t } from '../i18n';
 // frames the whole settled layout at identity, so {x:0, y:0, k:1} shows everything; pan/zoom layer
 // on top of that.
 type GraphView = { x: number; y: number; k: number };
-type AvatarLoadStatus = 'loading' | 'loaded' | 'failed';
 
 const IDENTITY_VIEW: GraphView = { x: 0, y: 0, k: 1 };
 const MIN_ZOOM = 0.3;
@@ -45,8 +44,6 @@ export function TrustGraph({
   selectedAddress?: string;
 }) {
   const svgRef = useRef<SVGSVGElement | null>(null);
-  const avatarLoadStatusRef = useRef<Record<string, AvatarLoadStatus>>({});
-  const [avatarLoadStatusBySrc, setAvatarLoadStatusBySrc] = useState<Record<string, AvatarLoadStatus>>({});
   const [view, setView] = useState<GraphView>(IDENTITY_VIEW);
   const expandedControlLabel = isExpanded ? t('action.collapseGraph') : t('action.expandGraph');
   // Tracks an in-progress pan: the pointer origin and whether it has moved past the click threshold.
@@ -63,49 +60,6 @@ export function TrustGraph({
     () => new Map(graph.nodes.map((node) => [node.address, node] as const)),
     [graph.nodes],
   );
-  const avatarSources = useMemo(() => {
-    const sources = new Set<string>();
-
-    for (const node of graph.nodes) {
-      const avatarSrc = profiles[node.address]?.avatarSrc;
-
-      if (avatarSrc) {
-        sources.add(avatarSrc);
-      }
-    }
-
-    return [...sources];
-  }, [graph.nodes, profiles]);
-
-  const setAvatarLoadStatus = useCallback((src: string, status: AvatarLoadStatus) => {
-    avatarLoadStatusRef.current[src] = status;
-    setAvatarLoadStatusBySrc((current) =>
-      current[src] === status
-        ? current
-        : {
-            ...current,
-            [src]: status,
-          },
-    );
-  }, []);
-
-  useEffect(() => {
-    if (typeof Image === 'undefined') {
-      return;
-    }
-
-    for (const src of avatarSources) {
-      if (avatarLoadStatusRef.current[src]) {
-        continue;
-      }
-
-      avatarLoadStatusRef.current[src] = 'loading';
-      const image = new Image();
-      image.onload = () => setAvatarLoadStatus(src, 'loaded');
-      image.onerror = () => setAvatarLoadStatus(src, 'failed');
-      image.src = src;
-    }
-  }, [avatarSources, setAvatarLoadStatus]);
 
   // Addresses that participate in at least one edge. Only these get tabIndex={0}: an isolated node
   // has no connections to spotlight, so adding it to the tab order would just bloat keyboard
@@ -493,12 +447,7 @@ export function TrustGraph({
               const profile = profiles[node.address];
               const label = getIdentityLabel(profile, node.address);
               const radius = node.radius;
-              const clipId = `avatar-clip-${index}`;
               const focused = !adjacency || adjacency.has(node.address);
-              const avatarSrc =
-                profile?.avatarSrc && avatarLoadStatusBySrc[profile.avatarSrc] === 'loaded'
-                  ? profile.avatarSrc
-                  : null;
 
               return (
                 <g
@@ -517,27 +466,10 @@ export function TrustGraph({
                   role="button"
                   tabIndex={connectedAddresses.has(node.address) ? 0 : -1}
                 >
-                  <defs>
-                    <clipPath id={clipId}>
-                      <circle cx={node.x} cy={node.y} r={radius - 2} />
-                    </clipPath>
-                  </defs>
                   <circle cx={node.x} cy={node.y} r={radius} />
-                  {avatarSrc ? (
-                    <image
-                      clipPath={`url(#${clipId})`}
-                      height={(radius - 2) * 2}
-                      href={avatarSrc}
-                      preserveAspectRatio="xMidYMid slice"
-                      width={(radius - 2) * 2}
-                      x={node.x - radius + 2}
-                      y={node.y - radius + 2}
-                    />
-                  ) : (
-                    <text className="graph-node-initial" x={node.x} y={node.y + 4}>
-                      {getAvatarFallbackCharacter(profile?.name, node.address)}
-                    </text>
-                  )}
+                  <text className="graph-node-initial" x={node.x} y={node.y + 4}>
+                    {getAvatarFallbackCharacter(profile?.name, node.address)}
+                  </text>
                   <text className="graph-node-label" x={node.x} y={node.y + radius + 18}>
                     {compactIdentityGraphLabel(profile, node.address)}
                   </text>

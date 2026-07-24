@@ -1,12 +1,72 @@
-import { useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { fetchAccountAvatar, getPendingRetryCount } from '../avatarClient';
 import {
   getAvatarFallbackCharacter,
   getIdentityLabel,
 } from '../identityProfiles';
 import { compactAddress, formatNumber, formatPercent, statusLabel, statusTone } from '../format';
-import type { IdentityProfile, NodeStatus, TrustStatus } from '../types';
+import type { IdentityProfile, NodeStatus, QdnAction, TrustStatus } from '../types';
 import type { IdentityProps } from '../viewTypes';
 import { t } from '../i18n';
+
+const AvatarActionsContext = createContext<QdnAction[] | undefined>(undefined);
+
+export function AvatarActionsProvider({ actions, children }: { actions?: QdnAction[]; children: ReactNode }) {
+  return <AvatarActionsContext.Provider value={actions}>{children}</AvatarActionsContext.Provider>;
+}
+
+function useVisibleAccountAvatar(address: string) {
+  const actions = useContext(AvatarActionsContext);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    let timer: number | undefined;
+    let objectUrl: string | null = null;
+    let attempts = 0;
+
+    const load = async () => {
+      const result = await fetchAccountAvatar(address, actions);
+
+      if (cancelled) {
+        return;
+      }
+
+      if (result.kind === 'pending' && attempts < getPendingRetryCount()) {
+        attempts += 1;
+        timer = window.setTimeout(() => void load(), result.retryAfterSeconds * 1000);
+        return;
+      }
+
+      if (result.kind === 'ready') {
+        // Copy into a browser-owned ArrayBuffer view before Blob construction. The bridge parser
+        // accepts generic typed-array backing buffers, while DOM BlobPart intentionally requires
+        // an ordinary ArrayBuffer view.
+        const blobBytes = new Uint8Array(result.bytes.byteLength);
+        blobBytes.set(result.bytes);
+        objectUrl = URL.createObjectURL(new Blob([blobBytes], { type: result.contentType }));
+        setAvatarUrl(objectUrl);
+      } else {
+        setAvatarUrl(null);
+      }
+    };
+
+    setAvatarUrl(null);
+    void load();
+
+    return () => {
+      cancelled = true;
+      if (timer !== undefined) {
+        window.clearTimeout(timer);
+      }
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
+    };
+  }, [actions, address]);
+
+  return avatarUrl;
+}
 
 export function IdentityAvatar({
   address,
@@ -14,10 +74,7 @@ export function IdentityAvatar({
   size = 'normal',
 }: IdentityProps & { size?: 'small' | 'normal' | 'large' }) {
   const label = getIdentityLabel(profile, address);
-  const avatarSrc = profile?.avatarSrc ?? null;
-  // The batch RESOLVE_IDENTITIES path returns avatar URLs without a publish check, so a named
-  // account with no avatar yields a URL that 404s; fall back to the glyph on load error instead of
-  // rendering a broken image. Keyed by src so a later-resolved avatar for the same row still shows.
+  const avatarSrc = useVisibleAccountAvatar(address);
   const [brokenSrc, setBrokenSrc] = useState<string | null>(null);
 
   if (avatarSrc && avatarSrc !== brokenSrc) {

@@ -25,6 +25,7 @@ import {
 } from './format';
 import type { TrustGraphDirection, TrustGraphNode, TrustGraphSign } from './graphModel';
 import { loadIdentityProfiles } from './identityProfiles';
+import { AvatarActionsProvider } from './components/Identity';
 import { setTranslationLanguage, t } from './i18n';
 import { getBridgeState } from './qdnRequest';
 import { PENDING_CONFIRM_POLL_MS, pendingRatingKey } from './ratingControl';
@@ -737,7 +738,8 @@ export default function App() {
   const showAccountDetail = selectedDerivation && !isFullscreen && view === 'accounts';
 
   return (
-    <main className={`app-shell ${isFullscreen ? 'app-shell--fullscreen' : ''}`}>
+    <AvatarActionsProvider actions={data.bridge?.actions}>
+      <main className={`app-shell ${isFullscreen ? 'app-shell--fullscreen' : ''}`}>
       {!isFullscreen ? (
         <>
           <header className="app-header">
@@ -995,6 +997,7 @@ export default function App() {
           {toast}
         </div>
       ) : null}
-    </main>
+      </main>
+    </AvatarActionsProvider>
   );
 }

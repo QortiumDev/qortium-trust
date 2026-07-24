@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  fetchAvatarImage,
   getAvatarFallbackCharacter,
   getIdentityLabel,
   loadIdentityProfile,
@@ -37,41 +36,18 @@ describe('identity profile helpers', () => {
     expect(getAvatarFallbackCharacter(null, '')).toBe('?');
   });
 
-  it('resolves avatar render URLs through the GET_QDN_RESOURCE_URL bridge action', async () => {
-    qdnRequestMock.mockResolvedValueOnce('http://127.0.0.1:24891/render/THUMBNAIL/alice/avatar');
+  it('loads the first registered name without requesting a legacy avatar resource', async () => {
+    qdnRequestMock.mockResolvedValueOnce([
+      { name: null, owner: 'Qabc' },
+      { name: 'bob', owner: 'Qabc' },
+    ]);
 
-    await expect(fetchAvatarImage('alice', ['GET_QDN_RESOURCE_URL'])).resolves.toBe(
-      'http://127.0.0.1:24891/render/THUMBNAIL/alice/avatar',
-    );
-    expect(qdnRequestMock).toHaveBeenCalledWith({
-      action: 'GET_QDN_RESOURCE_URL',
-      service: 'THUMBNAIL',
-      name: 'alice',
-      identifier: 'avatar',
-    });
-  });
-
-  it('throws when the bridge returns no render URL', async () => {
-    qdnRequestMock.mockResolvedValueOnce('');
-
-    await expect(fetchAvatarImage('alice', ['GET_QDN_RESOURCE_URL'])).rejects.toThrow(/render URL/);
-  });
-
-  it('loads the first registered name and keeps it if avatar resolution fails', async () => {
-    qdnRequestMock
-      .mockResolvedValueOnce([
-        { name: null, owner: 'Qabc' },
-        { name: 'bob', owner: 'Qabc' },
-      ])
-      .mockRejectedValueOnce(new Error('No avatar'));
-
-    await expect(
-      loadIdentityProfile('Qabc', ['GET_ACCOUNT_NAMES', 'GET_QDN_RESOURCE_URL']),
-    ).resolves.toEqual({
+    await expect(loadIdentityProfile('Qabc', ['GET_ACCOUNT_NAMES'])).resolves.toEqual({
       address: 'Qabc',
       avatarSrc: null,
       name: 'bob',
     });
+    expect(qdnRequestMock).toHaveBeenCalledTimes(1);
   });
 
   it('resolves to a nameless record when the name lookup itself fails', async () => {
@@ -81,20 +57,6 @@ describe('identity profile helpers', () => {
       address: 'Qdead',
       avatarSrc: null,
       name: null,
-    });
-  });
-
-  it('sets the bridge render URL straight onto the resolved profile', async () => {
-    qdnRequestMock
-      .mockResolvedValueOnce([{ name: 'alice', owner: 'Qalice' }])
-      .mockResolvedValueOnce('http://127.0.0.1:24891/render/THUMBNAIL/alice/avatar');
-
-    await expect(
-      loadIdentityProfile('Qalice', ['GET_ACCOUNT_NAMES', 'GET_QDN_RESOURCE_URL']),
-    ).resolves.toEqual({
-      address: 'Qalice',
-      avatarSrc: 'http://127.0.0.1:24891/render/THUMBNAIL/alice/avatar',
-      name: 'alice',
     });
   });
 
@@ -111,7 +73,7 @@ describe('identity profile helpers', () => {
       ]);
 
       await expect(loadIdentityProfiles(['Qalice', 'Qbob'], ['RESOLVE_IDENTITIES'])).resolves.toEqual([
-        { address: 'Qalice', avatarSrc: 'http://node/THUMBNAIL/alice/avatar', name: 'alice' },
+        { address: 'Qalice', avatarSrc: null, name: 'alice' },
         { address: 'Qbob', avatarSrc: null, name: null },
       ]);
       expect(qdnRequestMock).toHaveBeenCalledTimes(1);
@@ -135,14 +97,11 @@ describe('identity profile helpers', () => {
       ]);
     });
 
-    it('falls back to per-address resolution when RESOLVE_IDENTITIES is not advertised', async () => {
-      // No batch action → per-address path: GET_ACCOUNT_NAMES then (named) avatar resolution.
-      qdnRequestMock
-        .mockResolvedValueOnce([{ name: 'alice', owner: 'Qalice' }])
-        .mockResolvedValueOnce('http://node/render/THUMBNAIL/alice/avatar');
+    it('falls back to per-address name resolution when RESOLVE_IDENTITIES is not advertised', async () => {
+      qdnRequestMock.mockResolvedValueOnce([{ name: 'alice', owner: 'Qalice' }]);
 
-      await expect(loadIdentityProfiles(['Qalice'], ['GET_ACCOUNT_NAMES', 'GET_QDN_RESOURCE_URL'])).resolves.toEqual([
-        { address: 'Qalice', avatarSrc: 'http://node/render/THUMBNAIL/alice/avatar', name: 'alice' },
+      await expect(loadIdentityProfiles(['Qalice'], ['GET_ACCOUNT_NAMES'])).resolves.toEqual([
+        { address: 'Qalice', avatarSrc: null, name: 'alice' },
       ]);
       expect(qdnRequestMock).not.toHaveBeenCalledWith(
         expect.objectContaining({ action: 'RESOLVE_IDENTITIES' }),
@@ -152,8 +111,7 @@ describe('identity profile helpers', () => {
     it('falls back to per-address resolution when the batch call throws', async () => {
       qdnRequestMock
         .mockRejectedValueOnce(new Error('batch unavailable'))
-        .mockResolvedValueOnce([{ name: 'bob', owner: 'Qbob' }])
-        .mockRejectedValueOnce(new Error('no avatar'));
+        .mockResolvedValueOnce([{ name: 'bob', owner: 'Qbob' }]);
 
       await expect(loadIdentityProfiles(['Qbob'], ['RESOLVE_IDENTITIES', 'GET_ACCOUNT_NAMES'])).resolves.toEqual([
         { address: 'Qbob', avatarSrc: null, name: 'bob' },
