@@ -1,31 +1,11 @@
 import { hasHomeBridge, qdnRequest } from './qdnRequest';
 import { fetchNodeApiData } from './trustApi';
 import type { IdentityProfile, NameSummary, QdnAction } from './types';
+import { hasBridgeAction } from './avatarClient';
 import { t } from './i18n';
 
-const AVATAR_MAX_BYTES = 500 * 1024;
 const NAME_MAX_BYTES = 2 * 1024 * 1024;
-
-// How long a failed avatar/name resolution is remembered before it is retried.
-// Mirrors Home's `useAccountAvatar` cooldown so a not-yet-published avatar is not
-// permanently null for the lifetime of the session.
-const NEGATIVE_CACHE_COOLDOWN_MS = 5 * 60 * 1000;
-
-// Upper bound on the negative-cache size so a long session browsing many distinct accounts can't
-// grow it without limit. When full, the oldest entries are evicted first — they are also the most
-// likely to be past the cooldown and eligible for a retry anyway (perf-003).
-const NEGATIVE_CACHE_MAX_ENTRIES = 1000;
-
-// Raster image types we are willing to assemble into a data URI in the dev fallback.
-// SVG/XML are intentionally excluded (#30 hardening).
-const RASTER_IMAGE_MIME_TYPES = new Set(['image/png', 'image/jpeg', 'image/gif', 'image/webp']);
-
-type NegativeCacheEntry = { at: number };
-
-// Module-level caches keyed by address. The negative cache records failed avatar
-// resolutions (so they are not retried on every churn within the cooldown window),
-// and the in-flight map de-dups concurrent resolutions of the same address.
-const avatarNegativeCache = new Map<string, NegativeCacheEntry>();
+// Module-level map de-dups concurrent name resolutions for the same address.
 const inFlightProfiles = new Map<string, Promise<IdentityProfile>>();
 
 export function normalizeRegisteredName(name: string | null | undefined) {
@@ -40,10 +20,6 @@ export function getAvatarFallbackCharacter(name: string | null | undefined, _add
   }
 
   return '?';
-}
-
-function hasBridgeAction(actions: QdnAction[] | undefined, action: string) {
-  return actions?.some((candidate) => candidate.toUpperCase() === action.toUpperCase()) ?? false;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -72,51 +48,6 @@ function getFirstRegisteredName(names: NameSummary[]) {
   return null;
 }
 
-function sniffRasterMimeType(base64: string) {
-  if (base64.startsWith('iVBORw0KGgo')) {
-    return 'image/png';
-  }
-
-  if (base64.startsWith('/9j/')) {
-    return 'image/jpeg';
-  }
-
-  if (base64.startsWith('R0lGOD')) {
-    return 'image/gif';
-  }
-
-  if (base64.startsWith('UklGR')) {
-    return 'image/webp';
-  }
-
-  return 'image/png';
-}
-
-function getRasterMimeType(properties: unknown, base64: string) {
-  const mimeType = getStringProperty(properties, 'mimeType')?.toLowerCase();
-
-  if (mimeType && RASTER_IMAGE_MIME_TYPES.has(mimeType)) {
-    return mimeType;
-  }
-
-  // Ignore non-raster (e.g. svg/xml) or missing mimeTypes and sniff the payload instead.
-  return sniffRasterMimeType(base64);
-}
-
-function getBase64Payload(value: unknown) {
-  if (typeof value !== 'string') {
-    throw new Error(t('error.avatarUnsupported'));
-  }
-
-  const base64 = value.trim();
-
-  if (!base64) {
-    throw new Error(t('error.avatarEmpty'));
-  }
-
-  return base64;
-}
-
 async function getAccountNames(address: string, actions?: QdnAction[]) {
   if (hasBridgeAction(actions, 'GET_ACCOUNT_NAMES')) {
     return qdnRequest<NameSummary[]>({
@@ -130,106 +61,6 @@ async function getAccountNames(address: string, actions?: QdnAction[]) {
 
 async function resolveRegisteredName(address: string, actions?: QdnAction[]) {
   return getFirstRegisteredName(await getAccountNames(address, actions));
-}
-
-/**
- * Resolve an avatar render URL via Home's `GET_QDN_RESOURCE_URL` bridge action.
- * Home performs a status check first and returns a ready-to-use `renderUrl` string
- * (or throws when the resource is not published), so the URL is set straight onto
- * the `<img src>` without any base64/data-URI assembly on the app side.
- */
-async function fetchAvatarRenderUrl(name: string) {
-  const renderUrl = await qdnRequest<unknown>({
-    action: 'GET_QDN_RESOURCE_URL',
-    service: 'THUMBNAIL',
-    name,
-    identifier: 'avatar',
-  });
-
-  if (typeof renderUrl !== 'string' || !renderUrl) {
-    throw new Error(t('error.avatarRenderUrl'));
-  }
-
-  return renderUrl;
-}
-
-/**
- * Dev/browser fallback (no Home bridge): fetch the avatar from the local Core node
- * as base64 and assemble a data URI. Status-first via the resource status endpoint
- * (no forced rebuild — #7) so an unbuilt/not-yet-published THUMBNAIL is skipped
- * cheaply instead of triggering an expensive rebuild on every cold list load.
- */
-async function fetchAvatarDataUri(name: string) {
-  const status = await fetchNodeApiData<unknown>(
-    `/arbitrary/resource/status/THUMBNAIL/${encodeURIComponent(name)}/avatar`,
-    t('fetch.avatarStatus'),
-    64 * 1024,
-  );
-
-  const statusValue = getStringProperty(status, 'status');
-
-  if (!statusValue || statusValue === 'NOT_PUBLISHED') {
-    throw new Error(t('error.avatarMissing'));
-  }
-
-  const base64 = getBase64Payload(
-    await fetchNodeApiData<string>(
-      `/arbitrary/THUMBNAIL/${encodeURIComponent(name)}/avatar?encoding=base64`,
-      t('fetch.avatarImage'),
-      AVATAR_MAX_BYTES,
-    ),
-  );
-  const mimeType = getRasterMimeType(status, base64);
-
-  return `data:${mimeType};base64,${base64}`;
-}
-
-export async function fetchAvatarImage(name: string, actions?: QdnAction[]): Promise<string> {
-  if (hasHomeBridge() && hasBridgeAction(actions, 'GET_QDN_RESOURCE_URL')) {
-    return fetchAvatarRenderUrl(name);
-  }
-
-  return fetchAvatarDataUri(name);
-}
-
-async function resolveAvatarSrc(name: string, address: string, actions?: QdnAction[]) {
-  const cooled = avatarNegativeCache.get(address);
-
-  if (cooled && Date.now() - cooled.at < NEGATIVE_CACHE_COOLDOWN_MS) {
-    return null;
-  }
-
-  try {
-    const avatarSrc = await fetchAvatarImage(name, actions);
-
-    avatarNegativeCache.delete(address);
-
-    return avatarSrc;
-  } catch {
-    // Record the failure so an unpublished/unbuilt avatar is not retried on every
-    // profile churn, but is retried once the cooldown elapses (#11).
-    rememberAvatarFailure(address);
-
-    return null;
-  }
-}
-
-// Insert a negative-cache entry, evicting the oldest entries first to stay within the size cap. Map
-// iteration order is insertion order, so the first key is the oldest (perf-003).
-function rememberAvatarFailure(address: string) {
-  // Re-insert at the end so the freshest failure is treated as most-recent for eviction.
-  avatarNegativeCache.delete(address);
-  avatarNegativeCache.set(address, { at: Date.now() });
-
-  while (avatarNegativeCache.size > NEGATIVE_CACHE_MAX_ENTRIES) {
-    const oldest = avatarNegativeCache.keys().next().value;
-
-    if (oldest === undefined) {
-      break;
-    }
-
-    avatarNegativeCache.delete(oldest);
-  }
 }
 
 async function resolveIdentityProfile(address: string, actions?: QdnAction[]): Promise<IdentityProfile> {
@@ -253,7 +84,9 @@ async function resolveIdentityProfile(address: string, actions?: QdnAction[]): P
 
   return {
     address,
-    avatarSrc: await resolveAvatarSrc(name, address, actions),
+    // Avatar bytes are requested only by mounted table/detail avatar components. Do not attach
+    // legacy URL hints here: the graph can represent a large server-provided network safely as text.
+    avatarSrc: null,
     name,
   };
 }
@@ -313,15 +146,13 @@ async function mapWithConcurrency<T, R>(items: T[], limit: number, resolve: (ite
   return results;
 }
 
-type ResolvedIdentityEntry = { address?: unknown; name?: unknown; avatarSrc?: unknown };
+type ResolvedIdentityEntry = { address?: unknown; name?: unknown };
 
 function toIdentityProfile(entry: ResolvedIdentityEntry, address: string): IdentityProfile {
   const name = normalizeRegisteredName(typeof entry.name === 'string' ? entry.name : null);
-  // Home only emits an avatarSrc for named accounts and does not status-check it, so an unpublished
-  // avatar still yields a URL here; IdentityAvatar falls back to the glyph on image error.
-  const avatarSrc = name && typeof entry.avatarSrc === 'string' && entry.avatarSrc ? entry.avatarSrc : null;
-
-  return { address, avatarSrc, name };
+  // Intentionally ignore the legacy avatarSrc hint. Only mounted table/detail avatars call the
+  // pointer-aware FETCH_ACCOUNT_AVATAR bridge action, which avoids graph-wide image fetches.
+  return { address, avatarSrc: null, name };
 }
 
 async function resolveIdentitiesViaBridge(addresses: string[]): Promise<IdentityProfile[]> {
@@ -354,9 +185,8 @@ async function resolveIdentitiesViaBridge(addresses: string[]): Promise<Identity
 }
 
 /**
- * Resolve identities for many addresses at once. When Home advertises `RESOLVE_IDENTITIES` the whole
- * set is resolved in one chunked bridge call instead of a name+avatar round-trip per address
- * (perf-002); otherwise it falls back to the per-address path with bounded concurrency.
+ * Resolve names for many addresses at once. The legacy batch response may include avatarSrc, but it
+ * is deliberately ignored; visible components use FETCH_ACCOUNT_AVATAR separately.
  */
 export async function loadIdentityProfiles(addresses: string[], actions?: QdnAction[]): Promise<IdentityProfile[]> {
   if (addresses.length === 0) {
