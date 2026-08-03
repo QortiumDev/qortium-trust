@@ -37,10 +37,7 @@ const derivation: TrustDerivation = {
   derivedTrustStatus: 'SILVER',
   derivedTrustStatusValue: 3,
   derivedTrustWeightPercent: 50,
-  live: true,
   mintingSeedMember: false,
-  snapshotHeight: 100,
-  snapshotTimestamp: 1_700_000_000_000,
 };
 
 describe('AccountsTable unified role directory', () => {
@@ -51,7 +48,6 @@ describe('AccountsTable unified role directory', () => {
       <AccountsTable
         category="SUBJECT"
         derivations={[derivation]}
-        live
         onSelect={onSelect}
         onSort={vi.fn()}
         profiles={{ Qtarget: { address: 'Qtarget', avatarSrc: null, name: 'Target' } }}

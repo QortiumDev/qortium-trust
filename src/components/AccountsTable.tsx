@@ -4,11 +4,16 @@ import { categoryLabel, formatNumber, ratingTone } from '../format';
 import type {
   AccountRatingCategory,
   IdentityProfilesByAddress,
-  SelfAccount,
   TrustDerivation,
   TrustStatus,
 } from '../types';
-import type { AccountSortKey, AccountSortState, PendingRatingEntry, RatingsByAddress } from '../viewTypes';
+import type {
+  AccountSortKey,
+  AccountSortState,
+  PendingValueByAccountCategory,
+  RatingsByAddress,
+  RatingValuesByAccountCategory,
+} from '../viewTypes';
 import {
   compareAccountLabels,
   compareAccountRows,
@@ -16,35 +21,14 @@ import {
   getAriaSort,
   getDerivationCategory,
 } from '../accountSort';
+import { getDisplayedRating, pendingRatingKey } from '../ratingControl';
 import { EmptyState, IdentityAvatar, IdentityLabel, StatusBadge } from './Identity';
 import { t } from '../i18n';
 
 const MemoIdentityAvatar = memo(IdentityAvatar);
 const MemoStatusBadge = memo(StatusBadge);
 
-/**
- * Cross-category rating values use the same stable key as pendingRatingKey:
- * `${category}:${targetAddress}`.
- */
-export type RatingValuesByAccountCategory = Record<string, number>;
-
-type PendingValueByAccountCategory = Record<string, number | PendingRatingEntry>;
-
 const ROLE_ORDER: AccountRatingCategory[] = ['MANAGER', 'TRAINER', 'PLAYER', 'SUBJECT'];
-
-function ratingKey(category: AccountRatingCategory, targetAddress: string) {
-  return `${category}:${targetAddress}`;
-}
-
-function getPendingValue(
-  pendingByKey: PendingValueByAccountCategory | undefined,
-  category: AccountRatingCategory,
-  targetAddress: string,
-) {
-  const entry = pendingByKey?.[ratingKey(category, targetAddress)];
-
-  return typeof entry === 'number' ? entry : entry?.rating;
-}
 
 function RatingValue({ pending, value }: { pending?: number; value?: number }) {
   if (pending !== undefined) {
@@ -112,7 +96,6 @@ export function SortHeader({
 type AccountsTableProps = {
   category: AccountRatingCategory;
   derivations: TrustDerivation[];
-  live: boolean;
   loadedCount?: number;
   onResetFilters?: () => void;
   onSelect: (derivation: TrustDerivation) => void;
@@ -134,17 +117,11 @@ type AccountsTableProps = {
   // They only fill the currently selected category and can be removed after App migrates.
   youRatedByAddress?: RatingsByAddress;
   pendingByAddress?: RatingsByAddress;
-  onRate?: (address: string | null) => void;
-  onRatingSubmitted?: (entry: PendingRatingEntry) => void;
-  openRateAddress?: string | null;
-  ratingActionAvailable?: boolean;
-  self?: SelfAccount | null;
 };
 
 export function AccountsTable({
   category,
   derivations,
-  live,
   loadedCount,
   onResetFilters,
   onSelect,
@@ -164,6 +141,49 @@ export function AccountsTable({
     () => ({ ...youRatedByAddress, ...pendingByAddress }),
     [pendingByAddress, youRatedByAddress],
   );
+
+  // `youRatedByAddress`/`pendingByAddress` are transitional (see above) and only apply to the
+  // currently selected category. Fold them into the compound-keyed maps once so every cell can
+  // resolve its displayed rating through the same getDisplayedRating lookup.
+  const effectiveYouRatedByKey = useMemo(() => {
+    const addresses = Object.keys(youRatedByAddress);
+
+    if (addresses.length === 0) {
+      return youRatedByKey;
+    }
+
+    const merged: RatingValuesByAccountCategory = { ...youRatedByKey };
+
+    for (const address of addresses) {
+      const key = pendingRatingKey(category, address);
+
+      if (merged[key] === undefined) {
+        merged[key] = youRatedByAddress[address];
+      }
+    }
+
+    return merged;
+  }, [category, youRatedByAddress, youRatedByKey]);
+
+  const effectivePendingByKey = useMemo(() => {
+    const addresses = Object.keys(pendingByAddress);
+
+    if (addresses.length === 0) {
+      return pendingByKey;
+    }
+
+    const merged: PendingValueByAccountCategory = { ...pendingByKey };
+
+    for (const address of addresses) {
+      const key = pendingRatingKey(category, address);
+
+      if (merged[key] === undefined) {
+        merged[key] = pendingByAddress[address];
+      }
+    }
+
+    return merged;
+  }, [category, pendingByAddress, pendingByKey]);
 
   const sortedDerivations = useMemo(
     () =>
@@ -218,9 +238,7 @@ export function AccountsTable({
     <div aria-label={t('nav.accounts')} className="table-wrap accounts-directory" role="region" tabIndex={0}>
       <table className="accounts-table accounts-table--unified">
         <caption className="table-caption">
-          <span className={`data-mode-badge data-mode-badge--${live ? 'live' : 'snapshot'}`}>
-            {live ? t('label.live') : t('label.snapshot')}
-          </span>
+          <span className="data-mode-badge data-mode-badge--live">{t('label.live')}</span>
           {showCountHint ? (
             <span className="table-caption__count">
               {t('accounts.showingCount', { loaded: loadedCount as number, total: totalCount as number })}
@@ -235,15 +253,8 @@ export function AccountsTable({
             <th aria-sort={getAriaSort(sort, 'status')}>
               <SortHeader label={t('label.displayedTrust')} onSort={onSort} sort={sort} sortKey="status" />
             </th>
-            <th aria-sort={live ? getAriaSort(sort, 'blocksMinted') : 'none'} title={t('tooltip.blocksMinted')}>
-              <SortHeader
-                disabled={!live}
-                disabledReason={live ? undefined : t('sort.unavailableSnapshot')}
-                label={t('label.blocksMinted')}
-                onSort={onSort}
-                sort={sort}
-                sortKey="blocksMinted"
-              />
+            <th aria-sort={getAriaSort(sort, 'blocksMinted')} title={t('tooltip.blocksMinted')}>
+              <SortHeader label={t('label.blocksMinted')} onSort={onSort} sort={sort} sortKey="blocksMinted" />
             </th>
             {ROLE_ORDER.map((role) => (
               <th key={role} scope="col">
@@ -282,18 +293,16 @@ export function AccountsTable({
                   <MemoStatusBadge status={derivation.derivedTrustStatus} />
                 </td>
                 <td data-label={t('label.blocksMinted')}>
-                  {live && derivation.blocksMinted !== undefined
-                    ? formatNumber(getAccountBlocksMinted(derivation))
-                    : '—'}
+                  {derivation.blocksMinted !== undefined ? formatNumber(getAccountBlocksMinted(derivation)) : '—'}
                 </td>
                 {ROLE_ORDER.map((role) => {
                   const roleData = getDerivationCategory(derivation, role);
-                  const currentValue =
-                    youRatedByKey?.[ratingKey(role, derivation.accountAddress)] ??
-                    (role === category ? youRatedByAddress[derivation.accountAddress] : undefined);
-                  const pendingValue =
-                    getPendingValue(pendingByKey, role, derivation.accountAddress) ??
-                    (role === category ? pendingByAddress[derivation.accountAddress] : undefined);
+                  const displayed = getDisplayedRating(
+                    effectivePendingByKey,
+                    effectiveYouRatedByKey,
+                    role,
+                    derivation.accountAddress,
+                  );
 
                   return (
                     <td className="account-role-cell" data-label={categoryLabel(role)} key={role}>
@@ -323,7 +332,7 @@ export function AccountsTable({
                           <div>
                             <dt>{t('label.youRated')}</dt>
                             <dd>
-                              <RatingValue pending={pendingValue} value={currentValue} />
+                              <RatingValue pending={displayed.pending ? displayed.value : undefined} value={displayed.value} />
                             </dd>
                           </div>
                         </dl>

@@ -10,9 +10,7 @@ import {
   type SimulationNodeDatum,
 } from 'd3-force';
 import type {
-  AccountRating,
   AccountRatingCategory,
-  TrustDerivation,
   TrustGraph as ServerTrustGraph,
   TrustGraphEdge as ServerTrustGraphEdge,
   TrustGraphNode as ServerTrustGraphNode,
@@ -68,29 +66,6 @@ export type TrustGraphModel = {
   width: number;
   height: number;
 };
-
-function getCategory(derivation: TrustDerivation, category: AccountRatingCategory) {
-  return derivation.categories.find((candidate) => candidate.category === category);
-}
-
-function getNodeFromDerivation(derivation: TrustDerivation, category: AccountRatingCategory): TrustGraphNode {
-  const categoryData = getCategory(derivation, category);
-
-  return {
-    address: derivation.accountAddress,
-    publicKey: derivation.accountPublicKey,
-    status: derivation.derivedTrustStatus,
-    level: categoryData?.level ?? 0,
-    score: categoryData?.score ?? 0,
-    seedMember: derivation.mintingSeedMember,
-    radius: 12,
-    inboundWeight: 0,
-    outboundWeight: 0,
-    linkCount: 0,
-    x: 0,
-    y: 0,
-  };
-}
 
 function getNodeFromServer(node: ServerTrustGraphNode): TrustGraphNode {
   return {
@@ -264,44 +239,6 @@ function positionNodes(nodes: TrustGraphNode[], links: TrustGraphLink[], width: 
     width: Math.max(width, Math.round(maxX - minX + CANVAS_PADDING * 2)),
     height: Math.max(baseHeight, Math.round(maxY - minY + CANVAS_PADDING * 2)),
   };
-}
-
-export function createTrustGraphModel(
-  derivations: TrustDerivation[],
-  ratings: AccountRating[],
-  category: AccountRatingCategory,
-  width = 960,
-  baseHeight = 520,
-  options: TrustGraphFilterOptions = {},
-): TrustGraphModel {
-  return createTrustGraphModelFromServer(
-    {
-      category,
-      nodes: derivations.map((derivation) => {
-        const node = getNodeFromDerivation(derivation, category);
-
-        return {
-          address: node.address,
-          publicKey: node.publicKey,
-          status: node.status,
-          level: node.level,
-          score: node.score,
-          seedMember: node.seedMember,
-        };
-      }),
-      edges: ratings
-        .filter((rating) => rating.category === category)
-        .map((rating) => ({
-          source: rating.raterAddress,
-          target: rating.targetAddress,
-          rating: rating.rating,
-          confidence: rating.ratingConfidence,
-        })),
-    },
-    options,
-    width,
-    baseHeight,
-  );
 }
 
 export function filterTrustGraphEdges(

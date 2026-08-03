@@ -37,10 +37,7 @@ const selectedDerivation: TrustDerivation = {
   derivedTrustStatus: 'SILVER',
   derivedTrustStatusValue: 3,
   derivedTrustWeightPercent: 50,
-  live: true,
   mintingSeedMember: false,
-  snapshotHeight: 100,
-  snapshotTimestamp: 1_700_000_000_000,
 };
 
 describe('AccountDetail role workspace', () => {
@@ -51,7 +48,6 @@ describe('AccountDetail role workspace', () => {
       <AccountDetail
         category="SUBJECT"
         detail={{ explanation: null, loading: false, profile: null, publicKey: 'target-public-key' }}
-        live
         onActiveCategoryChange={onActiveCategoryChange}
         onBack={vi.fn()}
         onRatingSubmitted={vi.fn()}
@@ -60,7 +56,7 @@ describe('AccountDetail role workspace', () => {
         ratingActionAvailable={false}
         self={null}
         selectedDerivation={selectedDerivation}
-        youRatedByCategory={{ MANAGER: 4, SUBJECT: 1 }}
+        youRatedByKey={{ 'MANAGER:Qtarget': 4, 'SUBJECT:Qtarget': 1 }}
       />,
     );
 

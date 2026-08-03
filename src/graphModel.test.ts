@@ -1,12 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import {
-  createTrustGraphModel,
-  createTrustGraphModelFromServer,
-  filterTrustGraphEdges,
-  focusTrustGraphModel,
-} from './graphModel';
+import { createTrustGraphModelFromServer, filterTrustGraphEdges, focusTrustGraphModel } from './graphModel';
 import { filterDerivations } from './derivationFilter';
-import type { AccountRating, TrustDerivation, TrustGraph } from './types';
+import type { TrustDerivation, TrustGraph } from './types';
 
 const derivations: TrustDerivation[] = [
   {
@@ -43,23 +38,7 @@ const derivations: TrustDerivation[] = [
     blocksMinted: 0,
     mintingLevel: 0,
     effectiveVoteWeight: 0,
-    live: false,
     mintingSeedMember: true,
-    snapshotHeight: 10,
-    snapshotTimestamp: 1000,
-  },
-];
-
-const ratings: AccountRating[] = [
-  {
-    category: 'SUBJECT',
-    raterAddress: 'Qbob',
-    raterPublicKey: 'bob-public',
-    rating: 2,
-    ratingConfidence: 2,
-    ratingDirection: 'POSITIVE',
-    targetAddress: 'Qalice',
-    targetPublicKey: 'alice-public',
   },
 ];
 
@@ -157,8 +136,12 @@ describe('trust graph model', () => {
     expect(graph.links).toHaveLength(3);
   });
 
-  it('creates nodes from derivations and rating endpoints', () => {
-    const graph = createTrustGraphModel(derivations, ratings, 'SUBJECT');
+  it('creates a placeholder node for a rating endpoint absent from the node list', () => {
+    const graph = createTrustGraphModelFromServer({
+      category: 'SUBJECT',
+      edges: [{ confidence: 2, rating: 2, source: 'Qbob', target: 'Qalice' }],
+      nodes: [{ address: 'Qalice', level: 1, score: 10, seedMember: true, status: 'BRONZE' }],
+    });
 
     expect(graph.nodes.map((node) => node.address).sort()).toEqual(['Qalice', 'Qbob']);
     // Links keep their identity/metadata and resolve back to plain address strings after the
@@ -176,47 +159,29 @@ describe('trust graph model', () => {
   });
 
   it('omits zero ratings from links and placeholder nodes', () => {
-    const graph = createTrustGraphModel(
-      derivations,
-      [
-        {
-          ...ratings[0],
-          raterAddress: 'Qzero',
-          raterPublicKey: 'zero-public',
-          rating: 0,
-        },
-      ],
-      'SUBJECT',
-    );
+    const graph = createTrustGraphModelFromServer({
+      category: 'SUBJECT',
+      edges: [{ confidence: 2, rating: 0, source: 'Qzero', target: 'Qalice' }],
+      nodes: [{ address: 'Qalice', level: 1, score: 10, seedMember: true, status: 'BRONZE' }],
+    });
 
     expect(graph.links).toHaveLength(0);
     expect(graph.nodes.map((node) => node.address)).toEqual(['Qalice']);
   });
 
   it('sizes highly connected nodes larger than isolated nodes', () => {
-    const graph = createTrustGraphModel(
-      [
-        ...derivations,
-        {
-          ...derivations[0],
-          accountAddress: 'Qtarget',
-          accountPublicKey: 'target-public',
-          mintingSeedMember: false,
-        },
-        {
-          ...derivations[0],
-          accountAddress: 'Qisolated',
-          accountPublicKey: 'isolated-public',
-          mintingSeedMember: false,
-        },
+    const graph = createTrustGraphModelFromServer({
+      category: 'SUBJECT',
+      edges: [
+        { confidence: 2, rating: 4, source: 'Qa', target: 'Qtarget' },
+        { confidence: 2, rating: 3, source: 'Qb', target: 'Qtarget' },
+        { confidence: 2, rating: -2, source: 'Qc', target: 'Qtarget' },
       ],
-      [
-        { ...ratings[0], raterAddress: 'Qa', targetAddress: 'Qtarget', rating: 4, ratingConfidence: 2 },
-        { ...ratings[0], raterAddress: 'Qb', targetAddress: 'Qtarget', rating: 3, ratingConfidence: 2 },
-        { ...ratings[0], raterAddress: 'Qc', targetAddress: 'Qtarget', rating: -2, ratingConfidence: 2 },
+      nodes: [
+        { address: 'Qtarget', level: 1, score: 10, seedMember: false, status: 'BRONZE' },
+        { address: 'Qisolated', level: 1, score: 10, seedMember: false, status: 'BRONZE' },
       ],
-      'SUBJECT',
-    );
+    });
     const target = graph.nodes.find((node) => node.address === 'Qtarget');
     const isolated = graph.nodes.find((node) => node.address === 'Qisolated');
 
@@ -224,10 +189,10 @@ describe('trust graph model', () => {
   });
 
   it('moves a focused node closer to the graph center', () => {
-    const base = createTrustGraphModel(derivations, ratings, 'SUBJECT');
-    const focused = focusTrustGraphModel(base, 'Qalice');
-    const baseNode = base.nodes.find((node) => node.address === 'Qalice');
-    const focusedNode = focused.nodes.find((node) => node.address === 'Qalice');
+    const base = createTrustGraphModelFromServer(serverGraph);
+    const focused = focusTrustGraphModel(base, 'Qroot');
+    const baseNode = base.nodes.find((node) => node.address === 'Qroot');
+    const focusedNode = focused.nodes.find((node) => node.address === 'Qroot');
     const center = { x: base.width / 2, y: base.height / 2 };
 
     expect(baseNode).toBeDefined();
@@ -239,7 +204,7 @@ describe('trust graph model', () => {
   });
 
   it('frames every node inside the reported canvas bounds', () => {
-    const graph = createTrustGraphModel(derivations, ratings, 'SUBJECT');
+    const graph = createTrustGraphModelFromServer(serverGraph);
 
     for (const node of graph.nodes) {
       expect(node.x).toBeGreaterThanOrEqual(0);
@@ -250,8 +215,8 @@ describe('trust graph model', () => {
   });
 
   it('is deterministic for the same input', () => {
-    const first = createTrustGraphModel(derivations, ratings, 'SUBJECT');
-    const second = createTrustGraphModel(derivations, ratings, 'SUBJECT');
+    const first = createTrustGraphModelFromServer(serverGraph);
+    const second = createTrustGraphModelFromServer(serverGraph);
 
     expect(second.width).toBe(first.width);
     expect(second.height).toBe(first.height);
@@ -263,13 +228,19 @@ describe('trust graph model', () => {
   it('separates unrelated nodes instead of stacking them in one column', () => {
     // Three accounts with no ratings between them: the old lane layout placed them at one shared x;
     // the force layout must spread them apart in two dimensions.
-    const isolated: TrustDerivation[] = ['Qone', 'Qtwo', 'Qthree'].map((address) => ({
-      ...derivations[0],
-      accountAddress: address,
-      accountPublicKey: `${address}-public`,
-    }));
+    const isolatedGraph: TrustGraph = {
+      category: 'SUBJECT',
+      edges: [],
+      nodes: ['Qone', 'Qtwo', 'Qthree'].map((address) => ({
+        address,
+        level: 1,
+        score: 10,
+        seedMember: true,
+        status: 'BRONZE',
+      })),
+    };
 
-    const graph = createTrustGraphModel(isolated, [], 'SUBJECT');
+    const graph = createTrustGraphModelFromServer(isolatedGraph);
     const xs = new Set(graph.nodes.map((node) => Math.round(node.x)));
     const pairwise = [
       distance(graph.nodes[0], graph.nodes[1]),

@@ -9,7 +9,7 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { changeAccountSortState, getTrustDerivationServerSort } from './accountSort';
-import { AccountsTable, type RatingValuesByAccountCategory } from './components/AccountsTable';
+import { AccountsTable } from './components/AccountsTable';
 import { AccountDetail } from './components/AccountDetail';
 import { ChangesTable } from './components/ChangesTable';
 import { NodeSyncPill } from './components/Identity';
@@ -59,6 +59,7 @@ import type {
   ExplorerState,
   PendingRatingEntry,
   PendingRatingsByKey,
+  RatingValuesByAccountCategory,
   ViewMode,
 } from './viewTypes';
 
@@ -204,7 +205,6 @@ export default function App() {
   const [view, setView] = useState<ViewMode>('accounts');
   const [youRatedRatings, setYouRatedRatings] = useState<AccountRating[]>([]);
 
-  const live = true;
   const loadTokenRef = useRef(0);
   const restoreListFocusRef = useRef(false);
   const navRef = useRef<HTMLElement>(null);
@@ -282,7 +282,7 @@ export default function App() {
         getTrustDerivationPage({
           category,
           limit: derivationLimit,
-          live,
+          live: true,
           ...serverDerivationSort,
         }),
         getTrustChanges({ limit: 100 }),
@@ -432,7 +432,7 @@ export default function App() {
 
     Promise.all([
       getTrustProfile(publicKey),
-      getTrustExplanation(publicKey, live),
+      getTrustExplanation(publicKey, true),
       getAllRatings({ target: publicKey }),
     ])
       .then(([profile, explanation, ratings]) => {
@@ -489,32 +489,6 @@ export default function App() {
 
     return byKey;
   }, [youRatedRatings]);
-
-  const selectedYouRatedByCategory = useMemo(() => {
-    if (!selectedDerivation) {
-      return {};
-    }
-
-    return Object.fromEntries(
-      TRUST_CATEGORIES.flatMap((role) => {
-        const value = youRatedByKey[pendingRatingKey(role, selectedDerivation.accountAddress)];
-        return value === undefined ? [] : [[role, value]];
-      }),
-    ) as Partial<Record<AccountRatingCategory, number>>;
-  }, [selectedDerivation, youRatedByKey]);
-
-  const selectedPendingByCategory = useMemo(() => {
-    if (!selectedDerivation) {
-      return {};
-    }
-
-    return Object.fromEntries(
-      TRUST_CATEGORIES.flatMap((role) => {
-        const value = pendingRatings[pendingRatingKey(role, selectedDerivation.accountAddress)]?.rating;
-        return value === undefined ? [] : [[role, value]];
-      }),
-    ) as Partial<Record<AccountRatingCategory, number>>;
-  }, [pendingRatings, selectedDerivation]);
 
   useEffect(() => {
     const addresses = new Set<string>();
@@ -966,7 +940,6 @@ export default function App() {
               category={category}
               detail={detail}
               key={`${selectedDerivation.accountAddress}:${self?.address ?? 'readonly'}`}
-              live={live}
               onActiveCategoryChange={setCategory}
               onBack={handleBack}
               onDismissPending={handleDismissPending}
@@ -975,7 +948,6 @@ export default function App() {
               }}
               onRatingSubmitted={handleRatingSubmitted}
               onRetryPending={handleRetryPending}
-              pendingByCategory={selectedPendingByCategory}
               pendingRatings={pendingRatings}
               profile={identityProfiles[selectedDerivation.accountAddress]}
               profiles={identityProfiles}
@@ -983,7 +955,7 @@ export default function App() {
               receivedRatings={receivedRatings}
               self={self}
               selectedDerivation={selectedDerivation}
-              youRatedByCategory={selectedYouRatedByCategory}
+              youRatedByKey={youRatedByKey}
             />
           ) : loading && view !== 'graph' ? (
             loadingPanel
@@ -992,7 +964,6 @@ export default function App() {
               <AccountsTable
                 category={category}
                 derivations={filteredDerivations}
-                live={live}
                 loadedCount={data.derivations.length}
                 onResetFilters={() => {
                   setQuery('');
@@ -1022,8 +993,6 @@ export default function App() {
           ) : view === 'graph' ? (
             <Suspense fallback={loadingPanel}>
               <TrustGraphView
-                category={category}
-                derivations={[]}
                 direction={graphDirection}
                 incidentOnly={graphDepth === 1}
                 isExpanded={isFullscreen}
@@ -1034,9 +1003,8 @@ export default function App() {
                   setGraphSelectedAddress((current) => (current === node.address ? graphRootAddress : node.address))
                 }
                 profiles={identityProfiles}
-                ratings={[]}
                 selectedAddress={graphSelectedAddress ?? graphRootAddress}
-                serverGraph={serverGraph ?? undefined}
+                serverGraph={serverGraph ?? { category, edges: [], nodes: [] }}
                 sign={graphSign}
                 signature={graphSignature}
               />
