@@ -11,7 +11,13 @@ import type {
   SelfAccount,
   TrustDerivation,
 } from '../types';
-import type { AccountDetailState, PendingRatingEntry, PendingRatingsByKey } from '../viewTypes';
+import type {
+  AccountDetailState,
+  PendingRatingEntry,
+  PendingRatingsByKey,
+  RatingValuesByAccountCategory,
+} from '../viewTypes';
+import { getDisplayedRating, type DisplayedRating } from '../ratingControl';
 import { IdentityAvatar, IdentityLabel, StatusBadge } from './Identity';
 import { RatingForm } from './RatingControls';
 import { t, type TranslationKey } from '../i18n';
@@ -40,8 +46,6 @@ type TrustRequirement = {
 type ExplanationCategoryWithRequirements = AccountTrustExplanation['categories'][number] & {
   requirements?: TrustRequirement[];
 };
-
-type RatingByCategory = Partial<Record<AccountRatingCategory, number>>;
 
 function CopyValueButton({ label, value }: { label: string; value: string }) {
   const [status, setStatus] = useState<'idle' | 'copied' | 'failed'>('idle');
@@ -140,30 +144,27 @@ function RoleStandingCard({
   active,
   category,
   derivation,
+  displayed,
   explanation,
   onSelect,
-  pendingRating,
   profile,
-  youRated,
 }: {
   active: boolean;
   category: AccountRatingCategory;
   derivation: TrustDerivation;
+  displayed: DisplayedRating;
   explanation?: ExplanationCategoryWithRequirements;
   onSelect: () => void;
-  pendingRating?: number;
   profile?: AccountDetailState['profile'] extends infer Profile
     ? Profile extends { categories: Array<infer Category> }
       ? Category
       : never
     : never;
-  youRated?: number;
 }) {
   const fallback = derivation.categories.find((candidate) => candidate.category === category);
   const categoryData = profile ?? fallback;
   const status = categoryData?.mappedTrustStatus;
   const inbound = profile?.inboundRatings ?? fallback?.inboundRatings;
-  const displayRating = pendingRating ?? youRated;
 
   return (
     <button
@@ -193,9 +194,9 @@ function RoleStandingCard({
         </span>
         <span>
           {t('label.youRated')}{' '}
-          <strong className={pendingRating !== undefined ? 'you-rated-pending' : undefined}>
-            {pendingRating !== undefined ? <span aria-hidden="true" className="you-rated-spinner" /> : null}
-            {ratingValue(displayRating)}
+          <strong className={displayed.pending ? 'you-rated-pending' : undefined}>
+            {displayed.pending ? <span aria-hidden="true" className="you-rated-spinner" /> : null}
+            {ratingValue(displayed.value)}
           </strong>
         </span>
       </span>
@@ -212,15 +213,12 @@ function RoleStandingCard({
 export function AccountDetail({
   category,
   detail,
-  live,
   onActiveCategoryChange,
   onBack,
   onDismissPending,
   onOpenAccount,
   onRatingSubmitted,
   onRetryPending,
-  pendingByCategory,
-  pendingRating,
   pendingRatings,
   profile,
   profiles,
@@ -228,21 +226,19 @@ export function AccountDetail({
   receivedRatings,
   self,
   selectedDerivation,
-  youRatedByCategory,
+  youRatedByKey,
 }: {
   category: AccountRatingCategory;
   detail: AccountDetailState;
-  live: boolean;
   onActiveCategoryChange?: (category: AccountRatingCategory) => void;
   onBack: () => void;
   onDismissPending?: (key: string) => void;
   onOpenAccount?: (address: string) => void;
   onRatingSubmitted: (entry: PendingRatingEntry) => void;
   onRetryPending?: (key: string) => void;
-  pendingByCategory?: RatingByCategory;
-  pendingRating?: number;
-  // Full pending-rating map (keyed by pendingRatingKey), so RatingForm can read the timed-out flag
-  // for its own category/target and offer Retry/Dismiss — pendingByCategory only carries the number.
+  // Full pending-rating map (keyed by pendingRatingKey). RatingForm reads the timed-out flag for its
+  // own category/target to offer Retry/Dismiss; the role cards below use it (together with
+  // youRatedByKey) to derive each role's displayed you-rated value via getDisplayedRating.
   pendingRatings?: PendingRatingsByKey;
   profile?: IdentityProfile;
   profiles: IdentityProfilesByAddress;
@@ -250,7 +246,8 @@ export function AccountDetail({
   receivedRatings?: AccountRating[];
   self: SelfAccount | null;
   selectedDerivation: TrustDerivation;
-  youRatedByCategory?: RatingByCategory;
+  // Complete current-user ratings keyed by pendingRatingKey's `${category}:${targetAddress}`.
+  youRatedByKey?: RatingValuesByAccountCategory;
 }) {
   const backButtonRef = useRef<HTMLButtonElement>(null);
   const [activeCategory, setActiveCategory] = useState(category);
@@ -280,7 +277,12 @@ export function AccountDetail({
   );
   const activeExplanation = explanationByCategory.get(activeCategory);
   const activeRequirements = relevantRequirements(activeExplanation);
-  const activePending = pendingByCategory?.[activeCategory] ?? (activeCategory === category ? pendingRating : undefined);
+  const activePending = getDisplayedRating(
+    pendingRatings,
+    undefined,
+    activeCategory,
+    selectedDerivation.accountAddress,
+  ).value;
   const selectCategory = (nextCategory: AccountRatingCategory) => {
     setActiveCategory(nextCategory);
     onActiveCategoryChange?.(nextCategory);
@@ -353,12 +355,11 @@ export function AccountDetail({
                 active={activeCategory === role}
                 category={role}
                 derivation={selectedDerivation}
+                displayed={getDisplayedRating(pendingRatings, youRatedByKey, role, selectedDerivation.accountAddress)}
                 explanation={explanationByCategory.get(role)}
                 key={role}
                 onSelect={() => selectCategory(role)}
-                pendingRating={pendingByCategory?.[role] ?? (role === category ? pendingRating : undefined)}
                 profile={profileByCategory.get(role)}
-                youRated={youRatedByCategory?.[role]}
               />
             ))}
           </section>
@@ -374,9 +375,7 @@ export function AccountDetail({
                 <span title={t('tooltip.blocksMinted')}>
                   {t('label.blocksMinted')}{' '}
                   <strong>
-                    {live && detail.profile?.blocksMinted !== undefined
-                      ? formatNumber(detail.profile.blocksMinted)
-                      : '—'}
+                    {detail.profile?.blocksMinted !== undefined ? formatNumber(detail.profile.blocksMinted) : '—'}
                   </strong>
                 </span>
                 <span title={t('tooltip.voteWeight')}>

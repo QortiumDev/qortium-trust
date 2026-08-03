@@ -58,9 +58,6 @@ function derivation(address: string, overrides: Partial<TrustDerivation> = {}): 
     blocksMinted: 0,
     mintingLevel: 0,
     effectiveVoteWeight: 0,
-    snapshotHeight: 1,
-    snapshotTimestamp: 1000,
-    live: false,
     categories: [category()],
     ...overrides,
   };

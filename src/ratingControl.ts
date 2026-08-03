@@ -7,7 +7,7 @@ import {
   submitRating,
 } from './trustApi';
 import type { AccountRatingCategory, AccountRatingCooldown, RatingImpactPreview, SelfAccount } from './types';
-import type { PendingRatingEntry } from './viewTypes';
+import type { PendingRatingEntry, PendingValueByAccountCategory, RatingValuesByAccountCategory } from './viewTypes';
 import { t } from './i18n';
 
 // Debounce preview requests so scrubbing through the rating selector doesn't fire a request per step.
@@ -21,6 +21,32 @@ export const PENDING_CONFIRM_TIMEOUT_MS = 3 * 60 * 1000;
 
 export function pendingRatingKey(category: AccountRatingCategory, targetAddress: string) {
   return `${category}:${targetAddress}`;
+}
+
+export type DisplayedRating = {
+  pending: boolean;
+  value: number | undefined;
+};
+
+// Single source of truth for the "you rated" pending-vs-confirmed display state: while a pending
+// (optimistic, unconfirmed) entry exists for this (category, targetAddress) it wins — with
+// `pending: true` so callers can render the spinner/muted styling — otherwise the confirmed,
+// on-chain rating is shown. `confirmedByKey` may be omitted when a caller only wants the pending
+// value itself (e.g. to feed RatingForm's own pending gate).
+export function getDisplayedRating(
+  pendingByKey: PendingValueByAccountCategory | undefined,
+  confirmedByKey: RatingValuesByAccountCategory | undefined,
+  category: AccountRatingCategory,
+  targetAddress: string,
+): DisplayedRating {
+  const key = pendingRatingKey(category, targetAddress);
+  const pendingEntry = pendingByKey?.[key];
+  const pendingValue = typeof pendingEntry === 'number' ? pendingEntry : pendingEntry?.rating;
+
+  return {
+    pending: pendingValue !== undefined,
+    value: pendingValue ?? confirmedByKey?.[key],
+  };
 }
 
 export function ratingOptionLabel(value: number) {

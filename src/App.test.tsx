@@ -121,10 +121,7 @@ const TARGET_DERIVATION: TrustDerivation = {
   derivedTrustStatus: 'SILVER',
   derivedTrustStatusValue: 3,
   derivedTrustWeightPercent: 50,
-  live: true,
   mintingSeedMember: false,
-  snapshotHeight: 100,
-  snapshotTimestamp: 1_700_000_000_000,
 };
 
 function cooldown(overrides: Partial<AccountRatingCooldown> = {}): AccountRatingCooldown {
@@ -208,8 +205,6 @@ describe('App rating flow (pending -> confirm/timeout, and account-switch immuni
       effectiveVoteWeight: 1,
       activeWeightCategory: 'SUBJECT',
       mintingSeedMember: false,
-      snapshotHeight: null,
-      snapshotTimestamp: null,
       categories: [],
     } as unknown as AccountTrustProfile);
     getTrustExplanationMock.mockReset().mockResolvedValue({
@@ -220,7 +215,6 @@ describe('App rating flow (pending -> confirm/timeout, and account-switch immuni
       trustWeightPercent: 50,
       activeWeightCategory: 'SUBJECT',
       mintingSeedMember: false,
-      live: true,
       categories: [],
     } as unknown as AccountTrustExplanation);
     getAccountRatingsPageMock.mockReset().mockResolvedValue({ ratings: [], nextOffset: null });

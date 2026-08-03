@@ -166,9 +166,6 @@ export type TrustDerivation = {
   blocksMinted?: number;
   mintingLevel?: number;
   effectiveVoteWeight?: number;
-  snapshotHeight: number | null;
-  snapshotTimestamp: number | null;
-  live: boolean;
   categories: TrustCategory[];
 };
 
@@ -251,8 +248,6 @@ export type AccountTrustProfile = {
   effectiveVoteWeight: number;
   activeWeightCategory: AccountRatingCategory;
   mintingSeedMember: boolean;
-  snapshotHeight: number | null;
-  snapshotTimestamp: number | null;
   categories: {
     category: AccountRatingCategory;
     score: number;
@@ -264,8 +259,6 @@ export type AccountTrustProfile = {
     mappedTrustWeightPercent: number;
     inboundRatings: RatingCounts;
     outboundRatings: RatingCounts;
-    snapshotHeight: number | null;
-    snapshotTimestamp: number | null;
   }[];
 };
 
@@ -328,9 +321,6 @@ export type AccountTrustExplanation = {
   trustWeightPercent: number;
   activeWeightCategory: AccountRatingCategory;
   mintingSeedMember: boolean;
-  snapshotHeight?: number | null;
-  snapshotTimestamp?: number | null;
-  live: boolean;
   categories: TrustCategoryExplanation[];
 };
 

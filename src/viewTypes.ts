@@ -38,6 +38,16 @@ export type AccountSortState = AccountSortEntry[];
 
 export type RatingsByAddress = Record<string, number>;
 
+/**
+ * Cross-category rating values keyed by pendingRatingKey's `${category}:${targetAddress}` format.
+ */
+export type RatingValuesByAccountCategory = Record<string, number>;
+
+// Same key format as RatingValuesByAccountCategory; a value may be a full pending-rating entry
+// (so its optimistic rating can be read alongside its confirmation/timeout state) or a bare
+// number for callers that only need the rating itself.
+export type PendingValueByAccountCategory = Record<string, number | PendingRatingEntry>;
+
 export type ExplorerState = {
   bridge: BridgeState | null;
   changes: TrustStatusChange[];
