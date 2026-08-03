@@ -1876,6 +1876,32 @@ tbody tr:hover,
   }
 }
 
+.rating-pending--timed-out {
+  background: rgba(179, 58, 58, 0.12);
+  border-color: var(--negative);
+}
+
+.rating-pending__actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.rating-pending__retry,
+.rating-pending__dismiss {
+  background: var(--panel-strong);
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  color: var(--text);
+  font-weight: 700;
+  padding: 4px 10px;
+}
+
+.rating-pending__retry:hover,
+.rating-pending__dismiss:hover {
+  background: var(--accent-soft);
+}
+
 .rating-message {
   border-radius: 8px;
   font-weight: 700;

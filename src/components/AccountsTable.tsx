@@ -266,7 +266,7 @@ export function AccountsTable({
               >
                 <td data-label={t('label.account')}>
                   <button
-                    aria-label={`Open ${profile?.name ?? derivation.accountAddress}`}
+                    aria-label={t('action.openAccount', { name: profile?.name ?? derivation.accountAddress })}
                     className="identity-cell identity-link"
                     onClick={(event) => {
                       event.stopPropagation();

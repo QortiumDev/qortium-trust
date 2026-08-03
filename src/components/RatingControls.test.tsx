@@ -84,6 +84,7 @@ describe('RatingForm write path', () => {
       category: 'SUBJECT',
       rating: 1,
       raterPublicKey: 'selfPub',
+      submittedAt: expect.any(Number),
       targetAddress: 'Qtarget',
       targetPublicKey: 'targetPub',
     });

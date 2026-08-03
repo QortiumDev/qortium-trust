@@ -202,7 +202,14 @@ describe('useRatingControl.handleSubmit unlock branches', () => {
     // Same account unlocked, so no re-resolve and the cached rater public key is used.
     expect(resolveSelfAccountMock).not.toHaveBeenCalled();
     expect(harness.submitted).toEqual([
-      { category: 'SUBJECT', rating: 3, raterPublicKey: 'raterPub', targetAddress: 'Qtarget', targetPublicKey: 'tPub' },
+      {
+        category: 'SUBJECT',
+        rating: 3,
+        raterPublicKey: 'raterPub',
+        submittedAt: expect.any(Number),
+        targetAddress: 'Qtarget',
+        targetPublicKey: 'tPub',
+      },
     ]);
   });
 
@@ -231,7 +238,14 @@ describe('useRatingControl.handleSubmit unlock branches', () => {
     expect(resolveSelfAccountMock).toHaveBeenCalledTimes(1);
     // The optimistic pending entry must carry the freshly-resolved rater, not the stale cached one.
     expect(harness.submitted).toEqual([
-      { category: 'SUBJECT', rating: 2, raterPublicKey: 'otherPub', targetAddress: 'Qtarget', targetPublicKey: 'tPub' },
+      {
+        category: 'SUBJECT',
+        rating: 2,
+        raterPublicKey: 'otherPub',
+        submittedAt: expect.any(Number),
+        targetAddress: 'Qtarget',
+        targetPublicKey: 'tPub',
+      },
     ]);
   });
 

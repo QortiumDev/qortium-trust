@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ensureAccountUnlocked,
   getRatingCooldown,
@@ -15,6 +15,9 @@ const PREVIEW_DEBOUNCE_MS = 400;
 
 export const RATING_VALUES = [4, 3, 2, 1, 0, -1, -2, -3, -4];
 export const PENDING_CONFIRM_POLL_MS = 8000;
+// A pending rating that hasn't confirmed after this long transitions to a "not confirmed" state
+// (Retry/Dismiss) instead of polling forever.
+export const PENDING_CONFIRM_TIMEOUT_MS = 3 * 60 * 1000;
 
 export function pendingRatingKey(category: AccountRatingCategory, targetAddress: string) {
   return `${category}:${targetAddress}`;
@@ -125,6 +128,11 @@ export function useRatingControl({
   const [preview, setPreview] = useState<RatingImpactPreview | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
 
+  // Tracks whether this hook instance has ever loaded a cooldown successfully, so a later refetch
+  // failure (e.g. a transient Core hiccup while polling for confirmation) can be told apart from the
+  // initial load failing outright.
+  const hasLoadedCooldownRef = useRef(false);
+
   // Refetch cooldown on mount and whenever this account's pending state flips, so that once the
   // rating confirms (pendingRating clears) "your current rating" reflects the new on-chain value.
   useEffect(() => {
@@ -142,15 +150,24 @@ export function useRatingControl({
           return;
         }
 
+        hasLoadedCooldownRef.current = true;
         setCooldown(result);
         setRating(result.activeRating ?? 0);
       })
       .catch(() => {
-        if (!cancelled) {
-          setCooldown(null);
-          // Without cooldown data we cannot trust a carried-over selection; reset to a no-op.
-          setRating(0);
+        if (cancelled) {
+          return;
         }
+
+        if (hasLoadedCooldownRef.current) {
+          // A refetch failure must not discard an already-confirmed cooldown/rating selection —
+          // only the initial load resets to the unknown state.
+          return;
+        }
+
+        setCooldown(null);
+        // Without cooldown data we cannot trust a carried-over selection; reset to a no-op.
+        setRating(0);
       })
       .finally(() => {
         if (!cancelled) {
@@ -287,7 +304,14 @@ export function useRatingControl({
       // pending entry up to the app, which tracks confirmation — neither surface blocks afterward, so
       // the user can immediately rate other accounts.
       await submitRating({ category, rating: submittedRating, targetPublicKey });
-      onSubmitted({ category, rating: submittedRating, raterPublicKey: effectiveRaterPublicKey, targetAddress, targetPublicKey });
+      onSubmitted({
+        category,
+        rating: submittedRating,
+        raterPublicKey: effectiveRaterPublicKey,
+        submittedAt: Date.now(),
+        targetAddress,
+        targetPublicKey,
+      });
       return true;
     } catch (submitError) {
       setMessage({

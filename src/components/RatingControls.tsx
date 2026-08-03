@@ -2,9 +2,10 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { categoryLabel, compactAddress, formatNumber, statusLabel } from '../format';
 import type { AccountRatingCategory, SelfAccount, TrustDerivation } from '../types';
-import type { PendingRatingEntry } from '../viewTypes';
+import type { PendingRatingEntry, PendingRatingsByKey } from '../viewTypes';
 import {
   mapRatingError,
+  pendingRatingKey,
   RATING_VALUES,
   ratingOptionLabel,
   useRatingControl,
@@ -49,8 +50,16 @@ function RatingPreviewNote({ control }: { control: RatingControl }) {
 }
 
 // Full-mode rating surface (detail view). Thin renderer over useRatingControl.
-export function RatingForm(props: RatingControlArgs) {
-  const { category, pendingRating, self } = props;
+export function RatingForm(
+  props: RatingControlArgs & {
+    // Timeout notice (Retry/Dismiss) support: the full pending map plus key-based callbacks, kept
+    // separate from RatingControlArgs since useRatingControl itself has no use for them.
+    onDismissPending?: (key: string) => void;
+    onRetryPending?: (key: string) => void;
+    pendingRatings?: PendingRatingsByKey;
+  },
+) {
+  const { category, onDismissPending, onRetryPending, pendingRating, pendingRatings, self, targetAddress } = props;
   const control = useRatingControl(props);
 
   if (!control.canInteract) {
@@ -64,6 +73,8 @@ export function RatingForm(props: RatingControlArgs) {
 
   const { accountLocked, activeRating, cooldown, cooldownLoading, isPending, message, onCooldown, rating, submitDisabled, submitting, unchanged } =
     control;
+  const pendingKey = pendingRatingKey(category, targetAddress);
+  const pendingTimedOut = !!pendingRatings?.[pendingKey]?.timedOut;
 
   return (
     <div className="mini-section">
@@ -95,7 +106,29 @@ export function RatingForm(props: RatingControlArgs) {
           {submitting ? t('rating.submitting') : isPending ? t('rating.submitPending') : rating === 0 ? t('action.removeRating') : t('action.submitRating')}
         </button>
       </div>
-      {isPending ? (
+      {isPending && pendingTimedOut ? (
+        <div className="rating-pending rating-pending--timed-out">
+          <div>
+            <strong>{t('rating.pendingTimeout')}</strong>
+            <div className="rating-pending__actions">
+              <button
+                className="rating-pending__retry"
+                onClick={() => onRetryPending?.(pendingKey)}
+                type="button"
+              >
+                {t('action.retry')}
+              </button>
+              <button
+                className="rating-pending__dismiss"
+                onClick={() => onDismissPending?.(pendingKey)}
+                type="button"
+              >
+                {t('action.dismiss')}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : isPending ? (
         <div className="rating-pending">
           <span className="rating-pending__spinner" aria-hidden="true" />
           <div>
