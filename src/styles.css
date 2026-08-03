@@ -1249,8 +1249,99 @@ tbody tr:hover,
      orange 3.46, teal 3.12 …) and catastrophically on all dark pastels (1.55–2.14:1). */
   color: var(--accent-contrast);
   font-weight: 800;
+  margin-top: 12px;
   min-height: 44px;
   padding: 9px 16px;
+}
+
+/* The quick-rate popover lays out its children on a grid with its own gap — no extra margin needed. */
+.rating-popover-body .rating-submit {
+  margin-top: 0;
+}
+
+/* Two-step Minter/role rating chooser (#Stage B, tasks 1-2). Q1 (yes/no/not-sure/clear) and Q2
+   (confidence) are both rendered as a labelled group of toggle buttons — plain <fieldset>s with a
+   row of pressed/unpressed buttons rather than a <select>, so both the question and every option are
+   always visible instead of hidden behind a dropdown. */
+.rating-flow {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.rating-flow__step {
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.rating-flow__step legend {
+  font-size: var(--font-size-small);
+  font-weight: 700;
+  padding: 0 0 4px;
+}
+
+.rating-flow__helper {
+  color: var(--muted);
+  font-size: var(--font-size-small);
+  margin: 0 0 8px;
+}
+
+.rating-flow__options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.rating-flow__option {
+  background: var(--panel-strong);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--text);
+  font-weight: 700;
+  padding: 7px 14px;
+}
+
+.rating-flow__option:hover {
+  border-color: var(--accent-strong);
+}
+
+.rating-flow__option[aria-pressed='true'] {
+  background: var(--accent);
+  border-color: var(--accent-strong);
+  color: var(--accent-contrast);
+}
+
+.rating-flow__option--clear {
+  border-style: dashed;
+}
+
+.rating-flow__option:disabled {
+  color: var(--badge-neutral-text);
+  opacity: 0.7;
+}
+
+.rating-flow__warning {
+  margin-bottom: 8px;
+}
+
+.rating-flow__influence-note {
+  background: var(--panel-subtle);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.rating-flow__influence-note p {
+  margin: 0;
+}
+
+.rating-flow__influence-note p + p {
+  margin-top: 4px;
+}
+
+.rating-impact-note {
+  margin-top: 8px;
 }
 
 .rating-submit:disabled {
@@ -2243,6 +2334,12 @@ tbody tr:hover,
   gap: 5px;
   min-height: 32px;
   padding: 5px 9px;
+}
+
+.roles-grid-intro {
+  color: var(--muted);
+  font-size: var(--font-size-small);
+  margin: 0 0 10px;
 }
 
 .role-standing-grid {

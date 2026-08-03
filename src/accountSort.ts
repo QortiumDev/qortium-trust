@@ -36,9 +36,9 @@ function getAccountSortLabel(derivation: TrustDerivation, profiles: IdentityProf
   return getIdentityLabel(profiles[derivation.accountAddress], derivation.accountAddress);
 }
 
-// Minting level/blocks now come off the derivation row itself (#9). They are only meaningful on a
+// Trust level/blocks now come off the derivation row itself (#9). They are only meaningful on a
 // live derivation; snapshot rows carry 0, so the table renders "—" rather than these values there.
-export function getAccountMintingLevel(derivation: TrustDerivation, category: AccountRatingCategory) {
+export function getAccountTrustLevel(derivation: TrustDerivation, category: AccountRatingCategory) {
   return getDerivationCategory(derivation, category)?.level ?? derivation.mintingLevel ?? 0;
 }
 
@@ -76,7 +76,7 @@ export function compareAccountRows(
     case 'status':
       return left.derivedTrustStatusValue - right.derivedTrustStatusValue;
     case 'level':
-      return getAccountMintingLevel(left, category) - getAccountMintingLevel(right, category);
+      return getAccountTrustLevel(left, category) - getAccountTrustLevel(right, category);
     case 'blocksMinted':
       return getAccountBlocksMinted(left) - getAccountBlocksMinted(right);
     case 'score':

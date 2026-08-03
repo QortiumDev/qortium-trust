@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { categoryDescription, categoryLabel, formatRuntimeLabel } from './format';
+import {
+  categoryDescription,
+  categoryLabel,
+  evaluatorRoleLabel,
+  formatRuntimeLabel,
+  publicizeTrustText,
+  ratingSignedLabel,
+  ratingVariantForCategory,
+  roleNameForCategory,
+} from './format';
 
 describe('categoryLabel', () => {
   it('maps wire category values to their display labels', () => {
@@ -32,6 +41,62 @@ describe('categoryDescription', () => {
 
   it('returns an empty string for an unexpected wire value', () => {
     expect(categoryDescription('OWNER' as never)).toBe('');
+  });
+});
+
+describe('ratingVariantForCategory', () => {
+  it('is minter for SUBJECT and role for every other category', () => {
+    expect(ratingVariantForCategory('SUBJECT')).toBe('minter');
+    expect(ratingVariantForCategory('PLAYER')).toBe('role');
+    expect(ratingVariantForCategory('TRAINER')).toBe('role');
+    expect(ratingVariantForCategory('MANAGER')).toBe('role');
+  });
+});
+
+describe('ratingSignedLabel (decomposed sign + magnitude, owner copy rule)', () => {
+  it('renders Yes/No + confidence for the minter variant', () => {
+    expect(ratingSignedLabel(1, 'minter')).toBe('Yes · Low confidence');
+    expect(ratingSignedLabel(3, 'minter')).toBe('Yes · High confidence');
+    expect(ratingSignedLabel(-4, 'minter')).toBe('No · Very high confidence');
+  });
+
+  it('renders Positive/Negative + confidence for the role variant', () => {
+    expect(ratingSignedLabel(2, 'role')).toBe('Positive · Medium confidence');
+    expect(ratingSignedLabel(-1, 'role')).toBe('Negative · Low confidence');
+  });
+
+  it('never combines sign and magnitude into a single parenthesized string', () => {
+    expect(ratingSignedLabel(3, 'role')).not.toMatch(/\(/);
+    expect(ratingSignedLabel(3, 'role')).not.toMatch(/^\+?\d/);
+  });
+});
+
+describe('evaluatorRoleLabel / roleNameForCategory', () => {
+  it('evaluatorRoleLabel maps each rated category to the role one level up', () => {
+    expect(evaluatorRoleLabel('SUBJECT')).toBe('Voter');
+    expect(evaluatorRoleLabel('PLAYER')).toBe('Guide');
+    expect(evaluatorRoleLabel('TRAINER')).toBe('Designer');
+    // MANAGER (Designer) ratings count through the rater's own influence pool, not a separate role.
+    expect(evaluatorRoleLabel('MANAGER')).toBeNull();
+  });
+
+  it('roleNameForCategory maps a role category to the role it grants (SUBJECT has none)', () => {
+    expect(roleNameForCategory('PLAYER')).toBe('Voter');
+    expect(roleNameForCategory('TRAINER')).toBe('Guide');
+    expect(roleNameForCategory('MANAGER')).toBe('Designer');
+    expect(roleNameForCategory('SUBJECT')).toBeNull();
+  });
+});
+
+describe('publicizeTrustText', () => {
+  it('renames wire category names to their public names in server prose', () => {
+    expect(publicizeTrustText('SUBJECT threshold not met')).toBe('MINTER threshold not met');
+    expect(publicizeTrustText('Requires Subject Gold level')).toBe('Requires Minter Gold level');
+    expect(publicizeTrustText('MANAGER, TRAINER, PLAYER all apply')).toBe('DESIGNER, GUIDE, VOTER all apply');
+  });
+
+  it('leaves unrelated text untouched', () => {
+    expect(publicizeTrustText('No category names here.')).toBe('No category names here.');
   });
 });
 

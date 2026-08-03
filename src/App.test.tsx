@@ -167,7 +167,7 @@ async function renderAppAtAccountDetail() {
   await flush(10);
 
   // Label reads "Remove rating" at the default (0) selection and "Submit rating" for any non-zero
-  // pick — match either so this helper works before the test changes the select.
+  // pick — match either so this helper works before the test drives the two-step chooser.
   return screen.getByRole('button', { name: /submit rating|remove rating/i }) as HTMLButtonElement;
 }
 
@@ -240,7 +240,9 @@ describe('App rating flow (pending -> confirm/timeout, and account-switch immuni
   it('clears the pending entry once the confirmation poll sees the rating active', async () => {
     const submit = await renderAppAtAccountDetail();
 
-    fireEvent.change(screen.getByRole('combobox'), { target: { value: '2' } });
+    // Two-step Minter chooser: Yes + Medium confidence = +2 (equivalent to the old combobox pick).
+    fireEvent.click(screen.getByRole('button', { name: 'Yes' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Medium' }));
     await flush();
     expect(submit.disabled).toBe(false);
 
@@ -265,7 +267,9 @@ describe('App rating flow (pending -> confirm/timeout, and account-switch immuni
   it('times out an unconfirmed pending rating after 3 minutes, then Retry resumes tracking and Dismiss removes it', async () => {
     const submit = await renderAppAtAccountDetail();
 
-    fireEvent.change(screen.getByRole('combobox'), { target: { value: '2' } });
+    // Two-step Minter chooser: Yes + Medium confidence = +2 (equivalent to the old combobox pick).
+    fireEvent.click(screen.getByRole('button', { name: 'Yes' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Medium' }));
     await flush();
     fireEvent.click(submit);
     await flush();
@@ -307,7 +311,9 @@ describe('App rating flow (pending -> confirm/timeout, and account-switch immuni
   it('does not clear a pending rating when a SELECTED_ACCOUNT_CHANGED-style message arrives', async () => {
     const submit = await renderAppAtAccountDetail();
 
-    fireEvent.change(screen.getByRole('combobox'), { target: { value: '2' } });
+    // Two-step Minter chooser: Yes + Medium confidence = +2 (equivalent to the old combobox pick).
+    fireEvent.click(screen.getByRole('button', { name: 'Yes' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Medium' }));
     await flush();
     fireEvent.click(submit);
     await flush();

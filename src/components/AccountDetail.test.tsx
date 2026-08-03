@@ -73,7 +73,9 @@ describe('AccountDetail role workspace (showAllRoles on)', () => {
     expect(screen.queryByText(/^Manager$/)).toBeNull();
     expect(screen.queryByText(/^Subject$/)).toBeNull();
 
-    fireEvent.click(screen.getByRole('button', { name: /Designers/ }));
+    // Anchored to the start: the Guides card's own ladder copy now also mentions "Designers"
+    // ("...Designers decide that."), so an unanchored match is ambiguous.
+    fireEvent.click(screen.getByRole('button', { name: /^Designers/ }));
     expect(onActiveCategoryChange).toHaveBeenCalledWith('MANAGER');
     expect(screen.getAllByText('Rate this account')).toHaveLength(1);
   });

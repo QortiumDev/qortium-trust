@@ -67,8 +67,10 @@ describe('AccountsTable unified role directory (showAllRoles on)', () => {
     expect(screen.getByRole('columnheader', { name: 'Voters' })).toBeTruthy();
     expect(screen.getByRole('columnheader', { name: 'Minters' })).toBeTruthy();
     expect(screen.queryByRole('button', { name: /^Rate$/i })).toBeNull();
-    expect(container.querySelector('[data-label="Designers"] .you-rated')?.textContent).toBe('+4');
-    expect(container.querySelector('[data-label="Minters"] .you-rated')?.textContent).toBe('+1');
+    // Decomposed sign+magnitude form (owner copy rule): role columns use Positive/Negative, the
+    // Minters column uses Yes/No.
+    expect(container.querySelector('[data-label="Designers"] .you-rated')?.textContent).toBe('Positive · Very high confidence');
+    expect(container.querySelector('[data-label="Minters"] .you-rated')?.textContent).toBe('Yes · Low confidence');
 
     fireEvent.click(screen.getByRole('button', { name: /open target/i }));
     expect(onSelect).toHaveBeenCalledWith(derivation);
@@ -96,21 +98,21 @@ describe('AccountsTable simplified Minters directory (showAllRoles off)', () => 
     );
 
     // Sortable headers wrap their label in a button with a sr-only sort-state suffix, so the
-    // accessible name is "Account, not sorted" etc. — match the label as a prefix.
+    // accessible name is "Account, not sorted" etc. — match the label as a prefix. The status column
+    // header reads "Trust status" in both toggle states (#Stage B, task 6 consolidation).
     expect(screen.getByRole('columnheader', { name: /^Account,/ })).toBeTruthy();
-    expect(screen.getByRole('columnheader', { name: /^Minter status,/ })).toBeTruthy();
+    expect(screen.getByRole('columnheader', { name: /^Trust status,/ })).toBeTruthy();
     expect(screen.getByRole('columnheader', { name: /^Trust level,/ })).toBeTruthy();
     expect(screen.getByRole('columnheader', { name: /^Blocks minted,/ })).toBeTruthy();
     expect(screen.getByRole('columnheader', { name: /^You rated,/ })).toBeTruthy();
     expect(screen.queryByRole('columnheader', { name: 'Designers' })).toBeNull();
-    expect(screen.queryByRole('columnheader', { name: /^Displayed trust,/ })).toBeNull();
 
     // SUBJECT (Minters) data, not the MANAGER category passed in `category` — index 0's mapped
     // status is Bronze/level 1, MANAGER (index 3) would be Silver/level 4 and rated +4.
-    expect(container.querySelector('[data-label="Minter status"]')?.textContent).toBe('Bronze');
+    expect(container.querySelector('[data-label="Trust status"]')?.textContent).toBe('Bronze');
     expect(container.querySelector('[data-label="Trust level"]')?.textContent).toBe('1');
-    expect(container.querySelector('[data-label="You rated"] .you-rated')?.textContent).toBe('+1');
-    expect(screen.queryByText('+4')).toBeNull();
+    expect(container.querySelector('[data-label="You rated"] .you-rated')?.textContent).toBe('Yes · Low confidence');
+    expect(screen.queryByText('Positive · Very high confidence')).toBeNull();
 
     fireEvent.click(screen.getByRole('button', { name: /open target/i }));
     expect(onSelect).toHaveBeenCalledWith(derivation);

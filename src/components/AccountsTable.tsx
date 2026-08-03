@@ -1,6 +1,6 @@
 import { memo, useMemo } from 'react';
 import { ArrowDown, ArrowDownUp, ArrowUp, SearchX, Users } from 'lucide-react';
-import { categoryLabel, formatNumber, ratingTone } from '../format';
+import { categoryLabel, formatNumber, ratingSignedLabel, ratingTone, ratingVariantForCategory } from '../format';
 import type {
   AccountRatingCategory,
   IdentityProfilesByAddress,
@@ -30,15 +30,28 @@ const MemoStatusBadge = memo(StatusBadge);
 
 const ROLE_ORDER: AccountRatingCategory[] = ['MANAGER', 'TRAINER', 'PLAYER', 'SUBJECT'];
 
-function RatingValue({ pending, value }: { pending?: number; value?: number }) {
+// Decomposed sign+magnitude form everywhere a rating value renders (owner copy rule). `category`
+// picks Minter (Yes/No) vs role (Positive/Negative) wording; 0 (only ever seen mid-flight, while a
+// removal is pending confirmation) reads the same as an option-list "Clear rating".
+function RatingValue({
+  category,
+  pending,
+  value,
+}: {
+  category: AccountRatingCategory;
+  pending?: number;
+  value?: number;
+}) {
+  const variant = ratingVariantForCategory(category);
+
   if (pending !== undefined) {
     return (
       <span className="you-rated-pending" title={t('rating.pendingConfirmation')}>
         <span aria-hidden="true" className="you-rated-spinner" />
         {pending !== 0 ? (
-          <span className={`you-rated ${ratingTone(pending)}`}>{pending > 0 ? `+${pending}` : pending}</span>
+          <span className={`you-rated ${ratingTone(pending)}`}>{ratingSignedLabel(pending, variant)}</span>
         ) : (
-          <span className="muted">—</span>
+          <span className="you-rated muted">{t('rating.option.remove')}</span>
         )}
       </span>
     );
@@ -48,7 +61,11 @@ function RatingValue({ pending, value }: { pending?: number; value?: number }) {
     return <span className="muted">—</span>;
   }
 
-  return <span className={`you-rated ${ratingTone(value)}`}>{value > 0 ? `+${value}` : value}</span>;
+  if (value === 0) {
+    return <span className="you-rated muted">{t('rating.option.remove')}</span>;
+  }
+
+  return <span className={`you-rated ${ratingTone(value)}`}>{ratingSignedLabel(value, variant)}</span>;
 }
 
 export function SortHeader({
@@ -258,12 +275,7 @@ export function AccountsTable({
               <SortHeader label={t('label.account')} onSort={onSort} sort={sort} sortKey="account" />
             </th>
             <th aria-sort={getAriaSort(sort, 'status')}>
-              <SortHeader
-                label={showAllRoles ? t('label.displayedTrust') : t('label.minterStatus')}
-                onSort={onSort}
-                sort={sort}
-                sortKey="status"
-              />
+              <SortHeader label={t('label.trustStatus')} onSort={onSort} sort={sort} sortKey="status" />
             </th>
             {showAllRoles ? null : (
               <th aria-sort={getAriaSort(sort, 'level')}>
@@ -319,7 +331,7 @@ export function AccountsTable({
                     <IdentityLabel address={derivation.accountAddress} profile={profile} />
                   </button>
                 </td>
-                <td data-label={showAllRoles ? t('label.displayedTrust') : t('label.minterStatus')}>
+                <td data-label={t('label.trustStatus')}>
                   {showAllRoles ? (
                     <MemoStatusBadge status={derivation.derivedTrustStatus} />
                   ) : subjectData ? (
@@ -348,7 +360,12 @@ export function AccountsTable({
                       <td className="account-role-cell" data-label={categoryLabel(role)} key={role}>
                         <div className="account-role-summary">
                           <div className="account-role-summary__standing">
-                            {roleData ? <MemoStatusBadge status={roleData.mappedTrustStatus} /> : <span className="muted">—</span>}
+                            {/* Only the Minter (SUBJECT) column keeps a Bronze/Silver/Gold-style status
+                                badge (#Stage B, task 5) — Voter/Guide/Designer columns show trust level
+                                only, so they never imply an externally meaningful status. */}
+                            {role === 'SUBJECT' ? (
+                              roleData ? <MemoStatusBadge status={roleData.mappedTrustStatus} /> : <span className="muted">—</span>
+                            ) : null}
                             <span className="account-role-summary__level">
                               {t('label.trustLevel')} {formatNumber(roleData?.level)}
                             </span>
@@ -372,7 +389,11 @@ export function AccountsTable({
                             <div>
                               <dt>{t('label.youRated')}</dt>
                               <dd>
-                                <RatingValue pending={displayed.pending ? displayed.value : undefined} value={displayed.value} />
+                                <RatingValue
+                                  category={role}
+                                  pending={displayed.pending ? displayed.value : undefined}
+                                  value={displayed.value}
+                                />
                               </dd>
                             </div>
                           </dl>
@@ -383,6 +404,7 @@ export function AccountsTable({
                 ) : (
                   <td data-label={t('label.youRated')}>
                     <RatingValue
+                      category={effectiveCategory}
                       pending={subjectDisplayed.pending ? subjectDisplayed.value : undefined}
                       value={subjectDisplayed.value}
                     />

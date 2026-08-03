@@ -169,9 +169,17 @@ export type TrustDerivation = {
   categories: TrustCategory[];
 };
 
-// Response of GET /account-ratings/preview (#33). Only the fields the UI consumes are typed; Core
-// returns more (cooldown, per-category trust, direction/confidence). `canSubmit` is Core's own
+// Response of GET /account-ratings/preview (#33, extended in Stage B). Only the fields the UI
+// consumes are typed; Core returns more (direction/confidence variants). `canSubmit` is Core's own
 // gate (validationResult === OK), and current/previewTrust let us show the resulting status delta.
+//
+// `currentSelectedCategory`/`previewSelectedCategory` are Core's AccountTrustCategoryData for just
+// the requested `category` (the target's own category entry before/after the candidate rating is
+// applied) — the same shape as an entry of TrustDerivation.categories, so it reuses TrustCategory
+// rather than duplicating the shape. Their `impacts` array (populated in full, uncapped, by both
+// AccountTrustDerivation.derive and .deriveWithRatingOverlay) is how the rater's own contribution is
+// found: an entry only exists for a rater whose evaluator weight produced a non-zero impact, so
+// looking up the current rater's `raterAddress` there is literally "how much your rating counts."
 export type RatingImpactPreview = {
   validationResult: string;
   validationResultValue: number;
@@ -181,6 +189,8 @@ export type RatingImpactPreview = {
   trustStatusChanged: boolean;
   currentTrust: TrustDerivation;
   previewTrust: TrustDerivation;
+  currentSelectedCategory?: TrustCategory | null;
+  previewSelectedCategory?: TrustCategory | null;
 };
 
 export type AccountRating = {

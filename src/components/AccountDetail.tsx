@@ -1,7 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, Check, Copy } from 'lucide-react';
 import { getIdentityLabel } from '../identityProfiles';
-import { categoryLabel, formatNumber, formatPercent, ratingTone } from '../format';
+import {
+  categoryLabel,
+  formatNumber,
+  formatPercent,
+  publicizeTrustText,
+  ratingSignedLabel,
+  ratingVariantForCategory,
+  ratingTone,
+} from '../format';
 import type {
   AccountRating,
   AccountRatingCategory,
@@ -98,24 +106,21 @@ function CopyValueButton({ label, value }: { label: string; value: string }) {
   );
 }
 
-function ratingValue(value: number | undefined) {
+// Decomposed sign+magnitude form (owner copy rule — never a combined "+3" style render). `category`
+// picks Minter (Yes/No) vs role (Positive/Negative) wording; 0 (only ever seen mid-flight, while a
+// removal is pending confirmation) reads the same as an option-list "Clear rating".
+function ratingValue(value: number | undefined, category: AccountRatingCategory) {
   if (value === undefined) {
     return <span className="muted">—</span>;
   }
 
-  return <span className={`you-rated ${ratingTone(value)}`}>{value > 0 ? `+${value}` : value}</span>;
-}
+  if (value === 0) {
+    return <span className="you-rated muted">{t('rating.option.remove')}</span>;
+  }
 
-function publicTrustText(value: string) {
-  return value
-    .replace(/\bMANAGER\b/g, 'DESIGNER')
-    .replace(/\bManager(?=\s+(?:Gold|Silver|Bronze|level|threshold))/g, 'Designer')
-    .replace(/\bTRAINER\b/g, 'GUIDE')
-    .replace(/\bTrainer(?=\s+(?:Gold|Silver|Bronze|level|threshold))/g, 'Guide')
-    .replace(/\bPLAYER\b/g, 'VOTER')
-    .replace(/\bPlayer(?=\s+(?:Gold|Silver|Bronze|level|threshold))/g, 'Voter')
-    .replace(/\bSUBJECT\b/g, 'MINTER')
-    .replace(/\bSubject(?=\s+(?:Gold|Silver|Bronze|level|threshold))/g, 'Minter');
+  return (
+    <span className={`you-rated ${ratingTone(value)}`}>{ratingSignedLabel(value, ratingVariantForCategory(category))}</span>
+  );
 }
 
 // Renders from already-fetched trust-policy data (App loads it once via getTrustPolicy). formatNumber
@@ -190,7 +195,10 @@ function RoleStandingCard({
     >
       <span className="role-standing-card__title">
         <strong>{categoryLabel(category)}</strong>
-        {status ? <StatusBadge status={status} /> : null}
+        {/* Only the Minter card keeps a Bronze/Silver/Gold-style status badge (#Stage B, task 5) —
+            Voter/Guide/Designer cards show their trust level instead (in the metrics row below), so
+            they never imply an externally meaningful status the way Minter status does. */}
+        {status && category === 'SUBJECT' ? <StatusBadge status={status} /> : null}
       </span>
       <span className="role-standing-card__purpose">{rolePurpose(category)}</span>
       <span className="role-standing-card__metrics">
@@ -211,7 +219,7 @@ function RoleStandingCard({
           {t('label.youRated')}{' '}
           <strong className={displayed.pending ? 'you-rated-pending' : undefined}>
             {displayed.pending ? <span aria-hidden="true" className="you-rated-spinner" /> : null}
-            {ratingValue(displayed.value)}
+            {ratingValue(displayed.value, category)}
           </strong>
         </span>
       </span>
@@ -360,20 +368,23 @@ export function AccountDetail({
       ) : (
         <>
           {showAllRoles ? (
-          <section aria-label={t('role.trustRoles')} className="role-standing-grid">
-            {ROLE_ORDER.map((role) => (
-              <RoleStandingCard
-                active={activeCategory === role}
-                category={role}
-                derivation={selectedDerivation}
-                displayed={getDisplayedRating(pendingRatings, youRatedByKey, role, selectedDerivation.accountAddress)}
-                explanation={explanationByCategory.get(role)}
-                key={role}
-                onSelect={() => selectCategory(role)}
-                profile={profileByCategory.get(role)}
-              />
-            ))}
-          </section>
+          <>
+            <p className="roles-grid-intro">{t('role.gridIntro')}</p>
+            <section aria-label={t('role.trustRoles')} className="role-standing-grid">
+              {ROLE_ORDER.map((role) => (
+                <RoleStandingCard
+                  active={activeCategory === role}
+                  category={role}
+                  derivation={selectedDerivation}
+                  displayed={getDisplayedRating(pendingRatings, youRatedByKey, role, selectedDerivation.accountAddress)}
+                  explanation={explanationByCategory.get(role)}
+                  key={role}
+                  onSelect={() => selectCategory(role)}
+                  profile={profileByCategory.get(role)}
+                />
+              ))}
+            </section>
+          </>
           ) : null}
 
           <section className="detail-role-workspace">
@@ -439,7 +450,7 @@ export function AccountDetail({
                           <span aria-hidden="true">{requirement.passed ? '✓' : '!'}</span>
                           <div>
                             <strong>{requirement.passed ? t('role.met') : t('role.notMet')}</strong>
-                            <p>{publicTrustText(requirement.description)}</p>
+                            <p>{publicizeTrustText(requirement.description)}</p>
                             <span className="muted">
                               {t('role.currentNeeded', {
                                 actual: requirement.actual,
@@ -498,7 +509,7 @@ export function AccountDetail({
                                     <IdentityLabel address={rating.raterAddress} profile={raterProfile} />
                                   </button>
                                   <strong className={ratingTone(rating.rating)}>
-                                    {rating.rating > 0 ? `+${rating.rating}` : rating.rating}
+                                    {ratingSignedLabel(rating.rating, ratingVariantForCategory(role))}
                                   </strong>
                                 </li>
                               );

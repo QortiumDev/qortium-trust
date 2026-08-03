@@ -16,7 +16,6 @@ import { NodeSyncPill } from './components/Identity';
 import { applyDisplaySettings, getDisplaySettingsUpdateFromMessage, getInitialDisplaySettings } from './displaySettings';
 import { filterDerivations } from './derivationFilter';
 import {
-  categoryDescription,
   categoryLabel,
   formatNumber,
   formatRuntimeLabel,
@@ -26,7 +25,7 @@ import {
 } from './format';
 import { loadIdentityProfiles } from './identityProfiles';
 import { AvatarActionsProvider } from './components/Identity';
-import { setTranslationLanguage, t } from './i18n';
+import { setTranslationLanguage, t, type TranslationKey } from './i18n';
 import { getBridgeState } from './qdnRequest';
 import { PENDING_CONFIRM_POLL_MS, PENDING_CONFIRM_TIMEOUT_MS, pendingRatingKey } from './ratingControl';
 import { getTrustRouteUrl, readTrustRoute, type TrustRoute } from './trustRoute';
@@ -87,7 +86,21 @@ const EMPTY_EXPLORER_STATE: ExplorerState = {
   summary: null,
 };
 
-const ROLE_FLOW: AccountRatingCategory[] = ['MANAGER', 'TRAINER', 'PLAYER', 'SUBJECT'];
+// Minter-first ladder order (#Stage B, task 5): starts from the main screen (Minters) and builds
+// outward to the more specialized roles, matching the D7 ladder copy — the reverse of the old
+// authority-flows-down (Designers -> ... -> Minters) ordering.
+const ROLE_FLOW: AccountRatingCategory[] = ['SUBJECT', 'PLAYER', 'TRAINER', 'MANAGER'];
+
+// TrustFlowGuide's per-role ladder sentence. Minters gets its own dedicated copy (there is no
+// "purpose" key for it in this context); Voters/Guides/Designers reuse the same `.purpose` copy
+// shown on their RoleStandingCard/detail-role-workspace header, so the ladder story stays identical
+// everywhere it appears.
+const ROLE_FLOW_COPY_KEYS: Record<AccountRatingCategory, TranslationKey> = {
+  SUBJECT: 'trustFlow.minters',
+  PLAYER: 'category.voters.purpose',
+  TRAINER: 'category.guides.purpose',
+  MANAGER: 'category.designers.purpose',
+};
 
 async function getAllRatings(options: { rater?: string; target?: string }) {
   const ratings: AccountRating[] = [];
@@ -133,7 +146,7 @@ function CategorySelect({
 
 // The trust-flow diagram used to also appear on the account detail page; it now lives only here
 // (list screen), and is collapsible so returning users can shrink it out of the way (state persisted
-// alongside the showAllRoles preference). Copy is unchanged in this stage.
+// alongside the showAllRoles preference). Per-role copy is the D7 ladder (#Stage B, task 5).
 function TrustFlowGuide({
   collapsed,
   onToggleCollapsed,
@@ -167,7 +180,7 @@ function TrustFlowGuide({
           {ROLE_FLOW.map((role, index) => (
             <li key={role}>
               <strong>{categoryLabel(role)}</strong>
-              <span>{categoryDescription(role)}</span>
+              <span>{t(ROLE_FLOW_COPY_KEYS[role])}</span>
               {index < ROLE_FLOW.length - 1 ? <span aria-hidden="true">→</span> : null}
             </li>
           ))}
@@ -835,7 +848,11 @@ export default function App() {
                   <option value="ALL">{t('label.allStatuses')}</option>
                   {TRUST_STATUSES.map((status) => (
                     <option key={status} value={status}>
-                      {statusLabel(status)}
+                      {/* Suspicious gets a plain functional note wherever statuses are listed/explained
+                          (#Stage B, task 6) — inline text, not color-only (this list has no color). */}
+                      {status === 'SUSPICIOUS'
+                        ? `${statusLabel(status)} ${t('status.suspiciousNote')}`
+                        : statusLabel(status)}
                     </option>
                   ))}
                 </select>
