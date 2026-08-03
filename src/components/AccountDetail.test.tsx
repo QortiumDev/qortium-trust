@@ -40,8 +40,8 @@ const selectedDerivation: TrustDerivation = {
   mintingSeedMember: false,
 };
 
-describe('AccountDetail role workspace', () => {
-  it('shows the community trust path, all roles, copy controls, and one active editor', () => {
+describe('AccountDetail role workspace (showAllRoles on)', () => {
+  it('shows all roles, copy controls, and one active editor — no duplicated trust-flow diagram', () => {
     const onActiveCategoryChange = vi.fn();
 
     render(
@@ -56,12 +56,13 @@ describe('AccountDetail role workspace', () => {
         ratingActionAvailable={false}
         self={null}
         selectedDerivation={selectedDerivation}
+        showAllRoles
         youRatedByKey={{ 'MANAGER:Qtarget': 4, 'SUBJECT:Qtarget': 1 }}
       />,
     );
 
-    expect(screen.getByText('How trust moves through the community')).toBeTruthy();
-    expect(screen.getAllByText('Designers shape how trust flows.').length).toBeGreaterThan(0);
+    // The trust-flow diagram now lives only on the list screen (TrustFlowGuide), not here.
+    expect(screen.queryByText('How trust moves through the community')).toBeNull();
     expect(screen.getAllByText('Minters').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Voters').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Guides').length).toBeGreaterThan(0);
@@ -72,8 +73,37 @@ describe('AccountDetail role workspace', () => {
     expect(screen.queryByText(/^Manager$/)).toBeNull();
     expect(screen.queryByText(/^Subject$/)).toBeNull();
 
-    fireEvent.click(screen.getByRole('button', { name: /Designers/ }));
+    // Anchored to the start: the Guides card's own ladder copy now also mentions "Designers"
+    // ("...Designers decide that."), so an unanchored match is ambiguous.
+    fireEvent.click(screen.getByRole('button', { name: /^Designers/ }));
     expect(onActiveCategoryChange).toHaveBeenCalledWith('MANAGER');
+    expect(screen.getAllByText('Rate this account')).toHaveLength(1);
+  });
+});
+
+describe('AccountDetail Minters-only workspace (showAllRoles off)', () => {
+  it('shows only the SUBJECT role card and workspace, and no trust-flow diagram', () => {
+    render(
+      <AccountDetail
+        category="SUBJECT"
+        detail={{ explanation: null, loading: false, profile: null, publicKey: 'target-public-key' }}
+        onBack={vi.fn()}
+        onRatingSubmitted={vi.fn()}
+        profile={{ address: 'Qtarget', avatarSrc: null, name: 'Target' }}
+        profiles={{}}
+        ratingActionAvailable={false}
+        self={null}
+        selectedDerivation={selectedDerivation}
+        showAllRoles={false}
+        youRatedByKey={{ 'SUBJECT:Qtarget': 1 }}
+      />,
+    );
+
+    expect(screen.queryByText('How trust moves through the community')).toBeNull();
+    expect(screen.queryByRole('button', { name: /Designers/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Voters/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Guides/ })).toBeNull();
+    expect(screen.getAllByText('Minters').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Rate this account')).toHaveLength(1);
   });
 });

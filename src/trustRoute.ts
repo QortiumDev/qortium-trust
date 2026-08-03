@@ -10,8 +10,9 @@ const TRUST_ROUTE_KEYS = ['account', 'target', 'view'] as const;
 export function readTrustRoute(input: string | URL): TrustRoute {
   const url = input instanceof URL ? input : new URL(input, 'http://localhost');
   const requestedView = url.searchParams.get('view');
-  const view: ViewMode =
-    requestedView === 'graph' || requestedView === 'changes' ? requestedView : 'accounts';
+  // A removed view (e.g. a stale 'graph' link from before the graph was cut) falls back to Accounts
+  // rather than round-tripping an unrecognized value onto the URL.
+  const view: ViewMode = requestedView === 'changes' ? requestedView : 'accounts';
 
   return {
     account: url.searchParams.get('account') ?? url.searchParams.get('target'),

@@ -6,12 +6,14 @@ import {
   isRatingUnchanged,
   isSubmitDisabled,
   mapRatingError,
+  raterCategoryImpact,
+  resolveTwoStepRating,
   useRatingControl,
   type RatingControl,
   type RatingControlArgs,
 } from './ratingControl';
 import { ensureAccountUnlocked, getRatingCooldown, resolveSelfAccount, submitRating } from './trustApi';
-import type { AccountRatingCooldown, SelfAccount } from './types';
+import type { AccountRatingCooldown, RatingImpactPreview, SelfAccount } from './types';
 import type { PendingRatingEntry } from './viewTypes';
 
 vi.mock('./trustApi', () => ({
@@ -58,6 +60,80 @@ describe('rating predicates (pure)', () => {
     expect(isSubmitDisabled({ ...clear, isPending: true })).toBe(true);
     expect(isSubmitDisabled({ ...clear, previewInvalid: true })).toBe(true);
     expect(isSubmitDisabled({ ...clear, previewInvalid: false })).toBe(false);
+  });
+});
+
+// Two-step Minter/role rating chooser (#Stage B, tasks 1-2, 7): full mapping table for
+// Yes/No/Clear/Not-sure-yet x confidence -> submitted value.
+describe('resolveTwoStepRating (two-step chooser mapping table)', () => {
+  it('maps Yes + confidence to a positive rating', () => {
+    expect(resolveTwoStepRating('yes', 1)).toBe(1);
+    expect(resolveTwoStepRating('yes', 2)).toBe(2);
+    expect(resolveTwoStepRating('yes', 3)).toBe(3);
+    expect(resolveTwoStepRating('yes', 4)).toBe(4);
+  });
+
+  it('maps No + confidence to a negative rating', () => {
+    expect(resolveTwoStepRating('no', 1)).toBe(-1);
+    expect(resolveTwoStepRating('no', 2)).toBe(-2);
+    expect(resolveTwoStepRating('no', 3)).toBe(-3);
+    expect(resolveTwoStepRating('no', 4)).toBe(-4);
+  });
+
+  it('maps Clear to 0 regardless of any leftover confidence', () => {
+    expect(resolveTwoStepRating('clear', null)).toBe(0);
+    expect(resolveTwoStepRating('clear', 3)).toBe(0);
+  });
+
+  it('never resolves "Not sure yet" to a value, even with a confidence picked earlier', () => {
+    expect(resolveTwoStepRating('notSure', null)).toBeNull();
+    expect(resolveTwoStepRating('notSure', 2)).toBeNull();
+  });
+
+  it('does not resolve Yes/No until a confidence is chosen', () => {
+    expect(resolveTwoStepRating('yes', null)).toBeNull();
+    expect(resolveTwoStepRating('no', null)).toBeNull();
+  });
+
+  it('does not resolve when no answer has been picked yet', () => {
+    expect(resolveTwoStepRating(null, null)).toBeNull();
+    expect(resolveTwoStepRating(null, 3)).toBeNull();
+  });
+});
+
+describe('raterCategoryImpact', () => {
+  function preview(impacts: RatingImpactPreview['previewSelectedCategory']): RatingImpactPreview {
+    return { previewSelectedCategory: impacts } as RatingImpactPreview;
+  }
+
+  it('returns null (unknown) when there is no preview yet', () => {
+    expect(raterCategoryImpact(null, 'Qrater')).toBeNull();
+    expect(raterCategoryImpact(undefined, 'Qrater')).toBeNull();
+  });
+
+  it('returns null (unknown) when there is no rater address to look up', () => {
+    expect(raterCategoryImpact(preview({ impacts: [] } as never), null)).toBeNull();
+  });
+
+  it('returns null (unknown) when the preview has no impacts data at all', () => {
+    expect(raterCategoryImpact(preview(null), 'Qrater')).toBeNull();
+    expect(raterCategoryImpact(preview({} as never), 'Qrater')).toBeNull();
+  });
+
+  it('returns 0 when the preview loaded but this rater has no entry (does not count)', () => {
+    expect(raterCategoryImpact(preview({ impacts: [] } as never), 'Qrater')).toBe(0);
+    expect(
+      raterCategoryImpact(preview({ impacts: [{ raterAddress: 'Qother', impact: 40 }] } as never), 'Qrater'),
+    ).toBe(0);
+  });
+
+  it("returns the rater's own impact when present", () => {
+    expect(
+      raterCategoryImpact(
+        preview({ impacts: [{ raterAddress: 'Qother', impact: 40 }, { raterAddress: 'Qrater', impact: 12 }] } as never),
+        'Qrater',
+      ),
+    ).toBe(12);
   });
 });
 

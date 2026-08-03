@@ -16,7 +16,6 @@ import type {
   SelfAccount,
   TrustDerivation,
   TrustDerivationOrderBy,
-  TrustGraph,
   TrustPolicy,
   TrustStatus,
   TrustStatusChange,
@@ -146,22 +145,6 @@ export function buildTrustChangesPath(options: {
   return `/account-ratings/trust-changes?${query.toString()}`;
 }
 
-export function buildTrustGraphPath(options: {
-  category?: AccountRatingCategory;
-  depth?: number;
-  root?: string;
-} = {}) {
-  const query = new URLSearchParams();
-
-  appendQueryValue(query, 'category', options.category);
-  appendQueryValue(query, 'root', options.root);
-  appendQueryValue(query, 'depth', options.depth);
-
-  const queryString = query.toString();
-
-  return `/account-ratings/trust-graph${queryString ? `?${queryString}` : ''}`;
-}
-
 export function buildResourceRatingsPath(options: {
   identifier?: string;
   limit?: number;
@@ -253,10 +236,6 @@ export async function getAccountRatingsPage(
 
 export function getTrustChanges(options?: Parameters<typeof buildTrustChangesPath>[0]) {
   return fetchNodeApiData<TrustStatusChange[]>(buildTrustChangesPath(options), t('fetch.trustChanges'));
-}
-
-export function getTrustGraph(options?: Parameters<typeof buildTrustGraphPath>[0]) {
-  return fetchNodeApiData<TrustGraph>(buildTrustGraphPath(options), t('fetch.trustGraph'));
 }
 
 export function getResourceRatings(options?: Parameters<typeof buildResourceRatingsPath>[0]) {

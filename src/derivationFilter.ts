@@ -1,8 +1,7 @@
 import type { TrustDerivation } from './types';
 
 // Client-side account search over the loaded derivations: matches the query against the address or
-// public key. Lives apart from graphModel so the eager (non-graph) views can import it without
-// pulling d3-force into the main bundle — the graph model + simulation are loaded lazily.
+// public key.
 export function filterDerivations(derivations: TrustDerivation[], query: string) {
   const normalizedQuery = query.trim().toLowerCase();
 

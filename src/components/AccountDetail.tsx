@@ -1,7 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, Check, Copy } from 'lucide-react';
 import { getIdentityLabel } from '../identityProfiles';
-import { categoryLabel, formatNumber, formatPercent, ratingTone } from '../format';
+import {
+  categoryLabel,
+  formatNumber,
+  formatPercent,
+  publicizeTrustText,
+  ratingSignedLabel,
+  ratingVariantForCategory,
+  ratingTone,
+} from '../format';
 import type {
   AccountRating,
   AccountRatingCategory,
@@ -10,6 +18,8 @@ import type {
   IdentityProfilesByAddress,
   SelfAccount,
   TrustDerivation,
+  TrustPolicy,
+  TrustStatus,
 } from '../types';
 import type {
   AccountDetailState,
@@ -96,24 +106,34 @@ function CopyValueButton({ label, value }: { label: string; value: string }) {
   );
 }
 
-function ratingValue(value: number | undefined) {
+// Decomposed sign+magnitude form (owner copy rule — never a combined "+3" style render). `category`
+// picks Minter (Yes/No) vs role (Positive/Negative) wording; 0 (only ever seen mid-flight, while a
+// removal is pending confirmation) reads the same as an option-list "Clear rating".
+function ratingValue(value: number | undefined, category: AccountRatingCategory) {
   if (value === undefined) {
     return <span className="muted">—</span>;
   }
 
-  return <span className={`you-rated ${ratingTone(value)}`}>{value > 0 ? `+${value}` : value}</span>;
+  if (value === 0) {
+    return <span className="you-rated muted">{t('rating.option.remove')}</span>;
+  }
+
+  return (
+    <span className={`you-rated ${ratingTone(value)}`}>{ratingSignedLabel(value, ratingVariantForCategory(category))}</span>
+  );
 }
 
-function publicTrustText(value: string) {
-  return value
-    .replace(/\bMANAGER\b/g, 'DESIGNER')
-    .replace(/\bManager(?=\s+(?:Gold|Silver|Bronze|level|threshold))/g, 'Designer')
-    .replace(/\bTRAINER\b/g, 'GUIDE')
-    .replace(/\bTrainer(?=\s+(?:Gold|Silver|Bronze|level|threshold))/g, 'Guide')
-    .replace(/\bPLAYER\b/g, 'VOTER')
-    .replace(/\bPlayer(?=\s+(?:Gold|Silver|Bronze|level|threshold))/g, 'Voter')
-    .replace(/\bSUBJECT\b/g, 'MINTER')
-    .replace(/\bSubject(?=\s+(?:Gold|Silver|Bronze|level|threshold))/g, 'Minter');
+// Renders from already-fetched trust-policy data (App loads it once via getTrustPolicy). formatNumber
+// degrades any missing percent to '-' rather than hiding the whole line.
+function voteWeightExplainer(policy: TrustPolicy | null | undefined) {
+  const percentFor = (status: TrustStatus) =>
+    policy?.statusVoteWeights?.find((entry) => entry.status === status)?.voteWeightPercent;
+
+  return t('detail.voteWeightExplainer', {
+    bronze: formatNumber(percentFor('BRONZE')),
+    gold: formatNumber(percentFor('GOLD')),
+    silver: formatNumber(percentFor('SILVER')),
+  });
 }
 
 function relevantRequirements(
@@ -175,12 +195,15 @@ function RoleStandingCard({
     >
       <span className="role-standing-card__title">
         <strong>{categoryLabel(category)}</strong>
-        {status ? <StatusBadge status={status} /> : null}
+        {/* Only the Minter card keeps a Bronze/Silver/Gold-style status badge (#Stage B, task 5) —
+            Voter/Guide/Designer cards show their trust level instead (in the metrics row below), so
+            they never imply an externally meaningful status the way Minter status does. */}
+        {status && category === 'SUBJECT' ? <StatusBadge status={status} /> : null}
       </span>
       <span className="role-standing-card__purpose">{rolePurpose(category)}</span>
       <span className="role-standing-card__metrics">
         <span>
-          {t('label.level')} <strong>{formatNumber(categoryData?.level)}</strong>
+          {t('label.trustLevel')} <strong>{formatNumber(categoryData?.level)}</strong>
         </span>
         <span>
           {t('label.score')} <strong>{formatNumber(categoryData?.score)}</strong>
@@ -196,7 +219,7 @@ function RoleStandingCard({
           {t('label.youRated')}{' '}
           <strong className={displayed.pending ? 'you-rated-pending' : undefined}>
             {displayed.pending ? <span aria-hidden="true" className="you-rated-spinner" /> : null}
-            {ratingValue(displayed.value)}
+            {ratingValue(displayed.value, category)}
           </strong>
         </span>
       </span>
@@ -220,12 +243,14 @@ export function AccountDetail({
   onRatingSubmitted,
   onRetryPending,
   pendingRatings,
+  policy,
   profile,
   profiles,
   ratingActionAvailable,
   receivedRatings,
   self,
   selectedDerivation,
+  showAllRoles,
   youRatedByKey,
 }: {
   category: AccountRatingCategory;
@@ -240,18 +265,27 @@ export function AccountDetail({
   // own category/target to offer Retry/Dismiss; the role cards below use it (together with
   // youRatedByKey) to derive each role's displayed you-rated value via getDisplayedRating.
   pendingRatings?: PendingRatingsByKey;
+  // Already-fetched app-wide trust policy (App loads it once via getTrustPolicy), used for the
+  // vote-weight explainer's Bronze/Silver/Gold percentages.
+  policy?: TrustPolicy | null;
   profile?: IdentityProfile;
   profiles: IdentityProfilesByAddress;
   ratingActionAvailable: boolean;
   receivedRatings?: AccountRating[];
   self: SelfAccount | null;
   selectedDerivation: TrustDerivation;
+  // Minters-first redesign (Stage A): off shows only the SUBJECT (Minters) role card + workspace;
+  // on shows the 4-card role grid as before.
+  showAllRoles: boolean;
   // Complete current-user ratings keyed by pendingRatingKey's `${category}:${targetAddress}`.
   youRatedByKey?: RatingValuesByAccountCategory;
 }) {
   const backButtonRef = useRef<HTMLButtonElement>(null);
   const [activeCategory, setActiveCategory] = useState(category);
   const label = getIdentityLabel(profile, selectedDerivation.accountAddress);
+  // Off: only the SUBJECT ("Minters") role is ever shown — App itself pins `category` to SUBJECT
+  // while the toggle is off, but this keeps the evidence section below correct even if it doesn't.
+  const visibleRoles: AccountRatingCategory[] = showAllRoles ? ROLE_ORDER : ['SUBJECT'];
 
   useEffect(() => {
     backButtonRef.current?.focus();
@@ -325,22 +359,6 @@ export function AccountDetail({
         </div>
       </header>
 
-      <section aria-labelledby="trust-path-title" className="trust-path">
-        <div>
-          <h3 id="trust-path-title">{t('role.howTrustMoves')}</h3>
-          <p>{t('role.trustMovesIntro')}</p>
-        </div>
-        <ol className="trust-path__steps">
-          {ROLE_ORDER.map((role, index) => (
-            <li key={role}>
-              <strong>{categoryLabel(role)}</strong>
-              <span>{rolePurpose(role)}</span>
-              {index < ROLE_ORDER.length - 1 ? <span aria-hidden="true" className="trust-path__arrow">↓</span> : null}
-            </li>
-          ))}
-        </ol>
-      </section>
-
       {detail.loading ? (
         <div aria-busy="true" aria-live="polite" className="detail-columns-loading" role="status">
           <div className="skeleton-block" />
@@ -349,20 +367,25 @@ export function AccountDetail({
         </div>
       ) : (
         <>
-          <section aria-label={t('role.trustRoles')} className="role-standing-grid">
-            {ROLE_ORDER.map((role) => (
-              <RoleStandingCard
-                active={activeCategory === role}
-                category={role}
-                derivation={selectedDerivation}
-                displayed={getDisplayedRating(pendingRatings, youRatedByKey, role, selectedDerivation.accountAddress)}
-                explanation={explanationByCategory.get(role)}
-                key={role}
-                onSelect={() => selectCategory(role)}
-                profile={profileByCategory.get(role)}
-              />
-            ))}
-          </section>
+          {showAllRoles ? (
+          <>
+            <p className="roles-grid-intro">{t('role.gridIntro')}</p>
+            <section aria-label={t('role.trustRoles')} className="role-standing-grid">
+              {ROLE_ORDER.map((role) => (
+                <RoleStandingCard
+                  active={activeCategory === role}
+                  category={role}
+                  derivation={selectedDerivation}
+                  displayed={getDisplayedRating(pendingRatings, youRatedByKey, role, selectedDerivation.accountAddress)}
+                  explanation={explanationByCategory.get(role)}
+                  key={role}
+                  onSelect={() => selectCategory(role)}
+                  profile={profileByCategory.get(role)}
+                />
+              ))}
+            </section>
+          </>
+          ) : null}
 
           <section className="detail-role-workspace">
             <header className="detail-role-workspace__header">
@@ -386,6 +409,7 @@ export function AccountDetail({
                 </span>
               </div>
             </header>
+            <p className="detail-role-workspace__vote-weight-note">{voteWeightExplainer(policy)}</p>
 
             <div className="detail-role-workspace__columns">
               <div className="detail-rate">
@@ -426,7 +450,7 @@ export function AccountDetail({
                           <span aria-hidden="true">{requirement.passed ? '✓' : '!'}</span>
                           <div>
                             <strong>{requirement.passed ? t('role.met') : t('role.notMet')}</strong>
-                            <p>{publicTrustText(requirement.description)}</p>
+                            <p>{publicizeTrustText(requirement.description)}</p>
                             <span className="muted">
                               {t('role.currentNeeded', {
                                 actual: requirement.actual,
@@ -450,7 +474,7 @@ export function AccountDetail({
                 <p className="muted">{t('role.openRatingsNotLoaded')}</p>
               ) : (
                 <div className="received-rating-groups">
-                  {ROLE_ORDER.map((role) => {
+                  {visibleRoles.map((role) => {
                     const roleRatings = receivedRatings
                       .filter(
                         (rating) =>
@@ -485,7 +509,7 @@ export function AccountDetail({
                                     <IdentityLabel address={rating.raterAddress} profile={raterProfile} />
                                   </button>
                                   <strong className={ratingTone(rating.rating)}>
-                                    {rating.rating > 0 ? `+${rating.rating}` : rating.rating}
+                                    {ratingSignedLabel(rating.rating, ratingVariantForCategory(role))}
                                   </strong>
                                 </li>
                               );

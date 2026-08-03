@@ -57,7 +57,6 @@
   --silver: #687782;
   --bronze: #8f5b2e;
   --unverified: #2b7f94;
-  --graph-node-fill: #ffffff;
   --row-hover: #e7e1d6;
   --scroll-shadow: rgba(27, 45, 52, 0.16);
   --empty-overlay-bg: rgba(255, 255, 255, 0.9);
@@ -133,7 +132,6 @@
   --silver: #9aaab2;
   --bronze: #d89b67;
   --unverified: #74cee0;
-  --graph-node-fill: #1f2929;
   --row-hover: #2c3939;
   --scroll-shadow: rgba(0, 0, 0, 0.45);
   --empty-overlay-bg: rgba(23, 29, 33, 0.92);
@@ -358,7 +356,6 @@
   --muted: #6b6b6b;
   --line: #ddd9d0;
   --line-strong: #ddd9d0;
-  --graph-node-fill: #ffffff;
   --row-hover: #f7f4ec;
   --scroll-shadow: rgba(13, 13, 13, 0.16);
   --empty-overlay-bg: rgba(255, 255, 255, 0.92);
@@ -391,7 +388,6 @@
   --muted: #6f7a8c;
   --line: #2e3340;
   --line-strong: #2e3340;
-  --graph-node-fill: #222633;
   --row-hover: #252a36;
   --scroll-shadow: rgba(0, 0, 0, 0.45);
   --empty-overlay-bg: rgba(28, 31, 40, 0.92);
@@ -442,12 +438,6 @@ button:disabled {
 .app-shell {
   min-height: 100dvh;
   padding: 24px;
-}
-
-.app-shell--fullscreen {
-  min-height: 100dvh;
-  overflow: hidden;
-  padding: 0;
 }
 
 .app-header {
@@ -840,10 +830,6 @@ select {
   width: 100%;
 }
 
-.workspace--fullscreen {
-  min-height: 100dvh;
-}
-
 .main-panel {
   background: var(--panel);
   border: 1px solid var(--line);
@@ -855,24 +841,6 @@ select {
   min-width: 0;
   padding: 14px;
   position: relative;
-}
-
-.main-panel--graph-view {
-  background: transparent;
-  border: 0;
-  box-shadow: none;
-  min-height: 0;
-  padding: 0;
-}
-
-.main-panel--fullscreen {
-  background: var(--surface);
-  border: 0;
-  border-radius: 0;
-  box-shadow: none;
-  max-width: none;
-  min-height: 100dvh;
-  padding: 0;
 }
 
 .detail-back {
@@ -930,530 +898,6 @@ select {
 .detail-columns-loading {
   display: grid;
   gap: 12px;
-}
-
-.graph-surface {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  overflow: hidden;
-  position: relative;
-}
-
-.main-panel--graph-view .graph-surface {
-  height: clamp(320px, calc(100dvh - 128px), 720px);
-}
-
-.main-panel--fullscreen .graph-surface {
-  border: 0;
-  border-radius: 0;
-  height: 100dvh;
-  min-height: 100dvh;
-}
-
-.trust-graph {
-  cursor: grab;
-  display: block;
-  height: auto;
-  /* min-height lives on the SVG (not the surface) so the interactive canvas always fills the panel;
-     putting it on the surface left a dead zone below short graphs on tablet/narrow desktop
-     (RESP-02/RESP-11). */
-  min-height: 520px;
-  touch-action: none;
-  user-select: none;
-  width: 100%;
-}
-
-.main-panel--graph-view .trust-graph {
-  height: 100%;
-  max-height: none;
-  min-height: 0;
-}
-
-.main-panel--fullscreen .trust-graph {
-  height: 100dvh;
-  max-height: 100dvh;
-  min-height: 100dvh;
-}
-
-.trust-graph:active {
-  cursor: grabbing;
-}
-
-.graph-zoom-controls {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  position: absolute;
-  right: 12px;
-  top: 12px;
-  z-index: 3;
-}
-
-.view-controls {
-  align-items: center;
-  display: flex;
-  gap: 8px;
-  justify-content: space-between;
-  margin-bottom: 14px;
-  min-width: 0;
-  width: 100%;
-}
-
-.view-controls--over-graph {
-  left: 14px;
-  margin: 0;
-  max-width: calc(100% - 86px);
-  position: absolute;
-  top: 14px;
-  z-index: 4;
-}
-
-.view-controls__selectors {
-  align-items: center;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  min-width: 0;
-}
-
-.view-controls select {
-  background: var(--empty-overlay-bg);
-  min-height: 40px;
-}
-
-.fullscreen-toggle {
-  align-items: center;
-  background: var(--empty-overlay-bg);
-  border: 1px solid var(--line);
-  border-radius: 7px;
-  color: var(--text);
-  display: inline-flex;
-  flex: 0 0 auto;
-  height: 40px;
-  justify-content: center;
-  margin-left: auto;
-  width: 40px;
-}
-
-.fullscreen-toggle:hover {
-  border-color: var(--accent-strong);
-}
-
-.main-panel--fullscreen:not(.main-panel--graph-view) {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.main-panel--fullscreen:not(.main-panel--graph-view) .view-controls {
-  margin-bottom: 0;
-}
-
-.main-panel--fullscreen .table-wrap {
-  flex: 1 1 auto;
-  max-height: none;
-  min-height: 0;
-}
-
-.main-panel--graph-view .graph-hint {
-  max-width: calc(100% - 86px);
-  top: 68px;
-}
-
-.graph-zoom-controls button {
-  align-items: center;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  color: var(--text);
-  cursor: pointer;
-  display: flex;
-  font-size: 16px;
-  height: 30px;
-  justify-content: center;
-  line-height: 1;
-  padding: 0;
-  width: 30px;
-}
-
-.graph-zoom-controls button:hover {
-  border-color: var(--accent-strong);
-  color: var(--text);
-}
-
-/* One-line discoverability hint for the pan/zoom/hover affordances, pinned top-left clear of the
-   zoom controls (top-right) and legend (bottom-left). */
-.graph-hint {
-  background: var(--empty-overlay-bg);
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  color: var(--muted);
-  font-size: var(--font-size-small);
-  left: 12px;
-  margin: 0;
-  max-width: calc(100% - 70px);
-  padding: 5px 12px;
-  pointer-events: none;
-  position: absolute;
-  top: 12px;
-  z-index: 2;
-}
-
-/* Always-visible legend mapping status-ring colours and edge colours/styles, anchored bottom-left. */
-.graph-legend {
-  background: var(--empty-overlay-bg);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  bottom: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  left: 12px;
-  max-width: calc(100% - 24px);
-  padding: 8px 10px;
-  position: absolute;
-  z-index: 2;
-}
-
-.graph-legend__group {
-  align-items: center;
-  column-gap: 12px;
-  display: flex;
-  flex-wrap: wrap;
-  row-gap: 4px;
-}
-
-.graph-legend__heading {
-  color: var(--muted);
-  font-size: var(--font-size-small);
-  font-weight: 800;
-  text-transform: uppercase;
-}
-
-.graph-legend__item {
-  align-items: center;
-  color: var(--text);
-  display: inline-flex;
-  font-size: var(--font-size-small);
-  font-weight: 700;
-  gap: 6px;
-}
-
-.graph-legend__ring {
-  border-radius: 999px;
-  border-style: solid;
-  border-width: 3px;
-  box-sizing: border-box;
-  flex: 0 0 auto;
-  height: 16px;
-  width: 16px;
-}
-
-.graph-legend__ring--gold {
-  border-color: var(--gold);
-}
-
-.graph-legend__ring--silver {
-  border-color: var(--silver);
-}
-
-.graph-legend__ring--bronze {
-  border-color: var(--bronze);
-}
-
-.graph-legend__ring--neutral {
-  border-color: var(--unverified);
-  border-style: dashed;
-}
-
-.graph-legend__ring--negative {
-  border-color: var(--negative);
-}
-
-.graph-legend__edge {
-  flex: 0 0 auto;
-  height: 8px;
-  width: 24px;
-}
-
-.graph-legend__line {
-  stroke-width: 2.5;
-}
-
-.graph-legend__line--positive {
-  stroke: var(--positive);
-}
-
-.graph-legend__line--negative {
-  stroke: var(--negative);
-}
-
-.graph-legend__line--neutral {
-  stroke: var(--silver);
-  stroke-dasharray: 2 4;
-}
-
-/* Graph-shaped loading placeholder sized to the surface (matches .graph-surface min-height) shown
-   while the graph view's dataset is (re)loading, instead of the generic table skeleton. */
-.graph-surface--loading {
-  align-items: center;
-  display: flex;
-  justify-content: center;
-  /* The loading variant has no SVG to carry the min-height, so it keeps its own panel floor. */
-  min-height: 520px;
-}
-
-.graph-loading {
-  align-items: center;
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-}
-
-.graph-loading__orbit {
-  height: 140px;
-  position: relative;
-  width: 140px;
-}
-
-.graph-loading__node {
-  animation: graph-loading-pulse 1.4s ease-in-out infinite;
-  background: var(--skeleton-b);
-  border: 3px solid var(--line-strong);
-  border-radius: 999px;
-  height: 22px;
-  margin: -11px 0 0 -11px;
-  position: absolute;
-  width: 22px;
-}
-
-.graph-loading__node--center {
-  height: 30px;
-  left: 50%;
-  margin: -15px 0 0 -15px;
-  top: 50%;
-  width: 30px;
-}
-
-.graph-loading__node:nth-child(2) {
-  left: 50%;
-  top: 8%;
-  animation-delay: 0.1s;
-}
-
-.graph-loading__node:nth-child(3) {
-  left: 90%;
-  top: 38%;
-  animation-delay: 0.2s;
-}
-
-.graph-loading__node:nth-child(4) {
-  left: 78%;
-  top: 86%;
-  animation-delay: 0.3s;
-}
-
-.graph-loading__node:nth-child(5) {
-  left: 22%;
-  top: 86%;
-  animation-delay: 0.4s;
-}
-
-.graph-loading__node:nth-child(6) {
-  left: 10%;
-  top: 38%;
-  animation-delay: 0.5s;
-}
-
-.graph-loading__label {
-  color: var(--muted);
-  font-size: var(--font-size-small);
-  font-weight: 700;
-}
-
-@keyframes graph-loading-pulse {
-  0%,
-  100% {
-    opacity: 0.4;
-    transform: scale(0.9);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1.05);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .graph-loading__node {
-    animation: none;
-  }
-}
-
-.graph-link {
-  fill: none;
-  opacity: 0.55;
-  transition: opacity 0.15s ease;
-}
-
-/* When a node is selected, fade everything not connected to it so the neighbourhood stands out. */
-.graph-link.dimmed {
-  opacity: 0.06;
-}
-
-.graph-node.dimmed {
-  opacity: 0.18;
-}
-
-.graph-link-positive {
-  stroke: var(--positive);
-}
-
-.graph-link-negative {
-  stroke: var(--negative);
-}
-
-.graph-node {
-  cursor: pointer;
-  outline: 0;
-  transition: opacity 0.15s ease;
-}
-
-/* Visible keyboard focus ring (WCAG 2.4.7). Thickening the ring stroke mirrors the hover/selected
-   affordance, and the accent halo makes the focused node obvious against any status colour. */
-.graph-node:focus-visible {
-  outline: 0;
-}
-
-.graph-node:focus-visible circle {
-  stroke-width: 5;
-  filter: drop-shadow(0 0 3px var(--accent-strong));
-}
-
-.graph-node circle {
-  fill: var(--graph-node-fill);
-  stroke: var(--silver);
-  stroke-width: 3;
-}
-
-.graph-node text {
-  fill: var(--muted);
-  font-size: calc(12px * var(--text-scale));
-  pointer-events: none;
-  text-anchor: middle;
-}
-
-.graph-node .graph-node-initial {
-  fill: var(--accent-strong);
-  font-size: calc(12px * var(--text-scale));
-  font-weight: 900;
-}
-
-.graph-node .graph-node-label {
-  fill: var(--muted);
-  font-size: calc(12px * var(--text-scale));
-  font-weight: 700;
-}
-
-.graph-selection-panel {
-  background: var(--empty-overlay-bg);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  bottom: 12px;
-  color: var(--text);
-  display: grid;
-  gap: 10px;
-  max-width: min(360px, calc(100% - 24px));
-  padding: 10px 12px;
-  position: absolute;
-  right: 12px;
-  z-index: 3;
-}
-
-.graph-selection-panel__identity {
-  display: grid;
-  gap: 2px;
-  min-width: 0;
-}
-
-.graph-selection-panel__identity strong,
-.graph-selection-panel__identity .mono {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.graph-selection-panel__eyebrow {
-  color: var(--muted);
-  font-size: var(--font-size-small);
-  font-weight: 800;
-  text-transform: uppercase;
-}
-
-.graph-selection-panel dl {
-  display: grid;
-  gap: 6px 12px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  margin: 0;
-}
-
-.graph-selection-panel dl div {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-  min-width: 0;
-}
-
-.graph-selection-panel dt {
-  color: var(--muted);
-  font-size: var(--font-size-small);
-  font-weight: 700;
-}
-
-.graph-selection-panel dd {
-  font-size: var(--font-size-small);
-  font-weight: 800;
-  margin: 0;
-}
-
-.graph-selection-panel button {
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 7px;
-  color: var(--text);
-  font-size: var(--font-size-small);
-  font-weight: 800;
-  min-height: 34px;
-}
-
-.graph-selection-panel button:hover {
-  border-color: var(--accent-strong);
-}
-
-.graph-node:hover circle,
-.graph-node.selected circle {
-  stroke-width: 5;
-}
-
-.graph-node-negative circle {
-  stroke: var(--negative);
-}
-
-.graph-node-gold circle {
-  stroke: var(--gold);
-}
-
-.graph-node-silver circle {
-  stroke: var(--silver);
-}
-
-.graph-node-bronze circle {
-  stroke: var(--bronze);
-}
-
-.graph-node-neutral circle {
-  stroke: var(--unverified);
-  stroke-dasharray: 5 4;
 }
 
 .empty-overlay {
@@ -1805,8 +1249,99 @@ tbody tr:hover,
      orange 3.46, teal 3.12 …) and catastrophically on all dark pastels (1.55–2.14:1). */
   color: var(--accent-contrast);
   font-weight: 800;
+  margin-top: 12px;
   min-height: 44px;
   padding: 9px 16px;
+}
+
+/* The quick-rate popover lays out its children on a grid with its own gap — no extra margin needed. */
+.rating-popover-body .rating-submit {
+  margin-top: 0;
+}
+
+/* Two-step Minter/role rating chooser (#Stage B, tasks 1-2). Q1 (yes/no/not-sure/clear) and Q2
+   (confidence) are both rendered as a labelled group of toggle buttons — plain <fieldset>s with a
+   row of pressed/unpressed buttons rather than a <select>, so both the question and every option are
+   always visible instead of hidden behind a dropdown. */
+.rating-flow {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.rating-flow__step {
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.rating-flow__step legend {
+  font-size: var(--font-size-small);
+  font-weight: 700;
+  padding: 0 0 4px;
+}
+
+.rating-flow__helper {
+  color: var(--muted);
+  font-size: var(--font-size-small);
+  margin: 0 0 8px;
+}
+
+.rating-flow__options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.rating-flow__option {
+  background: var(--panel-strong);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--text);
+  font-weight: 700;
+  padding: 7px 14px;
+}
+
+.rating-flow__option:hover {
+  border-color: var(--accent-strong);
+}
+
+.rating-flow__option[aria-pressed='true'] {
+  background: var(--accent);
+  border-color: var(--accent-strong);
+  color: var(--accent-contrast);
+}
+
+.rating-flow__option--clear {
+  border-style: dashed;
+}
+
+.rating-flow__option:disabled {
+  color: var(--badge-neutral-text);
+  opacity: 0.7;
+}
+
+.rating-flow__warning {
+  margin-bottom: 8px;
+}
+
+.rating-flow__influence-note {
+  background: var(--panel-subtle);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.rating-flow__influence-note p {
+  margin: 0;
+}
+
+.rating-flow__influence-note p + p {
+  margin-top: 4px;
+}
+
+.rating-impact-note {
+  margin-top: 8px;
 }
 
 .rating-submit:disabled {
@@ -2185,30 +1720,6 @@ tbody tr:hover,
     width: min(280px, calc(100vw - 16px));
   }
 
-  .graph-surface {
-    min-height: 420px;
-  }
-
-  .main-panel--graph-view .graph-surface {
-    height: clamp(360px, calc(100dvh - 300px), 560px);
-    min-height: 0;
-  }
-
-  .main-panel--fullscreen .graph-surface {
-    height: 100dvh;
-    min-height: 100dvh;
-  }
-
-  .graph-hint {
-    max-width: calc(100% - 24px);
-  }
-
-  /* The selected-account summary and full legend cannot share the graph's lower edge on phones.
-     Keep the actionable summary visible; the SVG nodes and summary still expose status text. */
-  .graph-surface--selected .graph-legend {
-    display: none;
-  }
-
   /* The unified directory becomes cards below 1100px, so every role remains visible on phones. */
   .accounts-table {
     min-width: 0;
@@ -2233,18 +1744,12 @@ tbody tr:hover,
 
 @media (pointer: coarse) {
   .icon-button,
-  .graph-zoom-controls button,
   .search-field__close {
     min-height: 44px;
     min-width: 44px;
   }
 
   .icon-button {
-    height: 44px;
-    width: 44px;
-  }
-
-  .graph-zoom-controls button {
     height: 44px;
     width: 44px;
   }
@@ -2265,11 +1770,6 @@ tbody tr:hover,
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .graph-link,
-  .graph-node {
-    transition: none;
-  }
-
   .skeleton-block,
   .skeleton-table {
     animation: none;
@@ -2324,21 +1824,6 @@ tbody tr:hover,
   width: min(100%, 80em);
 }
 
-:root[data-ui='modern'] .app-shell.app-shell--fullscreen {
-  padding: 0;
-}
-
-:root[data-ui='modern'] .app-shell--fullscreen .workspace {
-  margin-inline: 0;
-  width: 100%;
-}
-
-:root[data-ui='modern'] .app-shell--fullscreen .main-panel,
-:root[data-ui='modern'] .app-shell--fullscreen .graph-surface {
-  border-radius: 0;
-  border-width: 0;
-}
-
 :root[data-ui='modern'] .toolbar,
 :root[data-ui='modern'] .error-banner,
 :root[data-ui='modern'] .info-banner {
@@ -2349,7 +1834,6 @@ tbody tr:hover,
 }
 
 :root[data-ui='modern'] .main-panel,
-:root[data-ui='modern'] .graph-surface,
 :root[data-ui='modern'] .table-wrap,
 :root[data-ui='modern'] .detail-grid > div,
 :root[data-ui='modern'] .rate-popover,
@@ -2372,8 +1856,7 @@ tbody tr:hover,
 :root[data-ui='modern'] .back-button,
 :root[data-ui='modern'] .rate-button,
 :root[data-ui='modern'] .rating-submit,
-:root[data-ui='modern'] .empty-state-reset,
-:root[data-ui='modern'] .graph-zoom-controls button {
+:root[data-ui='modern'] .empty-state-reset {
   border-width: 1.5px;
 }
 
@@ -2381,8 +1864,7 @@ tbody tr:hover,
 :root[data-ui='modern'] .back-button,
 :root[data-ui='modern'] .rate-button,
 :root[data-ui='modern'] .rating-submit,
-:root[data-ui='modern'] .empty-state-reset,
-:root[data-ui='modern'] .graph-zoom-controls button {
+:root[data-ui='modern'] .empty-state-reset {
   border-radius: 50px;
 }
 
@@ -2663,8 +2145,7 @@ tbody tr:hover,
   transform: scaleX(-1);
 }
 
-.accounts-toolbar,
-.network-toolbar {
+.accounts-toolbar {
   align-items: end;
   background: var(--panel);
   border: 1px solid var(--line);
@@ -2707,17 +2188,6 @@ tbody tr:hover,
 .field-control select {
   color: var(--text);
   min-height: 40px;
-}
-
-.field-control--wide {
-  flex: 1 1 280px;
-}
-
-.network-counts {
-  color: var(--muted);
-  font-size: var(--font-size-small);
-  margin: 0 4px 10px auto;
-  white-space: nowrap;
 }
 
 .accounts-directory {
@@ -2866,60 +2336,10 @@ tbody tr:hover,
   padding: 5px 9px;
 }
 
-.trust-path {
-  align-items: center;
-  background: var(--panel-subtle);
-  border: 1px solid var(--line);
-  border-radius: 9px;
-  display: grid;
-  gap: 16px;
-  grid-template-columns: minmax(210px, 0.7fr) minmax(0, 2fr);
-  margin-bottom: 18px;
-  padding: 14px;
-}
-
-.trust-path p {
-  color: var(--muted);
-  margin: 5px 0 0;
-}
-
-.trust-path__steps {
-  display: grid;
-  gap: 8px;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.trust-path__steps li {
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  display: grid;
-  gap: 4px;
-  min-width: 0;
-  padding: 10px;
-  position: relative;
-}
-
-.trust-path__steps li > span:not(.trust-path__arrow) {
+.roles-grid-intro {
   color: var(--muted);
   font-size: var(--font-size-small);
-}
-
-.trust-path__arrow {
-  position: absolute;
-  right: -8px;
-  top: 45%;
-  transform: rotate(-90deg);
-  z-index: 1;
-}
-
-:root[dir='rtl'] .trust-path__arrow {
-  left: -8px;
-  right: auto;
-  transform: rotate(90deg);
+  margin: 0 0 10px;
 }
 
 .role-standing-grid {
@@ -3088,16 +2508,6 @@ tbody tr:hover,
   opacity: 1;
 }
 
-.graph-edge-list {
-  clip: rect(0 0 0 0);
-  clip-path: inset(50%);
-  height: 1px;
-  overflow: hidden;
-  position: absolute;
-  white-space: nowrap;
-  width: 1px;
-}
-
 @media (max-width: 1100px) {
   .accounts-table--unified,
   .accounts-table--unified tbody,
@@ -3154,8 +2564,7 @@ tbody tr:hover,
     border-top: 0;
   }
 
-  .trust-flow-guide,
-  .trust-path {
+  .trust-flow-guide {
     grid-template-columns: 1fr;
   }
 }
@@ -3237,13 +2646,11 @@ tbody tr:hover,
   }
 
   .trust-flow-guide ol,
-  .trust-path__steps,
   .role-standing-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .trust-flow-guide li > span[aria-hidden='true'],
-  .trust-path__arrow {
+  .trust-flow-guide li > span[aria-hidden='true'] {
     display: none;
   }
 
@@ -3315,7 +2722,6 @@ tbody tr:hover,
 
   .accounts-table--unified tr,
   .trust-flow-guide ol,
-  .trust-path__steps,
   .role-standing-grid {
     grid-template-columns: 1fr;
   }
@@ -3354,12 +2760,6 @@ html {
      standalone offset would duplicate that chrome and leave an empty band. */
   padding: 24px 16px 32px;
   width: 100%;
-}
-
-:root[data-ui='modern'] .app-shell.app-shell--fullscreen {
-  margin: 0;
-  max-width: none;
-  padding: 0;
 }
 
 :root[data-ui='modern'] .app-header,
@@ -3406,12 +2806,9 @@ html {
 }
 
 :root[data-ui='modern'] .main-panel,
-:root[data-ui='modern'] .graph-surface,
 :root[data-ui='modern'] .table-wrap,
 :root[data-ui='modern'] .trust-flow-guide,
 :root[data-ui='modern'] .accounts-toolbar,
-:root[data-ui='modern'] .network-toolbar,
-:root[data-ui='modern'] .trust-path,
 :root[data-ui='modern'] .role-standing-card,
 :root[data-ui='modern'] .detail-role-workspace,
 :root[data-ui='modern'] .detail-rating-evidence > .mini-section {
@@ -3426,8 +2823,7 @@ html {
 :root[data-ui='modern'] .rate-button,
 :root[data-ui='modern'] .rating-submit,
 :root[data-ui='modern'] .empty-state-reset,
-:root[data-ui='modern'] .load-more-row button,
-:root[data-ui='modern'] .graph-zoom-controls button {
+:root[data-ui='modern'] .load-more-row button {
   border-radius: 50px;
   border-width: 1.5px;
 }
@@ -3478,11 +2874,9 @@ html {
 }
 
 :root[data-ui='fun'] .app-header,
-:root[data-ui='fun'] .main-panel:not(.main-panel--graph-view),
+:root[data-ui='fun'] .main-panel,
 :root[data-ui='fun'] .trust-flow-guide,
 :root[data-ui='fun'] .accounts-toolbar,
-:root[data-ui='fun'] .network-toolbar,
-:root[data-ui='fun'] .trust-path,
 :root[data-ui='fun'] .detail-role-workspace,
 :root[data-ui='fun'] .detail-rating-evidence > .mini-section,
 :root[data-ui='fun'] .rate-popover,
@@ -3494,11 +2888,9 @@ html {
 }
 
 :root[data-theme='dark'][data-ui='fun'] .app-header,
-:root[data-theme='dark'][data-ui='fun'] .main-panel:not(.main-panel--graph-view),
+:root[data-theme='dark'][data-ui='fun'] .main-panel,
 :root[data-theme='dark'][data-ui='fun'] .trust-flow-guide,
 :root[data-theme='dark'][data-ui='fun'] .accounts-toolbar,
-:root[data-theme='dark'][data-ui='fun'] .network-toolbar,
-:root[data-theme='dark'][data-ui='fun'] .trust-path,
 :root[data-theme='dark'][data-ui='fun'] .detail-role-workspace,
 :root[data-theme='dark'][data-ui='fun'] .detail-rating-evidence > .mini-section,
 :root[data-theme='dark'][data-ui='fun'] .rate-popover {
@@ -3506,23 +2898,13 @@ html {
 }
 
 :root[data-ui='fun'] .table-wrap,
-:root[data-ui='fun'] .graph-surface,
 :root[data-ui='fun'] .role-standing-card,
 :root[data-ui='fun'] .trust-flow-guide li,
-:root[data-ui='fun'] .trust-path__steps li,
 :root[data-ui='fun'] .requirement,
 :root[data-ui='fun'] .received-rating-groups details,
 :root[data-ui='fun'] .detail-grid > div {
   border: 2px solid var(--fun-outline);
   border-radius: var(--fun-radius-sm);
-}
-
-/* The graph is a data canvas: keep it level, shadow-free, and clear of the page grid. */
-:root[data-ui='fun'] .graph-surface {
-  background: var(--surface);
-  background-image: none;
-  box-shadow: none;
-  transform: none;
 }
 
 :root[data-ui='fun'] .table-wrap {
@@ -3553,7 +2935,6 @@ html {
 :root[data-ui='fun'] .rate-button,
 :root[data-ui='fun'] .empty-state-reset,
 :root[data-ui='fun'] .load-more-row button,
-:root[data-ui='fun'] .graph-zoom-controls button,
 :root[data-ui='fun'] .section-nav button {
   border: 2px solid var(--fun-outline);
   border-radius: var(--fun-radius-sm);
@@ -3594,7 +2975,6 @@ html {
 :root[data-ui='fun'] .rating-submit:hover:not(:disabled),
 :root[data-ui='fun'] .empty-state-reset:hover:not(:disabled),
 :root[data-ui='fun'] .load-more-row button:hover:not(:disabled),
-:root[data-ui='fun'] .graph-zoom-controls button:hover:not(:disabled),
 :root[data-ui='fun'] .section-nav button:hover:not(:disabled),
 :root[data-ui='fun'] .role-standing-card:hover:not(:disabled) {
   box-shadow: 5px 5px 0 var(--fun-ink);
@@ -3608,7 +2988,6 @@ html {
 :root[data-ui='fun'] .rating-submit:active:not(:disabled),
 :root[data-ui='fun'] .empty-state-reset:active:not(:disabled),
 :root[data-ui='fun'] .load-more-row button:active:not(:disabled),
-:root[data-ui='fun'] .graph-zoom-controls button:active:not(:disabled),
 :root[data-ui='fun'] .section-nav button:active:not(:disabled) {
   box-shadow: 1px 1px 0 var(--fun-ink);
   transform: translate(2px, 2px) scale(0.98);
@@ -3625,11 +3004,9 @@ html {
   }
 
   :root[data-ui='fun'] .app-header,
-  :root[data-ui='fun'] .main-panel:not(.main-panel--graph-view),
+  :root[data-ui='fun'] .main-panel,
   :root[data-ui='fun'] .trust-flow-guide,
   :root[data-ui='fun'] .accounts-toolbar,
-  :root[data-ui='fun'] .network-toolbar,
-  :root[data-ui='fun'] .trust-path,
   :root[data-ui='fun'] .detail-role-workspace,
   :root[data-ui='fun'] .detail-rating-evidence > .mini-section,
   :root[data-ui='fun'] .role-standing-card,
@@ -3649,11 +3026,11 @@ html {
 }
 
 :root[data-ui='fun'][data-text-size='extra-large'] .app-header,
-:root[data-ui='fun'][data-text-size='extra-large'] .main-panel:not(.main-panel--graph-view),
+:root[data-ui='fun'][data-text-size='extra-large'] .main-panel,
 :root[data-ui='fun'][data-text-size='extra-large'] .trust-flow-guide,
 :root[data-ui='fun'][data-text-size='extra-large'] .role-standing-card,
 :root[data-ui='fun'][data-text-size='huge'] .app-header,
-:root[data-ui='fun'][data-text-size='huge'] .main-panel:not(.main-panel--graph-view),
+:root[data-ui='fun'][data-text-size='huge'] .main-panel,
 :root[data-ui='fun'][data-text-size='huge'] .trust-flow-guide,
 :root[data-ui='fun'][data-text-size='huge'] .role-standing-card {
   box-shadow: 3px 3px 0 var(--fun-ink);

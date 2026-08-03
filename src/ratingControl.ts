@@ -9,6 +9,7 @@ import {
 import type { AccountRatingCategory, AccountRatingCooldown, RatingImpactPreview, SelfAccount } from './types';
 import type { PendingRatingEntry, PendingValueByAccountCategory, RatingValuesByAccountCategory } from './viewTypes';
 import { t } from './i18n';
+import { ratingSignedLabel } from './format';
 
 // Debounce preview requests so scrubbing through the rating selector doesn't fire a request per step.
 const PREVIEW_DEBOUNCE_MS = 400;
@@ -49,25 +50,54 @@ export function getDisplayedRating(
   };
 }
 
+// Option-list rendering (e.g. the compact quick-rate popover's <select>): 0 is "Clear rating", any
+// other value is the decomposed sign+magnitude form (role wording — no category is known here).
 export function ratingOptionLabel(value: number) {
   if (value === 0) {
     return t('rating.option.remove');
   }
 
-  const tone = value > 0 ? t('status.positive') : t('status.negative');
-  const magnitudes = [
-    '',
-    t('rating.magnitude.low'),
-    t('rating.magnitude.medium'),
-    t('rating.magnitude.high'),
-    t('rating.magnitude.veryHigh'),
-  ];
+  return ratingSignedLabel(value, 'role');
+}
 
-  return t('rating.option', {
-    magnitude: magnitudes[Math.abs(value)],
-    rating: `${value > 0 ? '+' : ''}${value}`,
-    tone,
-  });
+export type TwoStepAnswer = 'yes' | 'no' | 'clear' | 'notSure';
+
+// Pure mapping table for the two-step Minter/role rating flow (Stage B): Yes/Positive + confidence
+// -> +confidence, No/Negative + confidence -> -confidence, Clear -> 0. Returns null while the
+// selection is not yet resolvable (an answer picked but no confidence yet, or "Not sure yet" — which
+// deliberately never resolves to a value, since it must never submit anything).
+export function resolveTwoStepRating(answer: TwoStepAnswer | null, confidence: 1 | 2 | 3 | 4 | null): number | null {
+  if (answer === 'clear') {
+    return 0;
+  }
+
+  if (answer === 'yes' && confidence) {
+    return confidence;
+  }
+
+  if (answer === 'no' && confidence) {
+    return -confidence;
+  }
+
+  return null;
+}
+
+// How much the given rater's rating currently counts toward `category`'s score, read from a
+// GET /account-ratings/preview response's previewSelectedCategory.impacts (populated in full by
+// Core — see the RatingImpactPreview type comment). Returns null when there is nothing to report yet
+// (no preview, or the preview has no impacts data — degrade gracefully rather than guess), and 0 when
+// the preview loaded but this rater has no entry (their rating does not count at all).
+export function raterCategoryImpact(
+  preview: RatingImpactPreview | null | undefined,
+  raterAddress: string | null | undefined,
+): number | null {
+  const impacts = preview?.previewSelectedCategory?.impacts;
+
+  if (!impacts || !raterAddress) {
+    return null;
+  }
+
+  return impacts.find((impact) => impact.raterAddress === raterAddress)?.impact ?? 0;
 }
 
 export function mapRatingError(message: string) {

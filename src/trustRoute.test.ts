@@ -7,15 +7,19 @@ describe('Trust routes', () => {
       account: 'Qabc',
       view: 'changes',
     });
-    expect(readTrustRoute('https://example.test/app?target=Qlegacy&view=graph')).toEqual({
+    expect(readTrustRoute('https://example.test/app?target=Qlegacy&view=changes')).toEqual({
       account: 'Qlegacy',
-      view: 'graph',
+      view: 'changes',
     });
   });
 
-  it('falls back to Accounts for absent or invalid views', () => {
+  it('falls back to Accounts for absent, invalid, or removed views (e.g. the cut graph view)', () => {
     expect(readTrustRoute('https://example.test/app')).toEqual({ account: null, view: 'accounts' });
     expect(readTrustRoute('https://example.test/app?view=unknown')).toEqual({
+      account: null,
+      view: 'accounts',
+    });
+    expect(readTrustRoute('https://example.test/app?view=graph')).toEqual({
       account: null,
       view: 'accounts',
     });
@@ -40,7 +44,6 @@ describe('Trust routes', () => {
   it('round-trips every supported route', () => {
     for (const route of [
       { account: null, view: 'accounts' as const },
-      { account: null, view: 'graph' as const },
       { account: null, view: 'changes' as const },
       { account: 'Qdetail', view: 'accounts' as const },
     ]) {

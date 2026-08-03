@@ -15,6 +15,7 @@ export function ChangesTable({
   onSelectAccount,
   profiles,
   selectableAddresses,
+  showAllRoles,
 }: {
   changes: TrustStatusChange[];
   // Opens the account's detail when its row is activated. Only wired for accounts present in the
@@ -23,8 +24,13 @@ export function ChangesTable({
   onSelectAccount?: (address: string) => void;
   profiles: IdentityProfilesByAddress;
   selectableAddresses?: Set<string>;
+  // Minters-first redesign (Stage A): off shows only SUBJECT (Minters) changes with the Category
+  // column hidden; on shows every category's changes as before.
+  showAllRoles: boolean;
 }) {
-  if (changes.length === 0) {
+  const visibleChanges = showAllRoles ? changes : changes.filter((change) => change.category === 'SUBJECT');
+
+  if (visibleChanges.length === 0) {
     return <EmptyState icon={<ArrowDownUp size={18} />} text={t('empty.changes')} />;
   }
 
@@ -34,7 +40,7 @@ export function ChangesTable({
         <thead>
           <tr>
             <th>{t('label.account')}</th>
-            <th>{t('label.category')}</th>
+            {showAllRoles ? <th>{t('label.category')}</th> : null}
             <th>{t('label.before')}</th>
             <th>{t('label.new')}</th>
             <th>{t('label.score')}</th>
@@ -43,7 +49,7 @@ export function ChangesTable({
           </tr>
         </thead>
         <tbody>
-          {changes.map((change) => {
+          {visibleChanges.map((change) => {
             const profile = profiles[change.accountAddress];
             const selectable =
               !!onSelectAccount &&
@@ -70,7 +76,7 @@ export function ChangesTable({
                     <IdentityLabel address={change.accountAddress} profile={profile} />
                   </button>
                 </td>
-                <td data-label={t('label.category')}>{categoryLabel(change.category)}</td>
+                {showAllRoles ? <td data-label={t('label.category')}>{categoryLabel(change.category)}</td> : null}
                 <td data-label={t('label.before')}>
                   <MemoStatusBadge status={change.previousTrustStatus} />
                 </td>
