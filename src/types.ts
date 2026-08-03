@@ -324,30 +324,6 @@ export type AccountTrustExplanation = {
   categories: TrustCategoryExplanation[];
 };
 
-export type TrustGraphNode = {
-  address: string;
-  publicKey?: string | null;
-  status: TrustStatus;
-  level: number;
-  score: number;
-  seedMember: boolean;
-};
-
-export type TrustGraphEdge = {
-  /** Address of the account that submitted the rating. */
-  source: string;
-  /** Address of the account that received the rating. */
-  target: string;
-  rating: number;
-  confidence: number;
-};
-
-export type TrustGraph = {
-  category: AccountRatingCategory;
-  nodes: TrustGraphNode[];
-  edges: TrustGraphEdge[];
-};
-
 /**
  * The logged-in Qortium Home account acting as the rater. `publicKey` is null until the
  * account has at least one on-chain transaction, in which case it cannot submit ratings yet.

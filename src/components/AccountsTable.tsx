@@ -103,6 +103,9 @@ type AccountsTableProps = {
   profiles: IdentityProfilesByAddress;
   query?: string;
   selectedAddress?: string;
+  // Minters-first redesign (Stage A): off shows the simplified SUBJECT-only column set (Minter
+  // status / Trust level / You rated); on shows the full 4-role directory as before.
+  showAllRoles: boolean;
   sort: AccountSortState;
   statusFilter?: TrustStatus | 'ALL';
   totalCount?: number | null;
@@ -131,12 +134,16 @@ export function AccountsTable({
   profiles,
   query = '',
   selectedAddress,
+  showAllRoles,
   sort,
   statusFilter = 'ALL',
   totalCount = null,
   youRatedByAddress = {},
   youRatedByKey,
 }: AccountsTableProps) {
+  // Off: every column reads the SUBJECT ("Minters") category regardless of the app's `category`
+  // state (which App itself pins to SUBJECT while the toggle is off — this is belt-and-suspenders).
+  const effectiveCategory = showAllRoles ? category : 'SUBJECT';
   const effectiveSelectedCategoryRatings = useMemo<RatingsByAddress>(
     () => ({ ...youRatedByAddress, ...pendingByAddress }),
     [pendingByAddress, youRatedByAddress],
@@ -155,7 +162,7 @@ export function AccountsTable({
     const merged: RatingValuesByAccountCategory = { ...youRatedByKey };
 
     for (const address of addresses) {
-      const key = pendingRatingKey(category, address);
+      const key = pendingRatingKey(effectiveCategory, address);
 
       if (merged[key] === undefined) {
         merged[key] = youRatedByAddress[address];
@@ -163,7 +170,7 @@ export function AccountsTable({
     }
 
     return merged;
-  }, [category, youRatedByAddress, youRatedByKey]);
+  }, [effectiveCategory, youRatedByAddress, youRatedByKey]);
 
   const effectivePendingByKey = useMemo(() => {
     const addresses = Object.keys(pendingByAddress);
@@ -175,7 +182,7 @@ export function AccountsTable({
     const merged: PendingValueByAccountCategory = { ...pendingByKey };
 
     for (const address of addresses) {
-      const key = pendingRatingKey(category, address);
+      const key = pendingRatingKey(effectiveCategory, address);
 
       if (merged[key] === undefined) {
         merged[key] = pendingByAddress[address];
@@ -183,7 +190,7 @@ export function AccountsTable({
     }
 
     return merged;
-  }, [category, pendingByAddress, pendingByKey]);
+  }, [effectiveCategory, pendingByAddress, pendingByKey]);
 
   const sortedDerivations = useMemo(
     () =>
@@ -195,7 +202,7 @@ export function AccountsTable({
               left.derivation,
               right.derivation,
               key,
-              category,
+              effectiveCategory,
               profiles,
               effectiveSelectedCategoryRatings,
             );
@@ -208,7 +215,7 @@ export function AccountsTable({
           return compareAccountLabels(left.derivation, right.derivation, profiles) || left.index - right.index;
         })
         .map(({ derivation }) => derivation),
-    [category, derivations, effectiveSelectedCategoryRatings, profiles, sort],
+    [derivations, effectiveCategory, effectiveSelectedCategoryRatings, profiles, sort],
   );
 
   if (sortedDerivations.length === 0) {
@@ -251,21 +258,44 @@ export function AccountsTable({
               <SortHeader label={t('label.account')} onSort={onSort} sort={sort} sortKey="account" />
             </th>
             <th aria-sort={getAriaSort(sort, 'status')}>
-              <SortHeader label={t('label.displayedTrust')} onSort={onSort} sort={sort} sortKey="status" />
+              <SortHeader
+                label={showAllRoles ? t('label.displayedTrust') : t('label.minterStatus')}
+                onSort={onSort}
+                sort={sort}
+                sortKey="status"
+              />
             </th>
+            {showAllRoles ? null : (
+              <th aria-sort={getAriaSort(sort, 'level')}>
+                <SortHeader label={t('label.trustLevel')} onSort={onSort} sort={sort} sortKey="level" />
+              </th>
+            )}
             <th aria-sort={getAriaSort(sort, 'blocksMinted')} title={t('tooltip.blocksMinted')}>
               <SortHeader label={t('label.blocksMinted')} onSort={onSort} sort={sort} sortKey="blocksMinted" />
             </th>
-            {ROLE_ORDER.map((role) => (
-              <th key={role} scope="col">
-                {categoryLabel(role)}
+            {showAllRoles ? (
+              ROLE_ORDER.map((role) => (
+                <th key={role} scope="col">
+                  {categoryLabel(role)}
+                </th>
+              ))
+            ) : (
+              <th aria-sort={getAriaSort(sort, 'youRated')}>
+                <SortHeader label={t('label.youRated')} onSort={onSort} sort={sort} sortKey="youRated" />
               </th>
-            ))}
+            )}
           </tr>
         </thead>
         <tbody>
           {sortedDerivations.map((derivation) => {
             const profile = profiles[derivation.accountAddress];
+            const subjectData = getDerivationCategory(derivation, effectiveCategory);
+            const subjectDisplayed = getDisplayedRating(
+              effectivePendingByKey,
+              effectiveYouRatedByKey,
+              effectiveCategory,
+              derivation.accountAddress,
+            );
 
             return (
               <tr
@@ -289,57 +319,75 @@ export function AccountsTable({
                     <IdentityLabel address={derivation.accountAddress} profile={profile} />
                   </button>
                 </td>
-                <td data-label={t('label.displayedTrust')}>
-                  <MemoStatusBadge status={derivation.derivedTrustStatus} />
+                <td data-label={showAllRoles ? t('label.displayedTrust') : t('label.minterStatus')}>
+                  {showAllRoles ? (
+                    <MemoStatusBadge status={derivation.derivedTrustStatus} />
+                  ) : subjectData ? (
+                    <MemoStatusBadge status={subjectData.mappedTrustStatus} />
+                  ) : (
+                    <span className="muted">—</span>
+                  )}
                 </td>
+                {showAllRoles ? null : (
+                  <td data-label={t('label.trustLevel')}>{formatNumber(subjectData?.level)}</td>
+                )}
                 <td data-label={t('label.blocksMinted')}>
                   {derivation.blocksMinted !== undefined ? formatNumber(getAccountBlocksMinted(derivation)) : '—'}
                 </td>
-                {ROLE_ORDER.map((role) => {
-                  const roleData = getDerivationCategory(derivation, role);
-                  const displayed = getDisplayedRating(
-                    effectivePendingByKey,
-                    effectiveYouRatedByKey,
-                    role,
-                    derivation.accountAddress,
-                  );
+                {showAllRoles ? (
+                  ROLE_ORDER.map((role) => {
+                    const roleData = getDerivationCategory(derivation, role);
+                    const displayed = getDisplayedRating(
+                      effectivePendingByKey,
+                      effectiveYouRatedByKey,
+                      role,
+                      derivation.accountAddress,
+                    );
 
-                  return (
-                    <td className="account-role-cell" data-label={categoryLabel(role)} key={role}>
-                      <div className="account-role-summary">
-                        <div className="account-role-summary__standing">
-                          {roleData ? <MemoStatusBadge status={roleData.mappedTrustStatus} /> : <span className="muted">—</span>}
-                          <span className="account-role-summary__level">
-                            {t('label.level')} {formatNumber(roleData?.level)}
-                          </span>
+                    return (
+                      <td className="account-role-cell" data-label={categoryLabel(role)} key={role}>
+                        <div className="account-role-summary">
+                          <div className="account-role-summary__standing">
+                            {roleData ? <MemoStatusBadge status={roleData.mappedTrustStatus} /> : <span className="muted">—</span>}
+                            <span className="account-role-summary__level">
+                              {t('label.trustLevel')} {formatNumber(roleData?.level)}
+                            </span>
+                          </div>
+                          <dl className="account-role-summary__metrics">
+                            <div>
+                              <dt>{t('label.score')}</dt>
+                              <dd>{formatNumber(roleData?.score)}</dd>
+                            </div>
+                            <div>
+                              <dt>{t('label.ratings')}</dt>
+                              <dd>
+                                <span className="positive">
+                                  +{formatNumber(roleData?.inboundRatings.positiveRatingCount ?? 0)}
+                                </span>{' '}
+                                <span className="negative">
+                                  -{formatNumber(roleData?.inboundRatings.negativeRatingCount ?? 0)}
+                                </span>
+                              </dd>
+                            </div>
+                            <div>
+                              <dt>{t('label.youRated')}</dt>
+                              <dd>
+                                <RatingValue pending={displayed.pending ? displayed.value : undefined} value={displayed.value} />
+                              </dd>
+                            </div>
+                          </dl>
                         </div>
-                        <dl className="account-role-summary__metrics">
-                          <div>
-                            <dt>{t('label.score')}</dt>
-                            <dd>{formatNumber(roleData?.score)}</dd>
-                          </div>
-                          <div>
-                            <dt>{t('label.ratings')}</dt>
-                            <dd>
-                              <span className="positive">
-                                +{formatNumber(roleData?.inboundRatings.positiveRatingCount ?? 0)}
-                              </span>{' '}
-                              <span className="negative">
-                                -{formatNumber(roleData?.inboundRatings.negativeRatingCount ?? 0)}
-                              </span>
-                            </dd>
-                          </div>
-                          <div>
-                            <dt>{t('label.youRated')}</dt>
-                            <dd>
-                              <RatingValue pending={displayed.pending ? displayed.value : undefined} value={displayed.value} />
-                            </dd>
-                          </div>
-                        </dl>
-                      </div>
-                    </td>
-                  );
-                })}
+                      </td>
+                    );
+                  })
+                ) : (
+                  <td data-label={t('label.youRated')}>
+                    <RatingValue
+                      pending={subjectDisplayed.pending ? subjectDisplayed.value : undefined}
+                      value={subjectDisplayed.value}
+                    />
+                  </td>
+                )}
               </tr>
             );
           })}

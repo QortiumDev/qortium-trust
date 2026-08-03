@@ -40,7 +40,7 @@ const derivation: TrustDerivation = {
   mintingSeedMember: false,
 };
 
-describe('AccountsTable unified role directory', () => {
+describe('AccountsTable unified role directory (showAllRoles on)', () => {
   it('shows every public role and opens the account instead of mounting row rating controls', () => {
     const onSelect = vi.fn();
 
@@ -51,6 +51,7 @@ describe('AccountsTable unified role directory', () => {
         onSelect={onSelect}
         onSort={vi.fn()}
         profiles={{ Qtarget: { address: 'Qtarget', avatarSrc: null, name: 'Target' } }}
+        showAllRoles
         sort={[{ direction: 'asc', key: 'account' }]}
         youRatedByKey={{
           'MANAGER:Qtarget': 4,
@@ -68,6 +69,48 @@ describe('AccountsTable unified role directory', () => {
     expect(screen.queryByRole('button', { name: /^Rate$/i })).toBeNull();
     expect(container.querySelector('[data-label="Designers"] .you-rated')?.textContent).toBe('+4');
     expect(container.querySelector('[data-label="Minters"] .you-rated')?.textContent).toBe('+1');
+
+    fireEvent.click(screen.getByRole('button', { name: /open target/i }));
+    expect(onSelect).toHaveBeenCalledWith(derivation);
+  });
+});
+
+describe('AccountsTable simplified Minters directory (showAllRoles off)', () => {
+  it('shows only the Minters columns, ignoring the app category prop', () => {
+    const onSelect = vi.fn();
+
+    const { container } = render(
+      <AccountsTable
+        category="MANAGER"
+        derivations={[derivation]}
+        onSelect={onSelect}
+        onSort={vi.fn()}
+        profiles={{ Qtarget: { address: 'Qtarget', avatarSrc: null, name: 'Target' } }}
+        showAllRoles={false}
+        sort={[{ direction: 'asc', key: 'account' }]}
+        youRatedByKey={{
+          'MANAGER:Qtarget': 4,
+          'SUBJECT:Qtarget': 1,
+        }}
+      />,
+    );
+
+    // Sortable headers wrap their label in a button with a sr-only sort-state suffix, so the
+    // accessible name is "Account, not sorted" etc. — match the label as a prefix.
+    expect(screen.getByRole('columnheader', { name: /^Account,/ })).toBeTruthy();
+    expect(screen.getByRole('columnheader', { name: /^Minter status,/ })).toBeTruthy();
+    expect(screen.getByRole('columnheader', { name: /^Trust level,/ })).toBeTruthy();
+    expect(screen.getByRole('columnheader', { name: /^Blocks minted,/ })).toBeTruthy();
+    expect(screen.getByRole('columnheader', { name: /^You rated,/ })).toBeTruthy();
+    expect(screen.queryByRole('columnheader', { name: 'Designers' })).toBeNull();
+    expect(screen.queryByRole('columnheader', { name: /^Displayed trust,/ })).toBeNull();
+
+    // SUBJECT (Minters) data, not the MANAGER category passed in `category` — index 0's mapped
+    // status is Bronze/level 1, MANAGER (index 3) would be Silver/level 4 and rated +4.
+    expect(container.querySelector('[data-label="Minter status"]')?.textContent).toBe('Bronze');
+    expect(container.querySelector('[data-label="Trust level"]')?.textContent).toBe('1');
+    expect(container.querySelector('[data-label="You rated"] .you-rated')?.textContent).toBe('+1');
+    expect(screen.queryByText('+4')).toBeNull();
 
     fireEvent.click(screen.getByRole('button', { name: /open target/i }));
     expect(onSelect).toHaveBeenCalledWith(derivation);

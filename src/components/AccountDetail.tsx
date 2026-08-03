@@ -10,6 +10,8 @@ import type {
   IdentityProfilesByAddress,
   SelfAccount,
   TrustDerivation,
+  TrustPolicy,
+  TrustStatus,
 } from '../types';
 import type {
   AccountDetailState,
@@ -116,6 +118,19 @@ function publicTrustText(value: string) {
     .replace(/\bSubject(?=\s+(?:Gold|Silver|Bronze|level|threshold))/g, 'Minter');
 }
 
+// Renders from already-fetched trust-policy data (App loads it once via getTrustPolicy). formatNumber
+// degrades any missing percent to '-' rather than hiding the whole line.
+function voteWeightExplainer(policy: TrustPolicy | null | undefined) {
+  const percentFor = (status: TrustStatus) =>
+    policy?.statusVoteWeights?.find((entry) => entry.status === status)?.voteWeightPercent;
+
+  return t('detail.voteWeightExplainer', {
+    bronze: formatNumber(percentFor('BRONZE')),
+    gold: formatNumber(percentFor('GOLD')),
+    silver: formatNumber(percentFor('SILVER')),
+  });
+}
+
 function relevantRequirements(
   category: ExplanationCategoryWithRequirements | undefined,
 ): TrustRequirement[] {
@@ -180,7 +195,7 @@ function RoleStandingCard({
       <span className="role-standing-card__purpose">{rolePurpose(category)}</span>
       <span className="role-standing-card__metrics">
         <span>
-          {t('label.level')} <strong>{formatNumber(categoryData?.level)}</strong>
+          {t('label.trustLevel')} <strong>{formatNumber(categoryData?.level)}</strong>
         </span>
         <span>
           {t('label.score')} <strong>{formatNumber(categoryData?.score)}</strong>
@@ -220,12 +235,14 @@ export function AccountDetail({
   onRatingSubmitted,
   onRetryPending,
   pendingRatings,
+  policy,
   profile,
   profiles,
   ratingActionAvailable,
   receivedRatings,
   self,
   selectedDerivation,
+  showAllRoles,
   youRatedByKey,
 }: {
   category: AccountRatingCategory;
@@ -240,18 +257,27 @@ export function AccountDetail({
   // own category/target to offer Retry/Dismiss; the role cards below use it (together with
   // youRatedByKey) to derive each role's displayed you-rated value via getDisplayedRating.
   pendingRatings?: PendingRatingsByKey;
+  // Already-fetched app-wide trust policy (App loads it once via getTrustPolicy), used for the
+  // vote-weight explainer's Bronze/Silver/Gold percentages.
+  policy?: TrustPolicy | null;
   profile?: IdentityProfile;
   profiles: IdentityProfilesByAddress;
   ratingActionAvailable: boolean;
   receivedRatings?: AccountRating[];
   self: SelfAccount | null;
   selectedDerivation: TrustDerivation;
+  // Minters-first redesign (Stage A): off shows only the SUBJECT (Minters) role card + workspace;
+  // on shows the 4-card role grid as before.
+  showAllRoles: boolean;
   // Complete current-user ratings keyed by pendingRatingKey's `${category}:${targetAddress}`.
   youRatedByKey?: RatingValuesByAccountCategory;
 }) {
   const backButtonRef = useRef<HTMLButtonElement>(null);
   const [activeCategory, setActiveCategory] = useState(category);
   const label = getIdentityLabel(profile, selectedDerivation.accountAddress);
+  // Off: only the SUBJECT ("Minters") role is ever shown — App itself pins `category` to SUBJECT
+  // while the toggle is off, but this keeps the evidence section below correct even if it doesn't.
+  const visibleRoles: AccountRatingCategory[] = showAllRoles ? ROLE_ORDER : ['SUBJECT'];
 
   useEffect(() => {
     backButtonRef.current?.focus();
@@ -325,22 +351,6 @@ export function AccountDetail({
         </div>
       </header>
 
-      <section aria-labelledby="trust-path-title" className="trust-path">
-        <div>
-          <h3 id="trust-path-title">{t('role.howTrustMoves')}</h3>
-          <p>{t('role.trustMovesIntro')}</p>
-        </div>
-        <ol className="trust-path__steps">
-          {ROLE_ORDER.map((role, index) => (
-            <li key={role}>
-              <strong>{categoryLabel(role)}</strong>
-              <span>{rolePurpose(role)}</span>
-              {index < ROLE_ORDER.length - 1 ? <span aria-hidden="true" className="trust-path__arrow">↓</span> : null}
-            </li>
-          ))}
-        </ol>
-      </section>
-
       {detail.loading ? (
         <div aria-busy="true" aria-live="polite" className="detail-columns-loading" role="status">
           <div className="skeleton-block" />
@@ -349,6 +359,7 @@ export function AccountDetail({
         </div>
       ) : (
         <>
+          {showAllRoles ? (
           <section aria-label={t('role.trustRoles')} className="role-standing-grid">
             {ROLE_ORDER.map((role) => (
               <RoleStandingCard
@@ -363,6 +374,7 @@ export function AccountDetail({
               />
             ))}
           </section>
+          ) : null}
 
           <section className="detail-role-workspace">
             <header className="detail-role-workspace__header">
@@ -386,6 +398,7 @@ export function AccountDetail({
                 </span>
               </div>
             </header>
+            <p className="detail-role-workspace__vote-weight-note">{voteWeightExplainer(policy)}</p>
 
             <div className="detail-role-workspace__columns">
               <div className="detail-rate">
@@ -450,7 +463,7 @@ export function AccountDetail({
                 <p className="muted">{t('role.openRatingsNotLoaded')}</p>
               ) : (
                 <div className="received-rating-groups">
-                  {ROLE_ORDER.map((role) => {
+                  {visibleRoles.map((role) => {
                     const roleRatings = receivedRatings
                       .filter(
                         (rating) =>

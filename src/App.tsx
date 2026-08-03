@@ -1,9 +1,9 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertTriangle,
+  ChevronDown,
+  ChevronUp,
   Info,
-  Maximize2,
-  Minimize2,
   RefreshCw,
   Search,
   ShieldCheck,
@@ -18,12 +18,12 @@ import { filterDerivations } from './derivationFilter';
 import {
   categoryDescription,
   categoryLabel,
+  formatNumber,
   formatRuntimeLabel,
   statusLabel,
   TRUST_CATEGORIES,
   TRUST_STATUSES,
 } from './format';
-import type { TrustGraphDirection, TrustGraphNode, TrustGraphSign } from './graphModel';
 import { loadIdentityProfiles } from './identityProfiles';
 import { AvatarActionsProvider } from './components/Identity';
 import { setTranslationLanguage, t } from './i18n';
@@ -31,13 +31,18 @@ import { getBridgeState } from './qdnRequest';
 import { PENDING_CONFIRM_POLL_MS, PENDING_CONFIRM_TIMEOUT_MS, pendingRatingKey } from './ratingControl';
 import { getTrustRouteUrl, readTrustRoute, type TrustRoute } from './trustRoute';
 import {
+  getInitialShowAllRoles,
+  getInitialTrustFlowGuideCollapsed,
+  persistShowAllRoles,
+  persistTrustFlowGuideCollapsed,
+} from './uiPreferences';
+import {
   getAccountRatingsPage,
   getNodeStatus,
   getRatingCooldown,
   getTrustChanges,
   getTrustDerivationPage,
   getTrustExplanation,
-  getTrustGraph,
   getTrustPolicy,
   getTrustProfile,
   getTrustSummary,
@@ -49,8 +54,8 @@ import type {
   IdentityProfilesByAddress,
   SelfAccount,
   TrustDerivation,
-  TrustGraph as ServerTrustGraph,
   TrustStatus,
+  TrustSummary,
 } from './types';
 import type {
   AccountDetailState,
@@ -63,7 +68,6 @@ import type {
   ViewMode,
 } from './viewTypes';
 
-const TrustGraphView = lazy(() => import('./components/TrustGraphView'));
 const APP_VERSION = __APP_VERSION__;
 const PAGE_SIZE = 250;
 const RATING_PAGE_SIZE = 1000;
@@ -127,47 +131,110 @@ function CategorySelect({
   );
 }
 
-function FullscreenButton({
-  isFullscreen,
-  onToggle,
+// The trust-flow diagram used to also appear on the account detail page; it now lives only here
+// (list screen), and is collapsible so returning users can shrink it out of the way (state persisted
+// alongside the showAllRoles preference). Copy is unchanged in this stage.
+function TrustFlowGuide({
+  collapsed,
+  onToggleCollapsed,
 }: {
-  isFullscreen: boolean;
-  onToggle: () => void;
+  collapsed: boolean;
+  onToggleCollapsed: () => void;
 }) {
-  const label = isFullscreen ? t('action.exitFullscreen') : t('action.enterFullscreen');
+  const toggleLabel = collapsed ? t('trustFlow.expand') : t('trustFlow.collapse');
 
-  return (
-    <button
-      aria-label={label}
-      className="fullscreen-toggle"
-      onClick={onToggle}
-      title={label}
-      type="button"
-    >
-      {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
-    </button>
-  );
-}
-
-function TrustFlowGuide() {
   return (
     <section className="trust-flow-guide" aria-labelledby="trust-flow-guide-title">
       <div>
         <p className="eyebrow">{t('trustFlow.eyebrow')}</p>
-        <h2 id="trust-flow-guide-title">{t('trustFlow.title')}</h2>
-        <p>{t('trustFlow.intro')}</p>
+        <div className="trust-flow-guide__title-row">
+          <h2 id="trust-flow-guide-title">{t('trustFlow.title')}</h2>
+          <button
+            aria-expanded={!collapsed}
+            aria-label={toggleLabel}
+            className="trust-flow-guide__collapse-toggle"
+            onClick={onToggleCollapsed}
+            title={toggleLabel}
+            type="button"
+          >
+            {collapsed ? <ChevronDown aria-hidden="true" size={16} /> : <ChevronUp aria-hidden="true" size={16} />}
+          </button>
+        </div>
+        {collapsed ? null : <p>{t('trustFlow.intro')}</p>}
       </div>
-      <ol>
-        {ROLE_FLOW.map((role, index) => (
-          <li key={role}>
-            <strong>{categoryLabel(role)}</strong>
-            <span>{categoryDescription(role)}</span>
-            {index < ROLE_FLOW.length - 1 ? <span aria-hidden="true">→</span> : null}
-          </li>
-        ))}
-      </ol>
+      {collapsed ? null : (
+        <ol>
+          {ROLE_FLOW.map((role, index) => (
+            <li key={role}>
+              <strong>{categoryLabel(role)}</strong>
+              <span>{categoryDescription(role)}</span>
+              {index < ROLE_FLOW.length - 1 ? <span aria-hidden="true">→</span> : null}
+            </li>
+          ))}
+        </ol>
+      )}
     </section>
   );
+}
+
+// Accessible checkbox styled as a switch (reuses the existing .live-toggle pattern). Placed in the
+// accounts toolbar; the app-wide category selector and the three non-Minters role surfaces are
+// hidden until this is on (owner decision: Minters-first redesign, Stage A).
+function ShowAllRolesToggle({
+  checked,
+  onChange,
+}: {
+  checked: boolean;
+  onChange: (next: boolean) => void;
+}) {
+  return (
+    <label className={`live-toggle${checked ? ' live-toggle--on' : ''}`}>
+      <input
+        checked={checked}
+        onChange={(event) => onChange(event.target.checked)}
+        type="checkbox"
+      />
+      {t('toggle.showAllRoles')}
+    </label>
+  );
+}
+
+// Per-status SUBJECT ("Minters") account counts from the trust-summary snapshot. Falls back to the
+// overall (active-weight-category) breakdown when no SUBJECT-specific entry is present — still
+// meaningful since SUBJECT is the default active weight category.
+function subjectStatusCounts(summary: TrustSummary): { accountCount: number; status: TrustStatus }[] {
+  const subjectCategory = (summary.categorySummaries ?? []).find((entry) => entry.category === 'SUBJECT');
+
+  if (subjectCategory) {
+    return subjectCategory.statusCounts.map((entry) => ({ accountCount: entry.accountCount, status: entry.status }));
+  }
+
+  return (summary.statusSummaries ?? []).map((entry) => ({ accountCount: entry.accountCount, status: entry.status }));
+}
+
+function subjectRatingCount(summary: TrustSummary): number {
+  const subjectRatings = (summary.ratingCategorySummaries ?? []).find((entry) => entry.category === 'SUBJECT');
+
+  return subjectRatings?.ratingCount ?? summary.activeRatingCount ?? 0;
+}
+
+// Core has always returned this data (getTrustSummary) but the app never rendered it. A compact
+// one-line strip above the accounts table: active SUBJECT rating count, then non-zero account counts
+// by status, busiest first — e.g. "410 ratings · 19 Silver · 12 Unverified · 1 Suspicious".
+function NetworkSummaryStrip({ summary }: { summary: TrustSummary | null }) {
+  if (!summary) {
+    return <p className="network-summary-strip network-summary-strip--empty">{t('summary.unavailable')}</p>;
+  }
+
+  const statusParts = subjectStatusCounts(summary)
+    .filter((entry) => entry.accountCount > 0)
+    .sort((left, right) => right.accountCount - left.accountCount)
+    .map((entry) =>
+      t('summary.statusCount', { count: formatNumber(entry.accountCount), status: statusLabel(entry.status) }),
+    );
+  const parts = [t('summary.ratingsCount', { count: formatNumber(subjectRatingCount(summary)) }), ...statusParts];
+
+  return <p className="network-summary-strip">{parts.join(' · ')}</p>;
 }
 
 export default function App() {
@@ -185,25 +252,38 @@ export default function App() {
   const [detailReloadToken, setDetailReloadToken] = useState(0);
   const [displaySettings, setDisplaySettings] = useState(getInitialDisplaySettings);
   const [error, setError] = useState<string | null>(null);
-  const [graphDepth, setGraphDepth] = useState<1 | 2>(1);
-  const [graphDirection, setGraphDirection] = useState<TrustGraphDirection>('both');
-  const [graphLoading, setGraphLoading] = useState(false);
-  const [graphRootAddress, setGraphRootAddress] = useState('');
-  const [graphSelectedAddress, setGraphSelectedAddress] = useState<string | null>(null);
-  const [graphSign, setGraphSign] = useState<TrustGraphSign>('both');
   const [identityProfiles, setIdentityProfiles] = useState<IdentityProfilesByAddress>({});
-  const [isFullscreen, setIsFullscreen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [pendingRatings, setPendingRatings] = useState<PendingRatingsByKey>({});
   const [query, setQuery] = useState('');
   const [receivedRatings, setReceivedRatings] = useState<AccountRating[] | undefined>(undefined);
   const [selectedAddress, setSelectedAddress] = useState<string | null>(null);
   const [self, setSelf] = useState<SelfAccount | null>(null);
-  const [serverGraph, setServerGraph] = useState<ServerTrustGraph | null>(null);
+  const [showAllRoles, setShowAllRolesState] = useState(getInitialShowAllRoles);
   const [statusFilter, setStatusFilter] = useState<TrustStatus | 'ALL'>('ALL');
   const [toast, setToast] = useState<string | null>(null);
+  const [trustFlowGuideCollapsed, setTrustFlowGuideCollapsedState] = useState(getInitialTrustFlowGuideCollapsed);
   const [view, setView] = useState<ViewMode>('accounts');
   const [youRatedRatings, setYouRatedRatings] = useState<AccountRating[]>([]);
+
+  const setShowAllRoles = useCallback((next: boolean) => {
+    setShowAllRolesState(next);
+    persistShowAllRoles(next);
+  }, []);
+
+  const setTrustFlowGuideCollapsed = useCallback((next: boolean) => {
+    setTrustFlowGuideCollapsedState(next);
+    persistTrustFlowGuideCollapsed(next);
+  }, []);
+
+  // Minters-first redesign (Stage A): while the toggle is off, the app is pinned to the SUBJECT
+  // ("Minters") category — the app-wide CategorySelect is hidden (see the accounts toolbar below)
+  // and any category picked before the toggle was switched off is discarded.
+  useEffect(() => {
+    if (!showAllRoles) {
+      setCategory('SUBJECT');
+    }
+  }, [showAllRoles]);
 
   const loadTokenRef = useRef(0);
   const restoreListFocusRef = useRef(false);
@@ -336,7 +416,6 @@ export default function App() {
       const route = readTrustRoute(window.location.href);
       setSelectedAddress(route.account);
       setView(route.view);
-      setIsFullscreen(false);
     };
 
     readRouteFromUrl();
@@ -365,7 +444,6 @@ export default function App() {
     window.history.pushState({}, '', getTrustRouteUrl(window.location.href, route));
     setSelectedAddress(route.account);
     setView(route.view);
-    setIsFullscreen(false);
   }, []);
 
   const openAccount = useCallback((address: string) => {
@@ -503,9 +581,6 @@ export default function App() {
       addresses.add(rating.raterAddress);
       addresses.add(rating.targetAddress);
     }
-    for (const node of serverGraph?.nodes ?? []) {
-      addresses.add(node.address);
-    }
 
     const missing = [...addresses].filter((address) => !identityProfiles[address]);
 
@@ -531,101 +606,7 @@ export default function App() {
     return () => {
       cancelled = true;
     };
-  }, [data.bridge?.actions, data.changes, data.derivations, identityProfiles, receivedRatings, serverGraph?.nodes]);
-
-  useEffect(() => {
-    if (view !== 'graph' || graphRootAddress || data.derivations.length === 0) {
-      return;
-    }
-
-    const preferred = data.derivations.find((derivation) => derivation.accountAddress === self?.address);
-    setGraphRootAddress(preferred?.accountAddress ?? data.derivations[0].accountAddress);
-  }, [data.derivations, graphRootAddress, self?.address, view]);
-
-  useEffect(() => {
-    if (view !== 'graph' || !graphRootAddress) {
-      return;
-    }
-
-    let cancelled = false;
-    setGraphLoading(true);
-
-    getTrustGraph({ category, depth: graphDepth, root: graphRootAddress })
-      .then((graph) => {
-        if (!cancelled) {
-          setServerGraph(graph);
-          setGraphSelectedAddress(graphRootAddress);
-        }
-      })
-      .catch((graphError) => {
-        console.warn('Failed to load trust network', graphError);
-        if (!cancelled) {
-          setServerGraph(null);
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setGraphLoading(false);
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [category, graphDepth, graphRootAddress, view]);
-
-  const graphSignature = useMemo(
-    () =>
-      JSON.stringify([
-        category,
-        graphDepth,
-        graphRootAddress,
-        serverGraph?.nodes.map((node) => [
-          node.address,
-          node.status,
-          node.level,
-          node.score,
-          node.seedMember,
-        ]),
-        serverGraph?.edges.map((edge) => [
-          edge.source,
-          edge.target,
-          edge.rating,
-          edge.confidence,
-        ]),
-      ]),
-    [category, graphDepth, graphRootAddress, serverGraph],
-  );
-  const visibleGraphCounts = useMemo(() => {
-    const focusAddress = graphSelectedAddress ?? graphRootAddress;
-    const edges = (serverGraph?.edges ?? []).filter((edge) => {
-      if (edge.rating === 0 || (graphSign === 'positive' && edge.rating < 0) || (graphSign === 'negative' && edge.rating > 0)) {
-        return false;
-      }
-      if (graphDirection === 'incoming') {
-        return edge.target === focusAddress;
-      }
-      if (graphDirection === 'outgoing') {
-        return edge.source === focusAddress;
-      }
-      return graphDepth === 1 ? edge.source === focusAddress || edge.target === focusAddress : true;
-    });
-    const addresses = new Set<string>(focusAddress ? [focusAddress] : []);
-
-    for (const edge of edges) {
-      addresses.add(edge.source);
-      addresses.add(edge.target);
-    }
-
-    return { accounts: addresses.size, ratings: edges.length };
-  }, [
-    graphDepth,
-    graphDirection,
-    graphRootAddress,
-    graphSelectedAddress,
-    graphSign,
-    serverGraph?.edges,
-  ]);
+  }, [data.bridge?.actions, data.changes, data.derivations, identityProfiles, receivedRatings]);
 
   const handleRatingSubmitted = useCallback((entry: PendingRatingEntry) => {
     setPendingRatings((current) => ({
@@ -754,10 +735,6 @@ export default function App() {
     navigateToRoute({ account: null, view: next });
   };
 
-  const openNodeDetail = (node: TrustGraphNode) => {
-    openAccount(node.address);
-  };
-
   const loadingPanel = (
     <div aria-busy="true" aria-live="polite" className="loading-panel" role="status">
       <div className="skeleton-block" />
@@ -767,14 +744,12 @@ export default function App() {
     </div>
   );
 
-  const showAccountDetail = selectedDerivation && !isFullscreen && view === 'accounts';
+  const showAccountDetail = selectedDerivation && view === 'accounts';
 
   return (
     <AvatarActionsProvider actions={data.bridge?.actions}>
-      <main className={`app-shell ${isFullscreen ? 'app-shell--fullscreen' : ''}`}>
-      {!isFullscreen ? (
-        <>
-          <header className="app-header">
+      <main className="app-shell">
+        <header className="app-header">
             <div className="app-header__identity">
               <span className="app-header__mark">
                 <ShieldCheck aria-hidden="true" size={36} strokeWidth={2.7} />
@@ -805,7 +780,6 @@ export default function App() {
           <nav aria-label={t('nav.sections')} className="section-nav" ref={navRef}>
             {([
               ['accounts', t('nav.accounts')],
-              ['graph', t('nav.network')],
               ['changes', t('nav.changes')],
             ] as [ViewMode, string][]).map(([candidate, label]) => (
               <button
@@ -819,27 +793,28 @@ export default function App() {
               </button>
             ))}
           </nav>
-        </>
-      ) : null}
 
-      {error && !isFullscreen ? (
+      {error ? (
         <div className="error-banner" role="alert">
           <AlertTriangle size={18} />
           {error}
         </div>
       ) : null}
 
-      {data.bridge && !ratingActionAvailable && !isFullscreen ? (
+      {data.bridge && !ratingActionAvailable ? (
         <div className="info-banner" role="note">
           <Info size={18} />
           {t('readonly.note')}
         </div>
       ) : null}
 
-      <section className={`workspace ${isFullscreen ? 'workspace--fullscreen' : ''}`}>
-        {view === 'accounts' && !showAccountDetail && !isFullscreen ? (
+      <section className="workspace">
+        {view === 'accounts' && !showAccountDetail ? (
           <>
-            <TrustFlowGuide />
+            <TrustFlowGuide
+              collapsed={trustFlowGuideCollapsed}
+              onToggleCollapsed={() => setTrustFlowGuideCollapsed(!trustFlowGuideCollapsed)}
+            />
             <div className="accounts-toolbar">
               <label className="search-field search-field--open">
                 <Search aria-hidden="true" size={16} />
@@ -865,76 +840,13 @@ export default function App() {
                   ))}
                 </select>
               </label>
+              {showAllRoles ? <CategorySelect category={category} onChange={setCategory} /> : null}
+              <ShowAllRolesToggle checked={showAllRoles} onChange={setShowAllRoles} />
             </div>
           </>
         ) : null}
 
-        {view === 'graph' && !isFullscreen ? (
-          <div className="network-toolbar">
-            <label className="field-control field-control--wide">
-              <span>{t('label.centerAccount')}</span>
-              <select
-                onChange={(event) => setGraphRootAddress(event.target.value)}
-                value={graphRootAddress}
-              >
-                {data.derivations.map((derivation) => (
-                  <option key={derivation.accountAddress} value={derivation.accountAddress}>
-                    {identityProfiles[derivation.accountAddress]?.name ?? derivation.accountAddress}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <CategorySelect category={category} onChange={setCategory} />
-            <label className="field-control">
-              <span>{t('label.connections')}</span>
-              <select
-                onChange={(event) => setGraphDirection(event.target.value as TrustGraphDirection)}
-                value={graphDirection}
-              >
-                <option value="both">{t('network.allDirect')}</option>
-                <option value="incoming">{t('network.incoming')}</option>
-                <option value="outgoing">{t('network.outgoing')}</option>
-              </select>
-            </label>
-            <label className="field-control">
-              <span>{t('label.rating')}</span>
-              <select onChange={(event) => setGraphSign(event.target.value as TrustGraphSign)} value={graphSign}>
-                <option value="both">{t('network.bothSigns')}</option>
-                <option value="positive">{t('network.positiveOnly')}</option>
-                <option value="negative">{t('network.negativeOnly')}</option>
-              </select>
-            </label>
-            <label className="field-control">
-              <span>{t('label.depth')}</span>
-              <select onChange={(event) => setGraphDepth(Number(event.target.value) as 1 | 2)} value={graphDepth}>
-                <option value={1}>{t('network.direct')}</option>
-                <option value={2}>{t('network.twoSteps')}</option>
-              </select>
-            </label>
-            <span className="network-counts">
-              {t('network.counts', {
-                accounts: visibleGraphCounts.accounts,
-                ratings: visibleGraphCounts.ratings,
-              })}
-            </span>
-            <FullscreenButton isFullscreen={isFullscreen} onToggle={() => setIsFullscreen(true)} />
-          </div>
-        ) : null}
-
-        <div
-          className={`main-panel ${isFullscreen ? 'main-panel--fullscreen' : ''} ${
-            view === 'graph' ? 'main-panel--graph-view' : ''
-          }`}
-        >
-          {isFullscreen ? (
-            <div className="view-controls view-controls--over-graph">
-              <div className="view-controls__selectors">
-                <CategorySelect category={category} onChange={setCategory} />
-              </div>
-              <FullscreenButton isFullscreen onToggle={() => setIsFullscreen(false)} />
-            </div>
-          ) : null}
-
+        <div className="main-panel">
           {showAccountDetail ? (
             <AccountDetail
               category={category}
@@ -949,18 +861,21 @@ export default function App() {
               onRatingSubmitted={handleRatingSubmitted}
               onRetryPending={handleRetryPending}
               pendingRatings={pendingRatings}
+              policy={data.policy}
               profile={identityProfiles[selectedDerivation.accountAddress]}
               profiles={identityProfiles}
               ratingActionAvailable={ratingActionAvailable}
               receivedRatings={receivedRatings}
               self={self}
               selectedDerivation={selectedDerivation}
+              showAllRoles={showAllRoles}
               youRatedByKey={youRatedByKey}
             />
-          ) : loading && view !== 'graph' ? (
+          ) : loading ? (
             loadingPanel
           ) : view === 'accounts' ? (
             <>
+              <NetworkSummaryStrip summary={data.summary} />
               <AccountsTable
                 category={category}
                 derivations={filteredDerivations}
@@ -975,6 +890,7 @@ export default function App() {
                 profiles={identityProfiles}
                 query={query}
                 selectedAddress={selectedAddress ?? undefined}
+                showAllRoles={showAllRoles}
                 sort={accountSort}
                 statusFilter={statusFilter}
                 totalCount={derivationTotal}
@@ -990,25 +906,6 @@ export default function App() {
                 </div>
               ) : null}
             </>
-          ) : view === 'graph' ? (
-            <Suspense fallback={loadingPanel}>
-              <TrustGraphView
-                direction={graphDirection}
-                incidentOnly={graphDepth === 1}
-                isExpanded={isFullscreen}
-                isLoading={graphLoading}
-                onClearSelection={() => setGraphSelectedAddress(null)}
-                onOpenDetail={openNodeDetail}
-                onSelect={(node) =>
-                  setGraphSelectedAddress((current) => (current === node.address ? graphRootAddress : node.address))
-                }
-                profiles={identityProfiles}
-                selectedAddress={graphSelectedAddress ?? graphRootAddress}
-                serverGraph={serverGraph ?? { category, edges: [], nodes: [] }}
-                sign={graphSign}
-                signature={graphSignature}
-              />
-            </Suspense>
           ) : (
             <ChangesTable
               changes={data.changes}
@@ -1016,6 +913,7 @@ export default function App() {
                 openAccount(address);
               }}
               profiles={identityProfiles}
+              showAllRoles={showAllRoles}
             />
           )}
         </div>
