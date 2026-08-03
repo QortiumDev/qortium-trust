@@ -28,8 +28,7 @@ import { loadIdentityProfiles } from './identityProfiles';
 import { AvatarActionsProvider } from './components/Identity';
 import { setTranslationLanguage, t } from './i18n';
 import { getBridgeState } from './qdnRequest';
-import { PENDING_CONFIRM_POLL_MS, pendingRatingKey } from './ratingControl';
-import { isSelectedAccountChangedMessage } from './selectedAccountMessage';
+import { PENDING_CONFIRM_POLL_MS, PENDING_CONFIRM_TIMEOUT_MS, pendingRatingKey } from './ratingControl';
 import { getTrustRouteUrl, readTrustRoute, type TrustRoute } from './trustRoute';
 import {
   getAccountRatingsPage,
@@ -234,19 +233,35 @@ export default function App() {
     }
   }, []);
 
+  // Tracks the address `self` last resolved to (independent of `self` itself) purely so pending
+  // ratings are only wiped on a genuine rater change, never on the initial null → address resolution
+  // or a same-account refresh.
+  const previousSelfAddressRef = useRef<string | null>(null);
+
   const refreshSelectedAccount = useCallback(async () => {
     try {
       const [bridge, account] = await Promise.all([getBridgeState(), resolveSelfAccount()]);
+      const previousAddress = previousSelfAddressRef.current;
+      const nextAddress = account?.address ?? null;
       setData((current) => ({ ...current, bridge }));
       setSelf(account);
-      setPendingRatings({});
+      // Only wipe pending ratings when the resolved rater actually changed from a previously known
+      // address — not on the initial null → address resolution, and not on a same-account refresh.
+      if (previousAddress !== null && previousAddress !== nextAddress) {
+        setPendingRatings({});
+      }
+      previousSelfAddressRef.current = nextAddress;
       setDetailReloadToken((token) => token + 1);
       await refreshYouRated(account);
     } catch (accountError) {
       console.warn('Failed to refresh selected account', accountError);
+      const previousAddress = previousSelfAddressRef.current;
       setSelf(null);
       setYouRatedRatings([]);
-      setPendingRatings({});
+      if (previousAddress !== null) {
+        setPendingRatings({});
+      }
+      previousSelfAddressRef.current = null;
     }
   }, [refreshYouRated]);
 
@@ -338,14 +353,13 @@ export default function App() {
 
       setDisplaySettings((current) => getDisplaySettingsUpdateFromMessage(event.data, current) ?? current);
 
-      if (isSelectedAccountChangedMessage(event.data)) {
-        void refreshSelectedAccount();
-      }
+      // Deliberately does NOT react to a selected-account-change message: the Trust app binds to
+      // whichever account was loaded first and never reloads on an account switch (owner decision).
     };
 
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, [refreshSelectedAccount]);
+  }, []);
 
   const navigateToRoute = useCallback((route: TrustRoute) => {
     window.history.pushState({}, '', getTrustRouteUrl(window.location.href, route));
@@ -655,10 +669,37 @@ export default function App() {
     return () => window.clearTimeout(timer);
   }, [toast]);
 
-  useEffect(() => {
-    const entries = Object.entries(pendingRatings);
+  // Re-arms tracking for a timed-out entry: another PENDING_CONFIRM_TIMEOUT_MS window starting now.
+  const handleRetryPending = useCallback((key: string) => {
+    setPendingRatings((current) => {
+      const entry = current[key];
 
-    if (entries.length === 0) {
+      if (!entry) {
+        return current;
+      }
+
+      return { ...current, [key]: { ...entry, submittedAt: Date.now(), timedOut: false } };
+    });
+  }, []);
+
+  const handleDismissPending = useCallback((key: string) => {
+    setPendingRatings((current) => {
+      if (!(key in current)) {
+        return current;
+      }
+
+      const next = { ...current };
+      delete next[key];
+      return next;
+    });
+  }, []);
+
+  useEffect(() => {
+    // Timed-out entries stay in `pendingRatings` for the Retry/Dismiss notice, but stop being polled
+    // until the user retries them.
+    const activeEntries = Object.entries(pendingRatings).filter(([, entry]) => !entry.timedOut);
+
+    if (activeEntries.length === 0) {
       return;
     }
 
@@ -667,9 +708,11 @@ export default function App() {
 
     const poll = async () => {
       const confirmed: string[] = [];
+      const timedOut: string[] = [];
+      const now = Date.now();
 
       await Promise.all(
-        entries.map(async ([key, entry]) => {
+        activeEntries.map(async ([key, entry]) => {
           try {
             const cooldown = await getRatingCooldown({
               category: entry.category,
@@ -679,9 +722,16 @@ export default function App() {
             const expected = entry.rating === 0 ? null : entry.rating;
             if (cooldown.activeRating === expected) {
               confirmed.push(key);
+              return;
             }
           } catch {
             // A later poll will retry transient Core or bridge failures.
+          }
+
+          // Still unconfirmed (or the check itself failed) — give up polling this entry once it has
+          // been pending for PENDING_CONFIRM_TIMEOUT_MS, surfacing a "not confirmed" state instead.
+          if (now - entry.submittedAt >= PENDING_CONFIRM_TIMEOUT_MS) {
+            timedOut.push(key);
           }
         }),
       );
@@ -690,14 +740,22 @@ export default function App() {
         return;
       }
 
-      if (confirmed.length > 0) {
+      if (confirmed.length > 0 || timedOut.length > 0) {
         setPendingRatings((current) => {
           const next = { ...current };
           for (const key of confirmed) {
             delete next[key];
           }
+          for (const key of timedOut) {
+            if (next[key]) {
+              next[key] = { ...next[key], timedOut: true };
+            }
+          }
           return next;
         });
+      }
+
+      if (confirmed.length > 0) {
         setDetailReloadToken((token) => token + 1);
         await Promise.all([loadData({ silent: true }), refreshYouRated()]);
       }
@@ -911,11 +969,14 @@ export default function App() {
               live={live}
               onActiveCategoryChange={setCategory}
               onBack={handleBack}
+              onDismissPending={handleDismissPending}
               onOpenAccount={(address) => {
                 openAccount(address);
               }}
               onRatingSubmitted={handleRatingSubmitted}
+              onRetryPending={handleRetryPending}
               pendingByCategory={selectedPendingByCategory}
+              pendingRatings={pendingRatings}
               profile={identityProfiles[selectedDerivation.accountAddress]}
               profiles={identityProfiles}
               ratingActionAvailable={ratingActionAvailable}

@@ -11,7 +11,7 @@ import type {
   SelfAccount,
   TrustDerivation,
 } from '../types';
-import type { AccountDetailState, PendingRatingEntry } from '../viewTypes';
+import type { AccountDetailState, PendingRatingEntry, PendingRatingsByKey } from '../viewTypes';
 import { IdentityAvatar, IdentityLabel, StatusBadge } from './Identity';
 import { RatingForm } from './RatingControls';
 import { t, type TranslationKey } from '../i18n';
@@ -215,10 +215,13 @@ export function AccountDetail({
   live,
   onActiveCategoryChange,
   onBack,
+  onDismissPending,
   onOpenAccount,
   onRatingSubmitted,
+  onRetryPending,
   pendingByCategory,
   pendingRating,
+  pendingRatings,
   profile,
   profiles,
   ratingActionAvailable,
@@ -232,10 +235,15 @@ export function AccountDetail({
   live: boolean;
   onActiveCategoryChange?: (category: AccountRatingCategory) => void;
   onBack: () => void;
+  onDismissPending?: (key: string) => void;
   onOpenAccount?: (address: string) => void;
   onRatingSubmitted: (entry: PendingRatingEntry) => void;
+  onRetryPending?: (key: string) => void;
   pendingByCategory?: RatingByCategory;
   pendingRating?: number;
+  // Full pending-rating map (keyed by pendingRatingKey), so RatingForm can read the timed-out flag
+  // for its own category/target and offer Retry/Dismiss — pendingByCategory only carries the number.
+  pendingRatings?: PendingRatingsByKey;
   profile?: IdentityProfile;
   profiles: IdentityProfilesByAddress;
   ratingActionAvailable: boolean;
@@ -385,8 +393,11 @@ export function AccountDetail({
                 <RatingForm
                   category={activeCategory}
                   key={`${selectedDerivation.accountPublicKey}:${activeCategory}`}
+                  onDismissPending={onDismissPending}
+                  onRetryPending={onRetryPending}
                   onSubmitted={onRatingSubmitted}
                   pendingRating={activePending}
+                  pendingRatings={pendingRatings}
                   ratingActionAvailable={ratingActionAvailable}
                   self={self}
                   targetAddress={selectedDerivation.accountAddress}

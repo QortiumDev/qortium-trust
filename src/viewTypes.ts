@@ -62,12 +62,16 @@ export type AccountDetailState = {
 
 // A submitted-but-unconfirmed rating, tracked at the app level so several can be in flight at once
 // and the "You rated" column can show a per-account spinner without blocking new submissions.
+// `submittedAt` anchors the confirmation-poll timeout; `timedOut` flips once that timeout elapses
+// without confirmation, so the entry stays visible (with Retry/Dismiss) instead of polling forever.
 export type PendingRatingEntry = {
   category: AccountRatingCategory;
   rating: number;
   raterPublicKey: string;
+  submittedAt: number;
   targetAddress: string;
   targetPublicKey: string;
+  timedOut?: boolean;
 };
 
 export type PendingRatingsByKey = Record<string, PendingRatingEntry>;

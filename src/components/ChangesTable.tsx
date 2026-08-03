@@ -57,7 +57,7 @@ export function ChangesTable({
               >
                 <td data-label={t('label.account')}>
                   <button
-                    aria-label={`Open ${profile?.name ?? change.accountAddress}`}
+                    aria-label={t('action.openAccount', { name: profile?.name ?? change.accountAddress })}
                     className="identity-cell identity-link"
                     disabled={!selectable}
                     onClick={(event) => {
