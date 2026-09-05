@@ -15,6 +15,7 @@ import { RoleIcon } from './components/TrustIcons';
 import { AccountsTable } from './components/AccountsTable';
 import { AccountDetail } from './components/AccountDetail';
 import { RatingDialog } from './components/RatingDialog';
+import { TrustInfoLink } from './components/TrustInfoLink';
 import { ChangesTable } from './components/ChangesTable';
 import { NodeSyncPill } from './components/Identity';
 import { applyDisplaySettings, getDisplaySettingsUpdateFromMessage, getInitialDisplaySettings } from './displaySettings';
@@ -839,11 +840,7 @@ export default function App() {
             </div>
             <div className="header-actions">
               <NodeSyncPill nodeStatus={data.nodeStatus} />
-              <a className="icon-button" aria-label={t('action.trustInfo')} title={t('action.trustInfo')}
-                target="_blank" rel="noopener noreferrer"
-                href="qdn://APP/Qortium-Unified-Community/Community-Portal/wiki/article/wk-c2d1006c55434054ae79979112e09637">
-                <Info aria-hidden="true" size={17} />
-              </a>
+              <TrustInfoLink bridge={data.bridge} onError={setError} />
               <button
                 aria-label={t('action.refreshTrust')}
                 className="icon-button"

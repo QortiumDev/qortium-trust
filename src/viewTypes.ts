@@ -71,9 +71,10 @@ export type AccountDetailState = {
   publicKey: string | null;
 };
 
-// A submitted-but-unconfirmed rating, tracked at the app level so several can be in flight at once
-// and the "You rated" column can show a per-account spinner without blocking new submissions.
-// `submittedAt` anchors the confirmation-poll timeout; `timedOut` flips once that timeout elapses
+// A rating awaiting submission or confirmation, tracked at app level so queued jobs and accepted
+// broadcasts retain per-account spinners without blocking browsing or drafting other ratings.
+// `submittedAt` resets after the broadcast response and only then anchors the confirmation timeout;
+// `timedOut` flips once that timeout elapses
 // without confirmation, so the entry stays visible (with Retry/Dismiss) instead of polling forever.
 export type PendingRatingEntry = {
   // Submitting includes Home approval and broadcast; confirmation polling starts afterward.

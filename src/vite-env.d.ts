@@ -11,6 +11,7 @@ interface ImportMeta {
 }
 
 interface Window {
+  _qdnContext?: unknown;
   _qdnAccent?: unknown;
   _qdnLang?: unknown;
   _qdnLanguage?: unknown;

@@ -6,6 +6,7 @@ export type TrustDerivationOrderBy = 'account' | 'level' | 'score' | 'voteWeight
 
 /** Bridge actions the app explicitly knows about. Keeps autocomplete + typo-safety. */
 export type KnownQdnAction =
+  | 'OPEN_NEW_TAB'
   | 'FETCH_NODE_API'
   | 'GET_NODE_STATUS'
   | 'IS_USING_PUBLIC_NODE'

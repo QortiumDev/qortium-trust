@@ -350,6 +350,42 @@ describe('useRatingControl.handleSubmit unlock branches', () => {
     expect(harness.control.message?.text).toMatch(/account changed/i);
   });
 
+  it('continues queued jobs after rejection without retrying the failed rating', async () => {
+    ensureAccountUnlockedMock.mockResolvedValue(SELF);
+    submitRatingMock.mockRejectedValueOnce(new Error('Rating declined')).mockResolvedValueOnce({ accepted: true });
+    const onSubmissionFailed = vi.fn();
+    const first = mountControl({ onSubmissionFailed });
+    const next = mountControl({ targetAddress: 'Qnext', targetPublicKey: 'nextPub' });
+    await flush();
+    await act(async () => { first.control.setRating(2); next.control.setRating(3); });
+    await act(async () => {
+      const results = await Promise.all([first.control.handleSubmit(), next.control.handleSubmit()]);
+      expect(results).toEqual([false, true]);
+    });
+    expect(submitRatingMock).toHaveBeenCalledTimes(2);
+    expect(submitRatingMock.mock.calls.map(([request]) => request.targetPublicKey)).toEqual(['tPub', 'nextPub']);
+    expect(onSubmissionFailed).toHaveBeenCalledWith(expect.objectContaining({ targetPublicKey: 'tPub' }), 'Rating declined');
+    expect(next.submitted[0]).toMatchObject({ targetPublicKey: 'nextPub', rating: 3 });
+  });
+
+  it('checks live identity when a queued job starts, not when its editor closes', async () => {
+    ensureAccountUnlockedMock.mockResolvedValueOnce(SELF)
+      .mockResolvedValueOnce({ ...SELF, address: 'Qchanged', publicKey: 'changedPub' });
+    let finish!: (value: { accepted: boolean }) => void;
+    submitRatingMock.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+    const first = mountControl();
+    const next = mountControl({ targetAddress: 'Qnext', targetPublicKey: 'nextPub' });
+    await flush();
+    await act(async () => { first.control.setRating(2); next.control.setRating(3); });
+    let attempts!: Promise<boolean[]>;
+    await act(async () => { attempts = Promise.all([first.control.handleSubmit(), next.control.handleSubmit()]); });
+    expect(ensureAccountUnlockedMock).toHaveBeenCalledTimes(1);
+    await act(async () => { finish({ accepted: true }); expect(await attempts).toEqual([true, false]); });
+    expect(ensureAccountUnlockedMock).toHaveBeenCalledTimes(2);
+    expect(submitRatingMock).toHaveBeenCalledTimes(1);
+    expect(next.control.message?.text).toMatch(/account changed/i);
+  });
+
   it('guards rapid duplicate submissions before React renders the disabled button', async () => {
     let unlock!: (account: SelfAccount) => void;
     ensureAccountUnlockedMock.mockImplementationOnce(() => new Promise(resolve => { unlock = resolve; }));

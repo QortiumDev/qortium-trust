@@ -9,6 +9,7 @@ import type { AccountRatingCategory, AccountRatingCooldown, RatingImpactPreview,
 import type { PendingRatingEntry, PendingValueByAccountCategory, RatingValuesByAccountCategory } from './viewTypes';
 import { t } from './i18n';
 import { ratingSignedLabel } from './format';
+import { enqueueRatingSubmission } from './ratingSubmissionQueue';
 
 // Debounce preview requests so scrubbing through the rating selector doesn't fire a request per step.
 const PREVIEW_DEBOUNCE_MS = 400;
@@ -328,42 +329,44 @@ export function useRatingControl({
     setMessage(null);
 
     try {
-      // Read Home's live lock state before requesting an unlock. A missing/false
-      // unlock result or an approval rejection must clear the background submission.
-      const unlocked = await ensureAccountUnlocked();
+      return await enqueueRatingSubmission(async () => {
+        // Read Home's live lock state before requesting an unlock. A missing/false
+        // unlock result or an approval rejection must clear the background submission.
+        const unlocked = await ensureAccountUnlocked();
 
-      if (!unlocked) {
-        throw new Error(t('error.unlockConfirmFailed'));
-      }
+        if (!unlocked) {
+          throw new Error(t('error.unlockConfirmFailed'));
+        }
 
-      if (unlocked.isUnlocked !== true) {
-        throw new Error(t('error.accountLocked'));
-      }
+        if (unlocked.isUnlocked !== true) {
+          throw new Error(t('error.accountLocked'));
+        }
 
-      // The draft and duplicate guard belong to this identity. Do not silently send
-      // its opinion from a different account after a Home account switch.
-      if (unlocked.address !== self?.address) {
-        throw new Error(t('error.accountChanged'));
-      }
+        // The draft and duplicate guard belong to this identity. Do not silently send
+        // its opinion from a different account after a Home account switch.
+        if (unlocked.address !== self?.address) {
+          throw new Error(t('error.accountChanged'));
+        }
 
-      // Home returns after broadcast. Both accepted and uncertain outcomes need
-      // confirmation tracking; an uncertain response must never trigger another write.
-      const result = await submitRating({ category, rating: submittedRating, targetPublicKey });
-      const confirmationUnknown = !result || result.errorType === 'BROADCAST_UNKNOWN' || result.outcome === 'unknown' ||
-        (result.accepted === false && !result.error);
-      if (result?.accepted === false && !confirmationUnknown) {
-        throw new Error(result.error);
-      }
-      onSubmitted({
-        ...(confirmationUnknown ? { confirmationUnknown: true } : {}),
-        category,
-        rating: submittedRating,
-        raterPublicKey,
-        submittedAt: Date.now(),
-        targetAddress,
-        targetPublicKey,
+        // Home returns after broadcast. Both accepted and uncertain outcomes need
+        // confirmation tracking; an uncertain response must never trigger another write.
+        const result = await submitRating({ category, rating: submittedRating, targetPublicKey });
+        const confirmationUnknown = !result || result.errorType === 'BROADCAST_UNKNOWN' || result.outcome === 'unknown' ||
+          (result.accepted === false && !result.error);
+        if (result?.accepted === false && !confirmationUnknown) {
+          throw new Error(result.error);
+        }
+        onSubmitted({
+          ...(confirmationUnknown ? { confirmationUnknown: true } : {}),
+          category,
+          rating: submittedRating,
+          raterPublicKey,
+          submittedAt: Date.now(),
+          targetAddress,
+          targetPublicKey,
+        });
+        return !confirmationUnknown;
       });
-      return !confirmationUnknown;
     } catch (submitError) {
       const text = mapRatingError(submitError instanceof Error ? submitError.message : String(submitError));
       onSubmissionFailed?.(entry, text);

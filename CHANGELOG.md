@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.4.9 — 2026-09-05
+
+- Open the wiki through Home’s new-tab action; use the current gateway origin for
+  browser clicks and copied links, bypassing the injected legacy click interceptor.
+- Queue successive ratings through Home’s single proof-of-work worker while
+  retaining card spinners and free navigation. Recheck lock state and identity
+  when each queued request starts; continue after a failed request without retrying it.
+
 ## 1.4.8 — 2026-09-05
 
 - Skip redundant Home unlock approval when the selected account is already unlocked.
