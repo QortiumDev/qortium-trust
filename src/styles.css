@@ -3320,3 +3320,55 @@ html {
 .identity-link { max-width: 100%; text-align: start; }
 .identity-label { flex: 1; }
 .identity-address { overflow-wrap: anywhere; }
+
+/* Give every person a distinct header band while keeping the directory compact. */
+:root { --account-header-surface: color-mix(in srgb, var(--accent) 10%, var(--panel)); }
+:root[data-theme='dark'] { --account-header-surface: color-mix(in srgb, var(--accent) 18%, var(--panel)); }
+.accounts-table--all-roles tbody { gap: 12px; }
+.accounts-table--all-roles .account-directory-row { border-top: 2px solid var(--accent); }
+.accounts-table--all-roles .account-identity-cell,
+.accounts-table--all-roles .account-status-cell,
+.accounts-table--all-roles .account-blocks-cell {
+  background: var(--account-header-surface);
+  align-self: stretch;
+  padding: 7px 10px;
+}
+.accounts-table--all-roles .account-status-cell,
+.accounts-table--all-roles .account-blocks-cell {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+}
+.accounts-table--all-roles .account-status-cell .badge { padding-inline: 0; }
+.accounts-table--all-roles .account-role-cell { padding: 6px 10px; }
+.accounts-table--all-roles .account-role-summary { display: flex; flex-wrap: wrap; align-items: center; gap: 3px 8px; }
+.accounts-table--all-roles .account-role-title { flex: 1 1 auto; }
+.accounts-table--all-roles .account-role-summary__metrics { flex: 1 1 100%; gap: 2px; }
+.accounts-table--all-roles .account-role-summary__standing { gap: 4px; }
+.accounts-table--all-roles .account-activity { margin-top: 2px; }
+:root[data-ui='classic'] .accounts-table--all-roles .account-directory-row {
+  border-top-color: var(--accent);
+  box-shadow: 0 4px 10px #00000024;
+}
+@media (min-width: 601px) and (max-width: 1100px) {
+  .accounts-table--all-roles .account-directory-row { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .accounts-table--all-roles .account-directory-row .account-identity-cell { grid-column: span 2; }
+  .accounts-table--all-roles .account-directory-row .account-role-cell { grid-column: span 2; }
+}
+@media (max-width: 600px) {
+  .accounts-table--all-roles .account-directory-row .account-identity-cell { grid-column: auto; }
+  .accounts-table--all-roles .account-directory-row .account-status-cell { align-items: flex-end; }
+  .accounts-table--all-roles .account-directory-row .account-blocks-cell {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px;
+    padding-top: 0;
+  }
+}
+@media (max-width: 420px) {
+  :root[data-text-size='extra-large'] .accounts-table--all-roles .account-directory-row .account-status-cell,
+  :root[data-text-size='huge'] .accounts-table--all-roles .account-directory-row .account-status-cell { align-items: flex-start; }
+}

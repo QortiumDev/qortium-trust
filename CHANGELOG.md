@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Separate account cards with contrasting identity header bands and clearer top borders;
+  tighten combined-role spacing and keep header metadata on one row where space allows.
+
 - Show each role's derived status badge in combined lists and account detail cards,
   including Unverified; keep missing role data distinct from a known Unverified status.
 
