@@ -54,10 +54,10 @@ type QdnHostWindow = Window & {
 };
 
 const DEFAULT_DISPLAY_SETTINGS: QdnDisplaySettings = {
-  accent: 'green',
+  accent: 'cyan',
   language: 'en',
   textSize: 'medium',
-  theme: 'light',
+  theme: 'dark',
   uiStyle: 'classic',
 };
 

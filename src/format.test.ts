@@ -55,14 +55,14 @@ describe('ratingVariantForCategory', () => {
 
 describe('ratingSignedLabel (decomposed sign + magnitude, owner copy rule)', () => {
   it('renders Yes/No + confidence for the minter variant', () => {
-    expect(ratingSignedLabel(1, 'minter')).toBe('Yes · Low confidence');
-    expect(ratingSignedLabel(3, 'minter')).toBe('Yes · High confidence');
-    expect(ratingSignedLabel(-4, 'minter')).toBe('No · Very high confidence');
+    expect(ratingSignedLabel(1, 'minter')).toBe('Yes · Low');
+    expect(ratingSignedLabel(3, 'minter')).toBe('Yes · High');
+    expect(ratingSignedLabel(-4, 'minter')).toBe('No · Very high');
   });
 
   it('renders Positive/Negative + confidence for the role variant', () => {
-    expect(ratingSignedLabel(2, 'role')).toBe('Positive · Medium confidence');
-    expect(ratingSignedLabel(-1, 'role')).toBe('Negative · Low confidence');
+    expect(ratingSignedLabel(2, 'role')).toBe('Positive · Medium');
+    expect(ratingSignedLabel(-1, 'role')).toBe('Negative · Low');
   });
 
   it('never combines sign and magnitude into a single parenthesized string', () => {

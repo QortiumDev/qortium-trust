@@ -2,7 +2,9 @@
 import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { AccountDetail } from './AccountDetail';
-import type { AccountRatingCategory, RatingCounts, TrustDerivation } from '../types';
+import type { AccountRatingCategory, AccountTrustExplanation, RatingCounts, TrustCategoryExplanation, TrustDerivation, TrustStatus } from '../types';
+
+vi.mock('../browserAvatar', () => ({ fetchBrowserAvatar: vi.fn().mockResolvedValue({ kind: 'unavailable' }) }));
 
 const counts = (): RatingCounts => ({
   positiveLowCount: 0,
@@ -69,6 +71,7 @@ describe('AccountDetail role workspace (showAllRoles on)', () => {
     expect(screen.getAllByText('Designers').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Rate this account')).toHaveLength(1);
     expect(screen.getByRole('button', { name: /copy address/i })).toBeTruthy();
+    expect(screen.getByText('Detailed requirements are unavailable for this account.')).toBeTruthy();
     expect(screen.getByRole('button', { name: /copy public key/i })).toBeTruthy();
     expect(screen.queryByText(/^Manager$/)).toBeNull();
     expect(screen.queryByText(/^Subject$/)).toBeNull();
@@ -105,5 +108,63 @@ describe('AccountDetail Minters-only workspace (showAllRoles off)', () => {
     expect(screen.queryByRole('button', { name: /Guides/ })).toBeNull();
     expect(screen.getAllByText('Minters').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Rate this account')).toHaveLength(1);
+  });
+});
+
+
+describe('Standing evidence', () => {
+  it.each([
+    [3, 'GOLD', 'SUBJECT', 3, 4],
+    [4, 'GOLD', 'SUBJECT', 4, undefined],
+    [2, 'SILVER', 'SUBJECT', 2, 3],
+    [3, 'GOLD', 'PLAYER', 3, undefined],
+    [0, 'UNVERIFIED', 'SUBJECT', 1, undefined],
+    [-1, 'SUSPICIOUS', 'SUBJECT', undefined, undefined],
+  ] as const)('explains level %s %s %s before any higher level', (level, status, category, displayed, higher) => {
+    const maxLevel = category === 'SUBJECT' ? 4 : 3;
+    const explanationCategory: TrustCategoryExplanation = {
+      ...selectedDerivation.categories[0], category, level, mappedTrustStatus: status as TrustStatus,
+      mappedTrustWeightPercent: 100, inboundRatings: counts(),
+      configuredLevels: Array.from({ length: maxLevel }, (_, index) => ({ level: index + 1, threshold: 100, levelScoreCap: 100 })),
+      positiveMinBranchCount: 2, suspiciousThreshold: -100, suspiciousLevelScoreCap: 100,
+      suspiciousMinRaterCount: 2, suspiciousMinBranchCount: 2, suspiciousMinRatingConfidence: 2,
+      requirements: [
+        { name: 'positive.raw-score', description: 'Nonnegative score', actual: '100', required: '0', passed: level >= 0 },
+        { name: 'suspicious.score', description: 'Suspicious score condition', actual: '-100', required: '-100', passed: level < 0 },
+        ...Array.from({ length: maxLevel }, (_, index) => ({
+          name: `level.${index + 1}.support`, description: `Support for level ${index + 1}`,
+          actual: index < level ? '2' : '0', required: '2', passed: index < level,
+        })),
+      ],
+      topPositiveImpacts: [], topNegativeImpacts: [],
+    };
+    const explanation: AccountTrustExplanation = {
+      targetAddress: 'Qtarget', targetPublicKey: 'target-public-key', trustStatus: status,
+      trustStatusValue: 4, trustWeightPercent: 100, activeWeightCategory: category,
+      mintingSeedMember: true, categories: [explanationCategory],
+    };
+    const { container } = render(<AccountDetail category={category}
+      detail={{ explanation, loading: false, profile: null, publicKey: 'target-public-key' }}
+      onBack={vi.fn()} onRatingSubmitted={vi.fn()} profiles={{}} ratingActionAvailable={false}
+      self={null} selectedDerivation={selectedDerivation} showAllRoles youRatedByKey={{}} />);
+    const disclosure = container.querySelector<HTMLDetailsElement>('.role-requirements')!;
+    expect(disclosure.open).toBe(false);
+    fireEvent.click(screen.getByText('Why this standing?'));
+    const currentEvidence = disclosure.querySelector(':scope > .requirement-list')!;
+    if (displayed !== undefined) {
+      expect(currentEvidence.textContent).toContain(`Support for level ${displayed}`);
+      if (higher) expect(currentEvidence.textContent).not.toContain(`Support for level ${higher}`);
+    } else {
+      expect(currentEvidence.textContent).toContain('Suspicious score condition');
+      expect(currentEvidence.querySelector('.requirement--passed')).toBeNull();
+    }
+    const next = disclosure.querySelector<HTMLDetailsElement>('.role-higher-requirements');
+    if (higher) {
+      expect(next?.open).toBe(false);
+      expect(next?.querySelector('summary')?.textContent).toBe(`Higher trust level: ${higher}`);
+      expect(next?.textContent).toContain(`Support for level ${higher}`);
+    } else expect(next).toBeNull();
+    expect(disclosure.textContent?.includes('Gold is the highest Minter status')).toBe(category === 'SUBJECT' && status === 'GOLD');
+    expect(disclosure.textContent).not.toContain('next standing');
   });
 });

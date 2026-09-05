@@ -175,6 +175,7 @@ export function useRatingControl({
   const isPending = pendingRating !== undefined;
 
   const [rating, setRating] = useState(0);
+  const draftEditedRef = useRef(false);
   const [cooldown, setCooldown] = useState<AccountRatingCooldown | null>(null);
   const [cooldownLoading, setCooldownLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -198,41 +199,41 @@ export function useRatingControl({
     }
 
     let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
     setCooldownLoading(true);
 
-    getRatingCooldown({ category, rater: raterPublicKey, target: targetPublicKey })
-      .then((result) => {
-        if (cancelled) {
-          return;
+    // Refresh only this open editor, serially. Background cooldown refreshes must not
+    // replace an opinion the user is currently composing or reset a failed refetch to zero.
+    const refresh = async (initial: boolean) => {
+      let shouldRefresh = true;
+      try {
+        const result = await getRatingCooldown({ category, rater: raterPublicKey, target: targetPublicKey });
+        if (cancelled) return;
+        if (initial || (!hasLoadedCooldownRef.current && !draftEditedRef.current)) {
+          setRating(result.activeRating ?? 0);
         }
-
         hasLoadedCooldownRef.current = true;
         setCooldown(result);
-        setRating(result.activeRating ?? 0);
-      })
-      .catch(() => {
-        if (cancelled) {
-          return;
+        shouldRefresh = !result.canChangeNow;
+      } catch {
+        if (cancelled) return;
+        if (!hasLoadedCooldownRef.current) {
+          setCooldown(null);
+          if (!draftEditedRef.current) setRating(0);
         }
-
-        if (hasLoadedCooldownRef.current) {
-          // A refetch failure must not discard an already-confirmed cooldown/rating selection —
-          // only the initial load resets to the unknown state.
-          return;
-        }
-
-        setCooldown(null);
-        // Without cooldown data we cannot trust a carried-over selection; reset to a no-op.
-        setRating(0);
-      })
-      .finally(() => {
+      } finally {
         if (!cancelled) {
           setCooldownLoading(false);
+          if (shouldRefresh && pendingRating === undefined) {
+            timer = setTimeout(() => void refresh(false), PENDING_CONFIRM_POLL_MS);
+          }
         }
-      });
-
+      }
+    };
+    void refresh(true);
     return () => {
       cancelled = true;
+      clearTimeout(timer);
     };
   }, [canInteract, category, pendingRating, raterPublicKey, targetPublicKey]);
 
@@ -289,7 +290,7 @@ export function useRatingControl({
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [canInteract, category, isPending, raterPublicKey, rating, targetPublicKey, unchanged]);
+  }, [canInteract, category, isPending, onCooldown, raterPublicKey, rating, targetPublicKey, unchanged]);
 
   // Only a settled preview for the current rating gates submit; while loading/absent we defer to the
   // other gates and Home's validation, so preview latency never blocks an otherwise-valid rating.
@@ -395,7 +396,10 @@ export function useRatingControl({
     previewInvalid,
     previewLoading,
     rating,
-    setRating,
+    setRating: (value: number) => {
+      draftEditedRef.current = true;
+      setRating(value);
+    },
     submitDisabled,
     submitting,
     unchanged,

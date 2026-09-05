@@ -8,9 +8,13 @@ import {
   Search,
   ShieldCheck,
 } from 'lucide-react';
-import { changeAccountSortState, getTrustDerivationServerSort } from './accountSort';
+import { loadRecentDirectory, type RecentActivity } from './recentActivity';
+import { changeAccountSortState, getTrustDerivationServerSort, RECENT_ACCOUNT_SORT } from './accountSort';
+import { TrustStatusHelp } from './components/TrustStatusHelp';
+import { RoleIcon } from './components/TrustIcons';
 import { AccountsTable } from './components/AccountsTable';
 import { AccountDetail } from './components/AccountDetail';
+import { RatingDialog } from './components/RatingDialog';
 import { ChangesTable } from './components/ChangesTable';
 import { NodeSyncPill } from './components/Identity';
 import { applyDisplaySettings, getDisplaySettingsUpdateFromMessage, getInitialDisplaySettings } from './displaySettings';
@@ -18,7 +22,6 @@ import { filterDerivations } from './derivationFilter';
 import {
   categoryLabel,
   formatNumber,
-  formatRuntimeLabel,
   statusLabel,
   TRUST_CATEGORIES,
   TRUST_STATUSES,
@@ -28,7 +31,7 @@ import { AvatarActionsProvider } from './components/Identity';
 import { setTranslationLanguage, t, type TranslationKey } from './i18n';
 import { getBridgeState } from './qdnRequest';
 import { PENDING_CONFIRM_POLL_MS, PENDING_CONFIRM_TIMEOUT_MS, pendingRatingKey } from './ratingControl';
-import { getTrustRouteUrl, readTrustRoute, type TrustRoute } from './trustRoute';
+import { getTrustRouteUrl, readTrustRoute, trustHistoryDepth, type TrustRoute } from './trustRoute';
 import {
   getInitialShowAllRoles,
   getInitialTrustFlowGuideCollapsed,
@@ -54,7 +57,6 @@ import type {
   SelfAccount,
   TrustDerivation,
   TrustStatus,
-  TrustSummary,
 } from './types';
 import type {
   AccountDetailState,
@@ -71,10 +73,7 @@ const APP_VERSION = __APP_VERSION__;
 const PAGE_SIZE = 250;
 const RATING_PAGE_SIZE = 1000;
 
-const DEFAULT_ACCOUNT_SORT: AccountSortState = [
-  { direction: 'desc', key: 'blocksMinted' },
-  { direction: 'asc', key: 'account' },
-];
+const DEFAULT_ACCOUNT_SORT = RECENT_ACCOUNT_SORT;
 
 const EMPTY_EXPLORER_STATE: ExplorerState = {
   bridge: null,
@@ -157,9 +156,8 @@ function TrustFlowGuide({
   const toggleLabel = collapsed ? t('trustFlow.expand') : t('trustFlow.collapse');
 
   return (
-    <section className="trust-flow-guide" aria-labelledby="trust-flow-guide-title">
+    <section className={`trust-flow-guide${collapsed ? " trust-flow-guide--collapsed" : ""}`} aria-labelledby="trust-flow-guide-title">
       <div>
-        <p className="eyebrow">{t('trustFlow.eyebrow')}</p>
         <div className="trust-flow-guide__title-row">
           <h2 id="trust-flow-guide-title">{t('trustFlow.title')}</h2>
           <button
@@ -178,8 +176,8 @@ function TrustFlowGuide({
       {collapsed ? null : (
         <ol>
           {ROLE_FLOW.map((role, index) => (
-            <li key={role}>
-              <strong>{categoryLabel(role)}</strong>
+            <li key={role} data-role={role}>
+              <strong><RoleIcon category={role} />{categoryLabel(role)}</strong>
               <span>{t(ROLE_FLOW_COPY_KEYS[role])}</span>
               {index < ROLE_FLOW.length - 1 ? <span aria-hidden="true">→</span> : null}
             </li>
@@ -191,7 +189,7 @@ function TrustFlowGuide({
 }
 
 // Accessible checkbox styled as a switch (reuses the existing .live-toggle pattern). Placed in the
-// accounts toolbar; the app-wide category selector and the three non-Minters role surfaces are
+// section navigation; the app-wide category selector and the three non-Minters role surfaces are
 // hidden until this is on (owner decision: Minters-first redesign, Stage A).
 function ShowAllRolesToggle({
   checked,
@@ -212,45 +210,24 @@ function ShowAllRolesToggle({
   );
 }
 
-// Per-status SUBJECT ("Minters") account counts from the trust-summary snapshot. Falls back to the
-// overall (active-weight-category) breakdown when no SUBJECT-specific entry is present — still
-// meaningful since SUBJECT is the default active weight category.
-function subjectStatusCounts(summary: TrustSummary): { accountCount: number; status: TrustStatus }[] {
-  const subjectCategory = (summary.categorySummaries ?? []).find((entry) => entry.category === 'SUBJECT');
-
-  if (subjectCategory) {
-    return subjectCategory.statusCounts.map((entry) => ({ accountCount: entry.accountCount, status: entry.status }));
-  }
-
-  return (summary.statusSummaries ?? []).map((entry) => ({ accountCount: entry.accountCount, status: entry.status }));
-}
-
-function subjectRatingCount(summary: TrustSummary): number {
-  const subjectRatings = (summary.ratingCategorySummaries ?? []).find((entry) => entry.category === 'SUBJECT');
-
-  return subjectRatings?.ratingCount ?? summary.activeRatingCount ?? 0;
-}
-
-// Core has always returned this data (getTrustSummary) but the app never rendered it. A compact
-// one-line strip above the accounts table: active SUBJECT rating count, then non-zero account counts
-// by status, busiest first — e.g. "410 ratings · 19 Silver · 12 Unverified · 1 Suspicious".
-function NetworkSummaryStrip({ summary }: { summary: TrustSummary | null }) {
-  if (!summary) {
-    return <p className="network-summary-strip network-summary-strip--empty">{t('summary.unavailable')}</p>;
-  }
-
-  const statusParts = subjectStatusCounts(summary)
-    .filter((entry) => entry.accountCount > 0)
+// Summarize the same loaded minting-group directory shown below, not excluded accounts.
+function NetworkSummaryStrip({ derivations }: { derivations: TrustDerivation[] }) {
+  const statusParts = TRUST_STATUSES.map(status => ({
+    status, accountCount: derivations.filter(row => row.derivedTrustStatus === status).length,
+  }))
+    .filter(entry => entry.accountCount > 0)
     .sort((left, right) => right.accountCount - left.accountCount)
-    .map((entry) =>
-      t('summary.statusCount', { count: formatNumber(entry.accountCount), status: statusLabel(entry.status) }),
-    );
-  const parts = [t('summary.ratingsCount', { count: formatNumber(subjectRatingCount(summary)) }), ...statusParts];
-
-  return <p className="network-summary-strip">{parts.join(' · ')}</p>;
+    .map(entry => t('summary.statusCount', { count: formatNumber(entry.accountCount), status: statusLabel(entry.status) }));
+  const ratingCount = derivations.reduce((total, row) => {
+    const counts = row.categories.find(category => category.category === 'SUBJECT')?.inboundRatings;
+    return total + (counts?.positiveRatingCount ?? 0) + (counts?.negativeRatingCount ?? 0);
+  }, 0);
+  return <p className="network-summary-strip">{[t('summary.ratingsCount', { count: formatNumber(ratingCount) }), ...statusParts].join(' · ')}</p>;
 }
 
 export default function App() {
+  const [recentActivity, setRecentActivity] = useState<RecentActivity | null>(null);
+  const [activityUnavailable, setActivityUnavailable] = useState(false);
   const [accountSort, setAccountSort] = useState<AccountSortState>(DEFAULT_ACCOUNT_SORT);
   const [category, setCategory] = useState<AccountRatingCategory>('SUBJECT');
   const [data, setData] = useState<ExplorerState>(EMPTY_EXPLORER_STATE);
@@ -270,6 +247,8 @@ export default function App() {
   const [pendingRatings, setPendingRatings] = useState<PendingRatingsByKey>({});
   const [query, setQuery] = useState('');
   const [receivedRatings, setReceivedRatings] = useState<AccountRating[] | undefined>(undefined);
+  const [focusRating, setFocusRating] = useState(false);
+  const [ratingTarget, setRatingTarget] = useState<{ derivation: TrustDerivation; category: AccountRatingCategory } | null>(null);
   const [selectedAddress, setSelectedAddress] = useState<string | null>(null);
   const [self, setSelf] = useState<SelfAccount | null>(null);
   const [showAllRoles, setShowAllRolesState] = useState(getInitialShowAllRoles);
@@ -303,6 +282,10 @@ export default function App() {
   const navRef = useRef<HTMLElement>(null);
   const selfRef = useRef(self);
   const ratingActionAvailable = (data.bridge?.actions ?? []).includes('RATE_ACCOUNT');
+  const wantsRecent = accountSort[0].key === 'latestRating';
+  const visibleSort: AccountSortState = wantsRecent && activityUnavailable
+    ? [{ key: 'account', direction: 'asc' }]
+    : accountSort;
   const serverDerivationSort = useMemo(() => getTrustDerivationServerSort(accountSort), [accountSort]);
 
   // t() reads the active catalog synchronously. Set it during render so a Home language message
@@ -376,6 +359,7 @@ export default function App() {
           category,
           limit: derivationLimit,
           live: true,
+          seedMember: true,
           ...serverDerivationSort,
         }),
         getTrustChanges({ limit: 100 }),
@@ -385,16 +369,31 @@ export default function App() {
         return;
       }
 
+      let directory = derivationPage;
+      if (wantsRecent) {
+        try {
+          if (nodeStatus.isSynchronizing || !nodeStatus.height) throw new Error('Node is not ready');
+          const recent = await loadRecentDirectory(nodeStatus.height, derivationPage, derivationLimit, category);
+          if (loadTokenRef.current !== token) return;
+          directory = recent;
+          setRecentActivity(recent.activity);
+          setActivityUnavailable(false);
+        } catch {
+          if (loadTokenRef.current !== token) return;
+          setRecentActivity(null);
+          setActivityUnavailable(true);
+        }
+      }
       setData({
         bridge,
         changes,
-        derivations: derivationPage.derivations,
+        derivations: directory.derivations.filter(row => row.mintingSeedMember === true),
         nodeStatus,
         policy,
         ratings: [],
         summary,
       });
-      setDerivationTotal(derivationPage.total);
+      setDerivationTotal(directory.total);
     } catch (loadError) {
       if (loadTokenRef.current === token && !silent) {
         setError(loadError instanceof Error ? loadError.message : t('error.trustLoadFailed'));
@@ -404,7 +403,7 @@ export default function App() {
         setLoading(false);
       }
     }
-  }, [category, derivationLimit, serverDerivationSort]);
+  }, [category, derivationLimit, serverDerivationSort, wantsRecent]);
 
   useEffect(() => {
     void loadData();
@@ -427,6 +426,8 @@ export default function App() {
   useEffect(() => {
     const readRouteFromUrl = () => {
       const route = readTrustRoute(window.location.href);
+      setFocusRating(false);
+      if (!route.account) restoreListFocusRef.current = true;
       setSelectedAddress(route.account);
       setView(route.view);
     };
@@ -454,12 +455,21 @@ export default function App() {
   }, []);
 
   const navigateToRoute = useCallback((route: TrustRoute) => {
-    window.history.pushState({}, '', getTrustRouteUrl(window.location.href, route));
+    const current = readTrustRoute(window.location.href);
+    if (current.account !== route.account || current.view !== route.view) {
+      window.history.pushState(
+        { trustNavigationDepth: trustHistoryDepth(window.history.state) + 1 },
+        '',
+        getTrustRouteUrl(window.location.href, route),
+      );
+    }
     setSelectedAddress(route.account);
     setView(route.view);
   }, []);
 
-  const openAccount = useCallback((address: string) => {
+  const openAccount = useCallback((address: string, ratingCategory?: AccountRatingCategory) => {
+    setFocusRating(ratingCategory !== undefined);
+    if (ratingCategory) setCategory(ratingCategory);
     if (!data.derivations.some((derivation) => derivation.accountAddress === address)) {
       setDerivationLimit(5_000);
     }
@@ -467,9 +477,20 @@ export default function App() {
   }, [data.derivations, navigateToRoute]);
 
   const handleBack = useCallback(() => {
+    if (trustHistoryDepth(window.history.state) > 0) {
+      window.history.back();
+      return;
+    }
     restoreListFocusRef.current = true;
-    navigateToRoute({ account: null, view: 'accounts' });
-  }, [navigateToRoute]);
+    setFocusRating(false);
+    window.history.replaceState(
+      { ...window.history.state, trustNavigationDepth: 0 },
+      '',
+      getTrustRouteUrl(window.location.href, { account: null, view: 'accounts' }),
+    );
+    setSelectedAddress(null);
+    setView('accounts');
+  }, []);
 
   useEffect(() => {
     if (!selectedAddress && restoreListFocusRef.current) {
@@ -741,8 +762,13 @@ export default function App() {
   }, [loadData, pendingRatings, refreshYouRated]);
 
   const changeAccountSort = useCallback((key: AccountSortKey) => {
+    if (key === 'latestRating' && wantsRecent && activityUnavailable) {
+      setAccountSort(DEFAULT_ACCOUNT_SORT);
+      void loadData();
+      return;
+    }
     setAccountSort((current) => changeAccountSortState(current, key));
-  }, []);
+  }, [activityUnavailable, loadData, wantsRecent]);
 
   const handleViewChange = (next: ViewMode) => {
     navigateToRoute({ account: null, view: next });
@@ -772,11 +798,9 @@ export default function App() {
                   <h1>{t('app.title')}</h1>
                   <span className="app-version">{APP_VERSION}</span>
                 </div>
-                <p className="app-subtitle">{t('app.subtitle')}</p>
               </div>
             </div>
             <div className="header-actions">
-              <span className="runtime-pill">{formatRuntimeLabel(data.bridge?.ui)}</span>
               <NodeSyncPill nodeStatus={data.nodeStatus} />
               <button
                 aria-label={t('action.refreshTrust')}
@@ -805,6 +829,7 @@ export default function App() {
                 {label}
               </button>
             ))}
+            <ShowAllRolesToggle checked={showAllRoles} onChange={setShowAllRoles} />
           </nav>
 
       {error ? (
@@ -824,10 +849,6 @@ export default function App() {
       <section className="workspace">
         {view === 'accounts' && !showAccountDetail ? (
           <>
-            <TrustFlowGuide
-              collapsed={trustFlowGuideCollapsed}
-              onToggleCollapsed={() => setTrustFlowGuideCollapsed(!trustFlowGuideCollapsed)}
-            />
             <div className="accounts-toolbar">
               <label className="search-field search-field--open">
                 <Search aria-hidden="true" size={16} />
@@ -857,8 +878,18 @@ export default function App() {
                   ))}
                 </select>
               </label>
+              <label className="field-control account-sort-select">
+                <span>{t('sort.label')}</span>
+                <select value={visibleSort[0].key} onChange={event => changeAccountSort(event.target.value as AccountSortKey)}>
+                  {([['latestRating', 'activity.sort'], ['account', 'label.account'], ['status', 'label.trustStatus'], ['blocksMinted', 'label.blocksMinted'], ['level', 'label.trustLevel'], ['score', 'label.score'], ['ratings', 'label.ratings'], ['youRated', 'label.youRated'], ['voteWeight', 'label.voteWeight'], ['seed', 'label.seed']] as [AccountSortKey, TranslationKey][]).map(([key, label]) => <option key={key} value={key}>{t(label)}</option>)}
+                </select>
+              </label>
+              <button className="sort-direction icon-button" title={t(visibleSort[0].direction === 'asc' ? 'sort.ascending' : 'sort.descending')} aria-label={t(visibleSort[0].direction === 'asc' ? 'sort.ascending' : 'sort.descending')} onClick={() => changeAccountSort(visibleSort[0].key)} type="button">{visibleSort[0].direction === 'asc' ? '↑' : '↓'}</button>
               {showAllRoles ? <CategorySelect category={category} onChange={setCategory} /> : null}
-              <ShowAllRolesToggle checked={showAllRoles} onChange={setShowAllRoles} />
+            </div>
+            <div className="directory-help">
+              <TrustStatusHelp policy={data.policy} />
+              <TrustFlowGuide collapsed={trustFlowGuideCollapsed} onToggleCollapsed={() => setTrustFlowGuideCollapsed(!trustFlowGuideCollapsed)} />
             </div>
           </>
         ) : null}
@@ -867,6 +898,7 @@ export default function App() {
           {showAccountDetail ? (
             <AccountDetail
               category={category}
+              focusRating={focusRating}
               detail={detail}
               key={`${selectedDerivation.accountAddress}:${self?.address ?? 'readonly'}`}
               onActiveCategoryChange={setCategory}
@@ -892,8 +924,10 @@ export default function App() {
             loadingPanel
           ) : view === 'accounts' ? (
             <>
-              <NetworkSummaryStrip summary={data.summary} />
+              {wantsRecent && activityUnavailable ? <p className="activity-unavailable" role="status">{t('activity.unavailable')}</p> : null}
+              <NetworkSummaryStrip derivations={data.derivations} />
               <AccountsTable
+                activity={recentActivity}
                 category={category}
                 derivations={filteredDerivations}
                 loadedCount={data.derivations.length}
@@ -903,12 +937,13 @@ export default function App() {
                 }}
                 onSelect={(derivation: TrustDerivation) => openAccount(derivation.accountAddress)}
                 onSort={changeAccountSort}
+                onRate={(derivation, role) => setRatingTarget({ derivation, category: role })}
                 pendingByKey={pendingRatings}
                 profiles={identityProfiles}
                 query={query}
                 selectedAddress={selectedAddress ?? undefined}
                 showAllRoles={showAllRoles}
-                sort={accountSort}
+                sort={visibleSort}
                 statusFilter={statusFilter}
                 totalCount={derivationTotal}
                 youRatedByKey={youRatedByKey}
@@ -936,6 +971,22 @@ export default function App() {
         </div>
       </section>
 
+      {ratingTarget ? (
+        <RatingDialog
+          key={`${ratingTarget.derivation.accountPublicKey}:${ratingTarget.category}:${self?.address ?? 'readonly'}`}
+          category={ratingTarget.category}
+          derivation={ratingTarget.derivation}
+          profile={identityProfiles[ratingTarget.derivation.accountAddress]}
+          onClose={() => setRatingTarget(null)}
+          onSubmitted={handleRatingSubmitted}
+          onDismissPending={handleDismissPending}
+          onRetryPending={handleRetryPending}
+          pendingRating={pendingRatings[pendingRatingKey(ratingTarget.category, ratingTarget.derivation.accountAddress)]?.rating}
+          pendingRatings={pendingRatings}
+          ratingActionAvailable={ratingActionAvailable}
+          self={self}
+        />
+      ) : null}
       {toast ? (
         <div className="toast" role="status">
           {toast}

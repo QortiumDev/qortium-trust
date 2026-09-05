@@ -8,6 +8,7 @@ import { compactAddress, formatNumber, formatPercent, statusLabel, statusTone } 
 import type { IdentityProfile, NodeStatus, QdnAction, TrustStatus } from '../types';
 import type { IdentityProps } from '../viewTypes';
 import { t } from '../i18n';
+import { TrustShield } from './TrustIcons';
 
 const AvatarActionsContext = createContext<QdnAction[] | undefined>(undefined);
 
@@ -101,8 +102,7 @@ export function IdentityLabel({ address, profile }: IdentityProps) {
 
   return (
     <span className="identity-label">
-      <span className="identity-name">{label}</span>
-      {label !== address ? <span className="mono identity-address">{compactAddress(address, 10, 7)}</span> : null}
+      <span className="identity-name" dir="auto">{label}</span>
     </span>
   );
 }
@@ -118,7 +118,7 @@ export function compactIdentityGraphLabel(profile: IdentityProfile | undefined, 
 }
 
 export function StatusBadge({ status }: { status: TrustStatus }) {
-  return <span className={`badge badge-${statusTone(status)}`}>{statusLabel(status)}</span>;
+  return <span className={`badge badge-${statusTone(status)}`}><TrustShield status={status} /><span>{statusLabel(status)}</span></span>;
 }
 
 export function NodeSyncPill({ nodeStatus }: { nodeStatus: NodeStatus | null }) {

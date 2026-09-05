@@ -4,6 +4,8 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { AccountsTable } from './AccountsTable';
 import type { AccountRatingCategory, RatingCounts, TrustDerivation } from '../types';
 
+vi.mock('../browserAvatar', () => ({ fetchBrowserAvatar: vi.fn().mockResolvedValue({ kind: 'unavailable' }) }));
+
 const counts = (positive: number, negative: number): RatingCounts => ({
   positiveLowCount: 0,
   positiveMediumCount: 0,
@@ -62,6 +64,8 @@ describe('AccountsTable unified role directory (showAllRoles on)', () => {
       />,
     );
 
+    expect(container.querySelector('.identity-label')?.textContent).toBe('Target');
+    expect(container.querySelector('.identity-address')).toBeNull();
     expect(screen.getByRole('columnheader', { name: 'Designers' })).toBeTruthy();
     expect(screen.getByRole('columnheader', { name: 'Guides' })).toBeTruthy();
     expect(screen.getByRole('columnheader', { name: 'Voters' })).toBeTruthy();
@@ -69,8 +73,8 @@ describe('AccountsTable unified role directory (showAllRoles on)', () => {
     expect(screen.queryByRole('button', { name: /^Rate$/i })).toBeNull();
     // Decomposed sign+magnitude form (owner copy rule): role columns use Positive/Negative, the
     // Minters column uses Yes/No.
-    expect(container.querySelector('[data-label="Designers"] .you-rated')?.textContent).toBe('Positive · Very high confidence');
-    expect(container.querySelector('[data-label="Minters"] .you-rated')?.textContent).toBe('Yes · Low confidence');
+    expect(container.querySelector('[data-label="Designers"] .you-rated')?.textContent).toBe('Positive · Very high');
+    expect(container.querySelector('[data-label="Minters"] .you-rated')?.textContent).toBe('Yes · Low');
 
     fireEvent.click(screen.getByRole('button', { name: /open target/i }));
     expect(onSelect).toHaveBeenCalledWith(derivation);
@@ -111,10 +115,32 @@ describe('AccountsTable simplified Minters directory (showAllRoles off)', () => 
     // status is Bronze/level 1, MANAGER (index 3) would be Silver/level 4 and rated +4.
     expect(container.querySelector('[data-label="Trust status"]')?.textContent).toBe('Bronze');
     expect(container.querySelector('[data-label="Trust level"]')?.textContent).toBe('1');
-    expect(container.querySelector('[data-label="You rated"] .you-rated')?.textContent).toBe('Yes · Low confidence');
-    expect(screen.queryByText('Positive · Very high confidence')).toBeNull();
+    expect(container.querySelector('[data-label="You rated"] .you-rated')?.textContent).toBe('Yes · Low');
+    expect(screen.queryByText('Positive · Very high')).toBeNull();
 
     fireEvent.click(screen.getByRole('button', { name: /open target/i }));
     expect(onSelect).toHaveBeenCalledWith(derivation);
   });
+});
+
+it('rates the selected role while the identity opens details', () => {
+  const onRate = vi.fn();
+  const onSelect = vi.fn();
+  const { container } = render(<AccountsTable category="SUBJECT" derivations={[derivation]} onSelect={onSelect} onSort={vi.fn()} onRate={onRate} profiles={{}} showAllRoles sort={[{ key: 'account', direction: 'asc' }]} />);
+  const roleCells = container.querySelectorAll('.account-role-cell');
+  expect(roleCells).toHaveLength(4);
+  expect(container.querySelector('.account-blocks-cell')?.textContent).toBe('42');
+  expect(container.querySelectorAll('.account-rate-link')).toHaveLength(0);
+  fireEvent.click(roleCells[1].querySelector('button')!);
+  expect(onRate).toHaveBeenCalledExactlyOnceWith(derivation, 'PLAYER');
+  expect(onSelect).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole('button', { name: 'Open Qtarget' }));
+  expect(onSelect).toHaveBeenCalledWith(derivation);
+  expect(container.querySelectorAll('.account-role-cell')).toHaveLength(4);
+});
+
+it('sorts personal ratings using the same category-keyed values displayed in the cells', () => {
+  const another = { ...derivation, accountAddress: 'Qanother' };
+  const { container } = render(<AccountsTable category="SUBJECT" derivations={[derivation, another]} onSelect={vi.fn()} onSort={vi.fn()} profiles={{}} showAllRoles={false} sort={[{ key: 'youRated', direction: 'desc' }]} youRatedByKey={{ 'SUBJECT:Qtarget': 1, 'SUBJECT:Qanother': 4 }} />);
+  expect(container.querySelector('tbody tr .identity-name')?.textContent).toBe('Qanother');
 });

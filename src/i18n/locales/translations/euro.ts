@@ -3,6 +3,12 @@ import { type TranslationKey } from '../en';
 type LocaleCatalog = Partial<Record<TranslationKey, string>>;
 
 export const de: LocaleCatalog = {
+  "activity.sort": "Zuletzt andere bewertet",
+  "activity.unavailable": "Aktuelle Aktivitäten nicht verfügbar. Geladene Konten werden nach Namen angezeigt; zum Wiederholen aktualisieren.",
+
+  "sort.label": "Sortieren nach",
+  "status.unverifiedMeaning": "Nicht genügend qualifizierte Unterstützung für Bronze. Dieser Status verhindert das Minting nicht.",
+
   'rating.submitted': 'Bewertung gesendet',
   'readonly.note': 'Schreibgeschützter Modus. Öffne diese App in Qortium Home, um Konten zu bewerten.',
   'tooltip.blocksMinted': 'Gesamtzahl der von diesem Konto geprägten Blöcke.',
@@ -183,7 +189,7 @@ export const de: LocaleCatalog = {
   'rating.statusUnlockPrompt': 'Beim Absenden wird zur Entsperrung aufgefordert.',
   'rating.submitting': 'Wird abgesendet...',
   'rating.submitPending': 'Ausstehend...',
-  'rating.value': '{sign} · {magnitude} Konfidenz',
+  'rating.value': '{sign} · {magnitude}',
   'rating.waitingConfirmation': 'Warte auf Blockbestätigung.',
   'rating.waitingConfirmationNear': 'Warte auf Blockbestätigung nahe Block {block}.',
   'rating.warning.negativeCounts': 'Negative Bewertungen zählen 4-fach und können ein Konto als Verdächtig markieren, was das Prägen blockiert.',
@@ -195,9 +201,11 @@ export const de: LocaleCatalog = {
   'role.guide': 'Begleiter',
   'role.levelScore': 'Stufenwert {score}',
   'role.met': 'Erfüllt',
-  'role.nextRequirements': 'Anforderungen für die nächste Stufe werden mit nicht erfüllten Anforderungen zuerst angezeigt.',
+  "role.nextRequirements": "Anforderungen für Vertrauensstufe {level}",
   'role.noActiveRatings': 'Keine aktiven Bewertungen in dieser Rolle erhalten.',
-  'role.noUnmetRequirements': 'Es wurden keine nicht erfüllten Anforderungen für die nächste Stufe gemeldet.',
+  "role.noUnmetRequirements": "Für diese Stufe wurden keine Anforderungen gemeldet.",
+  "role.goldHighest": "Gold ist der höchste Minter-Status. Höhere Vertrauensstufen bleiben Gold.",
+  "role.higherLevel": "Höhere Vertrauensstufe: {level}",
   'role.notMet': 'Nicht erfüllt',
   'role.openRatingsNotLoaded': 'Offene Bewertungsdetails sind für dieses Konto nicht geladen.',
   'role.ratingsReceived': 'Erhaltene Bewertungen',
@@ -242,6 +250,12 @@ export const de: LocaleCatalog = {
 };
 
 export const el: LocaleCatalog = {
+  "activity.sort": "Αξιολόγησαν πρόσφατα άλλους",
+  "activity.unavailable": "Η πρόσφατη δραστηριότητα δεν είναι διαθέσιμη. Οι φορτωμένοι λογαριασμοί εμφανίζονται ανά όνομα· ανανεώστε για νέα προσπάθεια.",
+
+  "sort.label": "Ταξινόμηση κατά",
+  "status.unverifiedMeaning": "Δεν υπάρχει αρκετή κατάλληλη υποστήριξη για Bronze. Αυτή η κατάσταση δεν εμποδίζει το minting.",
+
   'rating.submitted': 'Η αξιολόγηση υποβλήθηκε',
   'readonly.note': 'Λειτουργία μόνο για ανάγνωση. Ανοίξτε αυτήν την εφαρμογή στο Qortium Home για να αξιολογήσετε λογαριασμούς.',
   'tooltip.blocksMinted': 'Συνολικά μπλοκ που έχει δημιουργήσει αυτός ο λογαριασμός.',
@@ -422,7 +436,7 @@ export const el: LocaleCatalog = {
   'rating.statusUnlockPrompt': 'Η υποβολή θα ζητήσει ξεκλείδωμα.',
   'rating.submitting': 'Υποβολή...',
   'rating.submitPending': 'Εκκρεμεί...',
-  'rating.value': '{sign} · {magnitude} βεβαιότητα',
+  'rating.value': '{sign} · {magnitude}',
   'rating.waitingConfirmation': 'Αναμονή επιβεβαίωσης μπλοκ.',
   'rating.waitingConfirmationNear': 'Αναμονή επιβεβαίωσης μπλοκ κοντά στο μπλοκ {block}.',
   'rating.warning.negativeCounts': 'Οι αρνητικές αξιολογήσεις μετράνε 4× και μπορούν να επισημάνουν έναν λογαριασμό ως Ύποπτο, κάτι που εμποδίζει τη δημιουργία μπλοκ.',
@@ -434,9 +448,11 @@ export const el: LocaleCatalog = {
   'role.guide': 'Οδηγός',
   'role.levelScore': 'Βαθμολογία επιπέδου {score}',
   'role.met': 'Πληρείται',
-  'role.nextRequirements': 'Οι απαιτήσεις για την επόμενη θέση εμφανίζονται με τις μη εκπληρωμένες απαιτήσεις πρώτα.',
+  "role.nextRequirements": "Απαιτήσεις για το επίπεδο εμπιστοσύνης {level}",
   'role.noActiveRatings': 'Δεν έχουν ληφθεί ενεργές αξιολογήσεις σε αυτόν τον ρόλο.',
-  'role.noUnmetRequirements': 'Δεν αναφέρθηκαν μη εκπληρωμένες απαιτήσεις για το επόμενο επίπεδο.',
+  "role.noUnmetRequirements": "Δεν αναφέρθηκαν απαιτήσεις για αυτό το επίπεδο.",
+  "role.goldHighest": "Το Χρυσό είναι η υψηλότερη κατάσταση για τους δημιουργούς μπλοκ. Τα υψηλότερα επίπεδα εμπιστοσύνης παραμένουν Χρυσό.",
+  "role.higherLevel": "Υψηλότερο επίπεδο εμπιστοσύνης: {level}",
   'role.notMet': 'Δεν πληρείται',
   'role.openRatingsNotLoaded': 'Οι λεπτομέρειες ανοιχτών αξιολογήσεων δεν έχουν φορτωθεί για αυτόν τον λογαριασμό.',
   'role.ratingsReceived': 'Αξιολογήσεις που λήφθηκαν',
@@ -481,6 +497,12 @@ export const el: LocaleCatalog = {
 };
 
 export const es: LocaleCatalog = {
+  "activity.sort": "Evaluaron a otros recientemente",
+  "activity.unavailable": "Actividad reciente no disponible. Se muestran las cuentas cargadas por nombre; actualiza para reintentar.",
+
+  "sort.label": "Ordenar por",
+  "status.unverifiedMeaning": "No hay suficiente apoyo válido para Bronce. Este estado no impide acuñar.",
+
   'rating.submitted': 'Valoración enviada',
   'readonly.note': 'Modo de solo lectura. Abre esta app en Qortium Home para valorar cuentas.',
   'tooltip.blocksMinted': 'Total de bloques que ha forjado esta cuenta.',
@@ -661,7 +683,7 @@ export const es: LocaleCatalog = {
   'rating.statusUnlockPrompt': 'Al enviar se solicitará el desbloqueo.',
   'rating.submitting': 'Enviando...',
   'rating.submitPending': 'Pendiente...',
-  'rating.value': '{sign} · confianza {magnitude}',
+  'rating.value': '{sign} · {magnitude}',
   'rating.waitingConfirmation': 'Esperando la confirmación del bloque.',
   'rating.waitingConfirmationNear': 'Esperando la confirmación del bloque cerca del bloque {block}.',
   'rating.warning.negativeCounts': 'Las valoraciones negativas cuentan 4 veces y pueden marcar una cuenta como Sospechosa, lo que bloquea la acuñación.',
@@ -673,9 +695,11 @@ export const es: LocaleCatalog = {
   'role.guide': 'Guía',
   'role.levelScore': 'Puntuación de nivel {score}',
   'role.met': 'Cumplido',
-  'role.nextRequirements': 'Los requisitos para el siguiente nivel se muestran con los requisitos no cumplidos primero.',
+  "role.nextRequirements": "Requisitos para el nivel de confianza {level}",
   'role.noActiveRatings': 'No se han recibido valoraciones activas en este rol.',
-  'role.noUnmetRequirements': 'No se informaron requisitos pendientes para el siguiente nivel.',
+  "role.noUnmetRequirements": "No se informaron requisitos para este nivel.",
+  "role.goldHighest": "Oro es el estado más alto para un acuñador. Los niveles de confianza superiores siguen siendo Oro.",
+  "role.higherLevel": "Nivel de confianza superior: {level}",
   'role.notMet': 'No cumplido',
   'role.openRatingsNotLoaded': 'Los detalles de valoraciones abiertas no están cargados para esta cuenta.',
   'role.ratingsReceived': 'Valoraciones recibidas',
@@ -720,6 +744,12 @@ export const es: LocaleCatalog = {
 };
 
 export const et: LocaleCatalog = {
+  "activity.sort": "Hiljuti teisi hinnanud",
+  "activity.unavailable": "Hiljutine tegevus pole saadaval. Laaditud kontod kuvatakse nime järgi; proovi värskendades uuesti.",
+
+  "sort.label": "Sordi alusel",
+  "status.unverifiedMeaning": "Pronksi jaoks pole piisavalt nõuetele vastavat toetust. See olek ei takista vermimist.",
+
   'rating.submitted': 'Hinnang esitatud',
   'readonly.note': 'Kirjutuskaitstud režiim. Kontode hindamiseks ava see rakendus Qortium Home is.',
   'tooltip.blocksMinted': 'Selle konto loodud plokkide koguarv.',
@@ -900,7 +930,7 @@ export const et: LocaleCatalog = {
   'rating.statusUnlockPrompt': 'Esitamine palub luku avada.',
   'rating.submitting': 'Esitamine...',
   'rating.submitPending': 'Ootel...',
-  'rating.value': '{sign} · {magnitude} kindlus',
+  'rating.value': '{sign} · {magnitude}',
   'rating.waitingConfirmation': 'Ploki kinnituse ootamine.',
   'rating.waitingConfirmationNear': 'Ploki kinnituse ootamine ploki {block} läheduses.',
   'rating.warning.negativeCounts': 'Negatiivsed hinnangud loevad 4x ja võivad märkida konto Kahtlaseks, mis blokeerib vermimise.',
@@ -912,9 +942,11 @@ export const et: LocaleCatalog = {
   'role.guide': 'Juhendaja',
   'role.levelScore': 'Taseme skoor {score}',
   'role.met': 'Täidetud',
-  'role.nextRequirements': 'Järgmise taseme nõuded kuvatakse nii, et täitmata nõuded on esimesena.',
+  "role.nextRequirements": "Usaldustaseme {level} nõuded",
   'role.noActiveRatings': 'Selles rollis pole aktiivseid hinnanguid saadud.',
-  'role.noUnmetRequirements': 'Järgmise taseme täitmata nõudeid ei teatatud.',
+  "role.noUnmetRequirements": "Selle taseme kohta ei teatatud nõudeid.",
+  "role.goldHighest": "Kuld on vermija kõrgeim staatus. Kõrgematel usaldustasemetel jääb staatuseks Kuld.",
+  "role.higherLevel": "Kõrgem usaldustase: {level}",
   'role.notMet': 'Täitmata',
   'role.openRatingsNotLoaded': 'Avatud hinnangute üksikasjad pole selle konto jaoks laaditud.',
   'role.ratingsReceived': 'Saadud hinnangud',
@@ -959,6 +991,12 @@ export const et: LocaleCatalog = {
 };
 
 export const fi: LocaleCatalog = {
+  "activity.sort": "Äskettäin muita arvioineet",
+  "activity.unavailable": "Viimeaikainen toiminta ei ole saatavilla. Ladatut tilit näytetään nimen mukaan; yritä uudelleen päivittämällä.",
+
+  "sort.label": "Lajitteluperuste",
+  "status.unverifiedMeaning": "Bronze-tilaan ei ole riittävästi kelpoista tukea. Tämä tila ei estä minttausta.",
+
   'rating.submitted': 'Arvio lähetetty',
   'readonly.note': 'Vain luku -tila. Avaa tämä sovellus Qortium Homessa arvioidaksesi tilejä.',
   'tooltip.blocksMinted': 'Tämän tilin louhimien lohkojen kokonaismäärä.',
@@ -1139,7 +1177,7 @@ export const fi: LocaleCatalog = {
   'rating.statusUnlockPrompt': 'Lähettäminen pyytää lukituksen avaamista.',
   'rating.submitting': 'Lähetetään...',
   'rating.submitPending': 'Odottaa...',
-  'rating.value': '{sign} · {magnitude} varmuus',
+  'rating.value': '{sign} · {magnitude}',
   'rating.waitingConfirmation': 'Odotetaan lohkon vahvistusta.',
   'rating.waitingConfirmationNear': 'Odotetaan lohkon vahvistusta lähellä lohkoa {block}.',
   'rating.warning.negativeCounts': 'Negatiiviset arviot lasketaan 4-kertaisina ja voivat merkitä tilin Epäilyttäväksi, mikä estää louhinnan.',
@@ -1151,9 +1189,11 @@ export const fi: LocaleCatalog = {
   'role.guide': 'Opas',
   'role.levelScore': 'Tason pisteet {score}',
   'role.met': 'Täytetty',
-  'role.nextRequirements': 'Seuraavan tason vaatimukset näytetään täyttämättömät vaatimukset ensin.',
+  "role.nextRequirements": "Luottamustason {level} vaatimukset",
   'role.noActiveRatings': 'Tässä roolissa ei ole vastaanotettu aktiivisia arvioita.',
-  'role.noUnmetRequirements': 'Seuraavan tason täyttämättömiä vaatimuksia ei raportoitu.',
+  "role.noUnmetRequirements": "Tälle tasolle ei raportoitu vaatimuksia.",
+  "role.goldHighest": "Kulta on luojan korkein tila. Korkeammilla luottamustasoilla tila pysyy Kultana.",
+  "role.higherLevel": "Korkeampi luottamustaso: {level}",
   'role.notMet': 'Ei täytetty',
   'role.openRatingsNotLoaded': 'Avoimien arvioiden tietoja ei ole ladattu tälle tilille.',
   'role.ratingsReceived': 'Vastaanotetut arviot',
@@ -1198,6 +1238,12 @@ export const fi: LocaleCatalog = {
 };
 
 export const fr: LocaleCatalog = {
+  "activity.sort": "Ont récemment évalué des comptes",
+  "activity.unavailable": "Activité récente indisponible. Les comptes chargés sont affichés par nom ; actualisez pour réessayer.",
+
+  "sort.label": "Trier par",
+  "status.unverifiedMeaning": "Le soutien admissible est insuffisant pour Bronze. Ce statut ne bloque pas la création de blocs.",
+
   'rating.submitted': 'Évaluation envoyée',
   'readonly.note': 'Mode lecture seule. Ouvrez cette app dans Qortium Home pour évaluer des comptes.',
   'tooltip.blocksMinted': 'Nombre total de blocs forgés par ce compte.',
@@ -1378,7 +1424,7 @@ export const fr: LocaleCatalog = {
   'rating.statusUnlockPrompt': 'La soumission demandera le déverrouillage.',
   'rating.submitting': 'Soumission...',
   'rating.submitPending': 'En attente...',
-  'rating.value': '{sign} · confiance {magnitude}',
+  'rating.value': '{sign} · {magnitude}',
   'rating.waitingConfirmation': 'En attente de la confirmation du bloc.',
   'rating.waitingConfirmationNear': 'En attente de la confirmation du bloc près du bloc {block}.',
   'rating.warning.negativeCounts': 'Les évaluations négatives comptent 4× et peuvent marquer un compte comme Suspect, ce qui bloque la forge.',
@@ -1390,9 +1436,11 @@ export const fr: LocaleCatalog = {
   'role.guide': 'Guide',
   'role.levelScore': 'Score de niveau {score}',
   'role.met': 'Rempli',
-  'role.nextRequirements': 'Les exigences du niveau suivant sont affichées avec les exigences non remplies en premier.',
+  "role.nextRequirements": "Exigences pour le niveau de confiance {level}",
   'role.noActiveRatings': 'Aucune évaluation active reçue dans ce rôle.',
-  'role.noUnmetRequirements': 'Aucune exigence non remplie pour le niveau suivant n\'a été signalée.',
+  "role.noUnmetRequirements": "Aucune exigence n’a été signalée pour ce niveau.",
+  "role.goldHighest": "Or est le statut le plus élevé pour un mineur. Les niveaux de confiance supérieurs restent Or.",
+  "role.higherLevel": "Niveau de confiance supérieur : {level}",
   'role.notMet': 'Non rempli',
   'role.openRatingsNotLoaded': 'Les détails des évaluations ouvertes ne sont pas chargés pour ce compte.',
   'role.ratingsReceived': 'Évaluations reçues',
@@ -1437,6 +1485,12 @@ export const fr: LocaleCatalog = {
 };
 
 export const hi: LocaleCatalog = {
+  "activity.sort": "हाल में दूसरों को रेट किया",
+  "activity.unavailable": "हाल की गतिविधि उपलब्ध नहीं है। लोड किए गए खाते नाम के अनुसार दिख रहे हैं; फिर प्रयास करने के लिए रीफ़्रेश करें।",
+
+  "sort.label": "इसके अनुसार क्रमबद्ध करें",
+  "status.unverifiedMeaning": "कांस्य के लिए पर्याप्त योग्य समर्थन नहीं है। यह स्थिति मिंटिंग को नहीं रोकती।",
+
   'rating.submitted': 'रेटिंग सबमिट की गई',
   'readonly.note': 'केवल-पढ़ने का मोड। खातों को रेट करने के लिए इस ऐप को Qortium Home में खोलें।',
   'tooltip.blocksMinted': 'इस खाते द्वारा माइन किए गए कुल ब्लॉक।',
@@ -1617,7 +1671,7 @@ export const hi: LocaleCatalog = {
   'rating.statusUnlockPrompt': 'सबमिट करने पर अनलॉक का संकेत मिलेगा।',
   'rating.submitting': 'सबमिट हो रहा है...',
   'rating.submitPending': 'लंबित...',
-  'rating.value': '{sign} · {magnitude} विश्वास',
+  'rating.value': '{sign} · {magnitude}',
   'rating.waitingConfirmation': 'ब्लॉक पुष्टि की प्रतीक्षा कर रहा है।',
   'rating.waitingConfirmationNear': 'ब्लॉक {block} के निकट ब्लॉक पुष्टि की प्रतीक्षा कर रहा है।',
   'rating.warning.negativeCounts': 'नकारात्मक रेटिंग 4× गिनी जाती हैं और किसी खाते को संदिग्ध चिह्नित कर सकती हैं, जो मिंटिंग को अवरुद्ध करता है।',
@@ -1629,9 +1683,11 @@ export const hi: LocaleCatalog = {
   'role.guide': 'गाइड',
   'role.levelScore': 'स्तर स्कोर {score}',
   'role.met': 'पूर्ण',
-  'role.nextRequirements': 'अगली स्थिति के लिए आवश्यकताएँ अपूर्ण आवश्यकताओं को पहले दिखाते हुए प्रदर्शित की जाती हैं।',
+  "role.nextRequirements": "विश्वास स्तर {level} की आवश्यकताएँ",
   'role.noActiveRatings': 'इस भूमिका में कोई सक्रिय रेटिंग प्राप्त नहीं हुई।',
-  'role.noUnmetRequirements': 'अगले स्तर के लिए कोई अपूर्ण आवश्यकता रिपोर्ट नहीं की गई।',
+  "role.noUnmetRequirements": "इस स्तर के लिए कोई आवश्यकता रिपोर्ट नहीं की गई।",
+  "role.goldHighest": "स्वर्ण मिंटर की सर्वोच्च स्थिति है। उच्च विश्वास स्तरों पर भी स्थिति स्वर्ण ही रहती है।",
+  "role.higherLevel": "उच्च विश्वास स्तर: {level}",
   'role.notMet': 'अपूर्ण',
   'role.openRatingsNotLoaded': 'इस खाते के लिए खुली रेटिंग का विवरण लोड नहीं किया गया है।',
   'role.ratingsReceived': 'प्राप्त रेटिंग',
@@ -1676,6 +1732,12 @@ export const hi: LocaleCatalog = {
 };
 
 export const hu: LocaleCatalog = {
+  "activity.sort": "Nemrég másokat értékeltek",
+  "activity.unavailable": "A legutóbbi tevékenység nem érhető el. A betöltött fiókok név szerint láthatók; frissíts az újrapróbálkozáshoz.",
+
+  "sort.label": "Rendezés",
+  "status.unverifiedMeaning": "Nincs elegendő megfelelő támogatás a Bronzhoz. Ez az állapot nem akadályozza a mintelést.",
+
   'rating.submitted': 'Értékelés elküldve',
   'readonly.note': 'Csak olvasható mód. A fiókok értékeléséhez nyisd meg ezt az alkalmazást a Qortium Home-ban.',
   'tooltip.blocksMinted': 'A fiók által generált blokkok száma összesen.',
@@ -1856,7 +1918,7 @@ export const hu: LocaleCatalog = {
   'rating.statusUnlockPrompt': 'A beküldés feloldást kér majd.',
   'rating.submitting': 'Beküldés...',
   'rating.submitPending': 'Függőben...',
-  'rating.value': '{sign} · {magnitude} bizonyosság',
+  'rating.value': '{sign} · {magnitude}',
   'rating.waitingConfirmation': 'Várakozás a blokk megerősítésére.',
   'rating.waitingConfirmationNear': 'Várakozás a blokk megerősítésére a(z) {block}. blokk közelében.',
   'rating.warning.negativeCounts': 'A negatív értékelések 4×-esen számítanak, és Gyanússá jelölhetik a fiókot, ami blokkolja a kibocsátást.',
@@ -1868,9 +1930,11 @@ export const hu: LocaleCatalog = {
   'role.guide': 'Útmutató',
   'role.levelScore': 'Szintpontszám {score}',
   'role.met': 'Teljesítve',
-  'role.nextRequirements': 'A következő státuszhoz szükséges követelmények a nem teljesített követelményekkel elöl jelennek meg.',
+  "role.nextRequirements": "A(z) {level}. bizalmi szint követelményei",
   'role.noActiveRatings': 'Ebben a szerepkörben nem érkezett aktív értékelés.',
-  'role.noUnmetRequirements': 'Nem jelentettek nem teljesített követelményt a következő szinthez.',
+  "role.noUnmetRequirements": "Ehhez a szinthez nem jelentettek követelményeket.",
+  "role.goldHighest": "Az Arany a kibocsátók legmagasabb státusza. Magasabb bizalmi szinteken is Arany marad.",
+  "role.higherLevel": "Magasabb bizalmi szint: {level}",
   'role.notMet': 'Nem teljesítve',
   'role.openRatingsNotLoaded': 'A nyitott értékelési részletek nincsenek betöltve ehhez a fiókhoz.',
   'role.ratingsReceived': 'Kapott értékelések',
@@ -1915,6 +1979,12 @@ export const hu: LocaleCatalog = {
 };
 
 export const it: LocaleCatalog = {
+  "activity.sort": "Hanno valutato altri di recente",
+  "activity.unavailable": "Attività recente non disponibile. Gli account caricati sono mostrati per nome; aggiorna per riprovare.",
+
+  "sort.label": "Ordina per",
+  "status.unverifiedMeaning": "Il sostegno idoneo non è sufficiente per Bronzo. Questo stato non impedisce il minting.",
+
   'rating.submitted': 'Valutazione inviata',
   'readonly.note': 'Modalità di sola lettura. Apri questa app in Qortium Home per valutare gli account.',
   'tooltip.blocksMinted': 'Totale dei blocchi forgiati da questo account.',
@@ -2095,7 +2165,7 @@ export const it: LocaleCatalog = {
   'rating.statusUnlockPrompt': 'L\'invio richiederà lo sblocco.',
   'rating.submitting': 'Invio in corso...',
   'rating.submitPending': 'In sospeso...',
-  'rating.value': '{sign} · confidenza {magnitude}',
+  'rating.value': '{sign} · {magnitude}',
   'rating.waitingConfirmation': 'In attesa della conferma del blocco.',
   'rating.waitingConfirmationNear': 'In attesa della conferma del blocco vicino al blocco {block}.',
   'rating.warning.negativeCounts': 'Le valutazioni negative contano 4× e possono contrassegnare un account come Sospetto, il che blocca la coniazione.',
@@ -2107,9 +2177,11 @@ export const it: LocaleCatalog = {
   'role.guide': 'Guida',
   'role.levelScore': 'Punteggio di livello {score}',
   'role.met': 'Soddisfatto',
-  'role.nextRequirements': 'I requisiti per il livello successivo sono mostrati con i requisiti non soddisfatti per primi.',
+  "role.nextRequirements": "Requisiti per il livello di fiducia {level}",
   'role.noActiveRatings': 'Nessuna valutazione attiva ricevuta in questo ruolo.',
-  'role.noUnmetRequirements': 'Non sono stati segnalati requisiti non soddisfatti per il livello successivo.',
+  "role.noUnmetRequirements": "Non sono stati segnalati requisiti per questo livello.",
+  "role.goldHighest": "Oro è lo stato più alto per un coniatore. I livelli di fiducia superiori restano Oro.",
+  "role.higherLevel": "Livello di fiducia superiore: {level}",
   'role.notMet': 'Non soddisfatto',
   'role.openRatingsNotLoaded': 'I dettagli delle valutazioni aperte non sono caricati per questo account.',
   'role.ratingsReceived': 'Valutazioni ricevute',
@@ -2154,6 +2226,12 @@ export const it: LocaleCatalog = {
 };
 
 export const nl: LocaleCatalog = {
+  "activity.sort": "Recent anderen beoordeeld",
+  "activity.unavailable": "Recente activiteit niet beschikbaar. Geladen accounts worden op naam getoond; vernieuw om opnieuw te proberen.",
+
+  "sort.label": "Sorteren op",
+  "status.unverifiedMeaning": "Onvoldoende geldige steun voor Brons. Deze status blokkeert minting niet.",
+
   'rating.submitted': 'Beoordeling verzonden',
   'readonly.note': 'Alleen-lezen modus. Open deze app in Qortium Home om accounts te beoordelen.',
   'tooltip.blocksMinted': 'Totaal aantal blokken dat dit account heeft gemined.',
@@ -2334,7 +2412,7 @@ export const nl: LocaleCatalog = {
   'rating.statusUnlockPrompt': 'Bij indienen wordt om ontgrendeling gevraagd.',
   'rating.submitting': 'Indienen...',
   'rating.submitPending': 'In behandeling...',
-  'rating.value': '{sign} · {magnitude} vertrouwen',
+  'rating.value': '{sign} · {magnitude}',
   'rating.waitingConfirmation': 'Wachten op blokbevestiging.',
   'rating.waitingConfirmationNear': 'Wachten op blokbevestiging nabij blok {block}.',
   'rating.warning.negativeCounts': 'Negatieve beoordelingen tellen 4× en kunnen een account als Verdacht markeren, wat minten blokkeert.',
@@ -2346,9 +2424,11 @@ export const nl: LocaleCatalog = {
   'role.guide': 'Gids',
   'role.levelScore': 'Niveauscore {score}',
   'role.met': 'Voldaan',
-  'role.nextRequirements': 'Vereisten voor de volgende status worden getoond met niet-voldane vereisten eerst.',
+  "role.nextRequirements": "Vereisten voor vertrouwensniveau {level}",
   'role.noActiveRatings': 'Geen actieve beoordelingen ontvangen in deze rol.',
-  'role.noUnmetRequirements': 'Er zijn geen niet-voldane vereisten voor het volgende niveau gemeld.',
+  "role.noUnmetRequirements": "Er zijn geen vereisten voor dit niveau gemeld.",
+  "role.goldHighest": "Goud is de hoogste Minter-status. Hogere vertrouwensniveaus blijven Goud.",
+  "role.higherLevel": "Hoger vertrouwensniveau: {level}",
   'role.notMet': 'Niet voldaan',
   'role.openRatingsNotLoaded': 'Openstaande beoordelingsdetails zijn niet geladen voor dit account.',
   'role.ratingsReceived': 'Ontvangen beoordelingen',
@@ -2393,6 +2473,12 @@ export const nl: LocaleCatalog = {
 };
 
 export const pl: LocaleCatalog = {
+  "activity.sort": "Ostatnio oceniali innych",
+  "activity.unavailable": "Ostatnia aktywność jest niedostępna. Wczytane konta są wyświetlane według nazwy; odśwież, aby spróbować ponownie.",
+
+  "sort.label": "Sortuj według",
+  "status.unverifiedMeaning": "Za mało kwalifikowanego poparcia dla Brązu. Ten status nie blokuje mintingu.",
+
   'rating.submitted': 'Ocena wysłana',
   'readonly.note': 'Tryb tylko do odczytu. Otwórz tę aplikację w Qortium Home, aby oceniać konta.',
   'tooltip.blocksMinted': 'Łączna liczba bloków wykopanych przez to konto.',
@@ -2573,7 +2659,7 @@ export const pl: LocaleCatalog = {
   'rating.statusUnlockPrompt': 'Wysłanie spowoduje monit o odblokowanie.',
   'rating.submitting': 'Wysyłanie...',
   'rating.submitPending': 'Oczekuje...',
-  'rating.value': '{sign} · pewność {magnitude}',
+  'rating.value': '{sign} · {magnitude}',
   'rating.waitingConfirmation': 'Oczekiwanie na potwierdzenie bloku.',
   'rating.waitingConfirmationNear': 'Oczekiwanie na potwierdzenie bloku w pobliżu bloku {block}.',
   'rating.warning.negativeCounts': 'Negatywne oceny liczą się 4× i mogą oznaczyć konto jako Podejrzane, co blokuje tworzenie bloków.',
@@ -2585,9 +2671,11 @@ export const pl: LocaleCatalog = {
   'role.guide': 'Przewodnik',
   'role.levelScore': 'Wynik poziomu {score}',
   'role.met': 'Spełnione',
-  'role.nextRequirements': 'Wymagania dla następnego poziomu są pokazywane z niespełnionymi wymaganiami na początku.',
+  "role.nextRequirements": "Wymagania dla poziomu zaufania {level}",
   'role.noActiveRatings': 'Nie otrzymano żadnych aktywnych ocen w tej roli.',
-  'role.noUnmetRequirements': 'Nie zgłoszono żadnych niespełnionych wymagań dla następnego poziomu.',
+  "role.noUnmetRequirements": "Nie zgłoszono wymagań dla tego poziomu.",
+  "role.goldHighest": "Złoty to najwyższy status twórcy bloków. Na wyższych poziomach zaufania status pozostaje Złoty.",
+  "role.higherLevel": "Wyższy poziom zaufania: {level}",
   'role.notMet': 'Niespełnione',
   'role.openRatingsNotLoaded': 'Szczegóły otwartych ocen nie zostały wczytane dla tego konta.',
   'role.ratingsReceived': 'Otrzymane oceny',
@@ -2632,6 +2720,12 @@ export const pl: LocaleCatalog = {
 };
 
 export const pt: LocaleCatalog = {
+  "activity.sort": "Avaliaram outros recentemente",
+  "activity.unavailable": "Atividade recente indisponível. As contas carregadas são mostradas por nome; atualize para tentar novamente.",
+
+  "sort.label": "Ordenar por",
+  "status.unverifiedMeaning": "Apoio qualificado insuficiente para Bronze. Este estado não impede a cunhagem.",
+
   'rating.submitted': 'Avaliação enviada',
   'readonly.note': 'Modo somente leitura. Abra este app no Qortium Home para avaliar contas.',
   'tooltip.blocksMinted': 'Total de blocos que esta conta forjou.',
@@ -2812,7 +2906,7 @@ export const pt: LocaleCatalog = {
   'rating.statusUnlockPrompt': 'O envio solicitará o desbloqueio.',
   'rating.submitting': 'Enviando...',
   'rating.submitPending': 'Pendente...',
-  'rating.value': '{sign} · confiança {magnitude}',
+  'rating.value': '{sign} · {magnitude}',
   'rating.waitingConfirmation': 'Aguardando confirmação do bloco.',
   'rating.waitingConfirmationNear': 'Aguardando confirmação do bloco próximo ao bloco {block}.',
   'rating.warning.negativeCounts': 'Avaliações negativas contam 4× e podem marcar uma conta como Suspeita, o que bloqueia a criação de blocos.',
@@ -2824,9 +2918,11 @@ export const pt: LocaleCatalog = {
   'role.guide': 'Guia',
   'role.levelScore': 'Pontuação de nível {score}',
   'role.met': 'Atendido',
-  'role.nextRequirements': 'Os requisitos para a próxima posição são mostrados com os requisitos não atendidos primeiro.',
+  "role.nextRequirements": "Requisitos para o nível de confiança {level}",
   'role.noActiveRatings': 'Nenhuma avaliação ativa recebida nesta função.',
-  'role.noUnmetRequirements': 'Nenhum requisito pendente para o próximo nível foi relatado.',
+  "role.noUnmetRequirements": "Nenhum requisito foi relatado para este nível.",
+  "role.goldHighest": "Ouro é o status mais alto para um criador de blocos. Os níveis de confiança superiores continuam sendo Ouro.",
+  "role.higherLevel": "Nível de confiança superior: {level}",
   'role.notMet': 'Não atendido',
   'role.openRatingsNotLoaded': 'Os detalhes de avaliações abertas não estão carregados para esta conta.',
   'role.ratingsReceived': 'Avaliações recebidas',
@@ -2871,6 +2967,12 @@ export const pt: LocaleCatalog = {
 };
 
 export const ro: LocaleCatalog = {
+  "activity.sort": "Au evaluat recent alte conturi",
+  "activity.unavailable": "Activitatea recentă nu este disponibilă. Conturile încărcate sunt afișate după nume; reîmprospătează pentru a reîncerca.",
+
+  "sort.label": "Sortează după",
+  "status.unverifiedMeaning": "Sprijin eligibil insuficient pentru Bronz. Acest statut nu blochează crearea de blocuri.",
+
   'rating.submitted': 'Evaluare trimisă',
   'readonly.note': 'Mod doar citire. Deschide această aplicație în Qortium Home pentru a evalua conturi.',
   'tooltip.blocksMinted': 'Numărul total de blocuri minate de acest cont.',
@@ -3051,7 +3153,7 @@ export const ro: LocaleCatalog = {
   'rating.statusUnlockPrompt': 'Trimiterea va solicita deblocarea.',
   'rating.submitting': 'Se trimite...',
   'rating.submitPending': 'În așteptare...',
-  'rating.value': '{sign} · încredere {magnitude}',
+  'rating.value': '{sign} · {magnitude}',
   'rating.waitingConfirmation': 'Se așteaptă confirmarea blocului.',
   'rating.waitingConfirmationNear': 'Se așteaptă confirmarea blocului în apropierea blocului {block}.',
   'rating.warning.negativeCounts': 'Evaluările negative contează de 4× și pot marca un cont ca Suspect, ceea ce blochează emiterea.',
@@ -3063,9 +3165,11 @@ export const ro: LocaleCatalog = {
   'role.guide': 'Ghid',
   'role.levelScore': 'Scor de nivel {score}',
   'role.met': 'Îndeplinit',
-  'role.nextRequirements': 'Cerințele pentru următoarea poziție sunt afișate cu cerințele neîndeplinite primele.',
+  "role.nextRequirements": "Cerințe pentru nivelul de încredere {level}",
   'role.noActiveRatings': 'Nu au fost primite evaluări active în acest rol.',
-  'role.noUnmetRequirements': 'Nu au fost raportate cerințe neîndeplinite pentru nivelul următor.',
+  "role.noUnmetRequirements": "Nu au fost raportate cerințe pentru acest nivel.",
+  "role.goldHighest": "Aur este cel mai înalt statut pentru un emitent. La niveluri de încredere mai mari, statutul rămâne Aur.",
+  "role.higherLevel": "Nivel de încredere mai mare: {level}",
   'role.notMet': 'Neîndeplinit',
   'role.openRatingsNotLoaded': 'Detaliile evaluărilor deschise nu sunt încărcate pentru acest cont.',
   'role.ratingsReceived': 'Evaluări primite',
@@ -3110,6 +3214,12 @@ export const ro: LocaleCatalog = {
 };
 
 export const ru: LocaleCatalog = {
+  "activity.sort": "Недавно оценивали других",
+  "activity.unavailable": "Недавняя активность недоступна. Загруженные аккаунты показаны по имени; обновите для повторной попытки.",
+
+  "sort.label": "Сортировать по",
+  "status.unverifiedMeaning": "Недостаточно учитываемой поддержки для Бронзы. Этот статус не запрещает минтинг.",
+
   'rating.submitted': 'Оценка отправлена',
   'readonly.note': 'Режим только для чтения. Откройте это приложение в Qortium Home, чтобы оценивать аккаунты.',
   'tooltip.blocksMinted': 'Общее число блоков, сформированных этим аккаунтом.',
@@ -3290,7 +3400,7 @@ export const ru: LocaleCatalog = {
   'rating.statusUnlockPrompt': 'Отправка вызовет запрос разблокировки.',
   'rating.submitting': 'Отправка...',
   'rating.submitPending': 'Ожидание...',
-  'rating.value': '{sign} · уверенность {magnitude}',
+  'rating.value': '{sign} · {magnitude}',
   'rating.waitingConfirmation': 'Ожидание подтверждения блока.',
   'rating.waitingConfirmationNear': 'Ожидание подтверждения блока около блока {block}.',
   'rating.warning.negativeCounts': 'Отрицательные оценки учитываются с коэффициентом 4× и могут отметить аккаунт как Подозрительный, что блокирует минтинг.',
@@ -3302,9 +3412,11 @@ export const ru: LocaleCatalog = {
   'role.guide': 'Гид',
   'role.levelScore': 'Балл уровня {score}',
   'role.met': 'Выполнено',
-  'role.nextRequirements': 'Требования для следующего статуса показаны с невыполненными требованиями в начале.',
+  "role.nextRequirements": "Требования для уровня доверия {level}",
   'role.noActiveRatings': 'В этой роли не получено ни одной активной оценки.',
-  'role.noUnmetRequirements': 'Невыполненных требований для следующего уровня не сообщалось.',
+  "role.noUnmetRequirements": "Для этого уровня требования не указаны.",
+  "role.goldHighest": "Золото — наивысший статус минтера. На более высоких уровнях доверия статус остаётся Золото.",
+  "role.higherLevel": "Более высокий уровень доверия: {level}",
   'role.notMet': 'Не выполнено',
   'role.openRatingsNotLoaded': 'Подробности открытых оценок не загружены для этого аккаунта.',
   'role.ratingsReceived': 'Полученные оценки',
@@ -3349,6 +3461,12 @@ export const ru: LocaleCatalog = {
 };
 
 export const sv: LocaleCatalog = {
+  "activity.sort": "Bedömde nyligen andra",
+  "activity.unavailable": "Senaste aktivitet är inte tillgänglig. Inlästa konton visas efter namn; uppdatera för att försöka igen.",
+
+  "sort.label": "Sortera efter",
+  "status.unverifiedMeaning": "Inte tillräckligt med kvalificerat stöd för Brons. Denna status hindrar inte minting.",
+
   'rating.submitted': 'Betyg skickat',
   'readonly.note': 'Skrivskyddat läge. Öppna den här appen i Qortium Home för att betygsätta konton.',
   'tooltip.blocksMinted': 'Totalt antal block som detta konto har präglat.',
@@ -3529,7 +3647,7 @@ export const sv: LocaleCatalog = {
   'rating.statusUnlockPrompt': 'Att skicka kommer att be om upplåsning.',
   'rating.submitting': 'Skickar...',
   'rating.submitPending': 'Väntar...',
-  'rating.value': '{sign} · {magnitude} säkerhet',
+  'rating.value': '{sign} · {magnitude}',
   'rating.waitingConfirmation': 'Väntar på blockbekräftelse.',
   'rating.waitingConfirmationNear': 'Väntar på blockbekräftelse nära block {block}.',
   'rating.warning.negativeCounts': 'Negativa betyg räknas 4× och kan markera ett konto som Misstänkt, vilket blockerar myntning.',
@@ -3541,9 +3659,11 @@ export const sv: LocaleCatalog = {
   'role.guide': 'Guide',
   'role.levelScore': 'Nivåpoäng {score}',
   'role.met': 'Uppfyllt',
-  'role.nextRequirements': 'Krav för nästa status visas med ouppfyllda krav först.',
+  "role.nextRequirements": "Krav för förtroendenivå {level}",
   'role.noActiveRatings': 'Inga aktiva betyg mottagna i denna roll.',
-  'role.noUnmetRequirements': 'Inga ouppfyllda krav för nästa nivå rapporterades.',
+  "role.noUnmetRequirements": "Inga krav rapporterades för den här nivån.",
+  "role.goldHighest": "Guld är den högsta statusen för en myntare. Högre förtroendenivåer förblir Guld.",
+  "role.higherLevel": "Högre förtroendenivå: {level}",
   'role.notMet': 'Ej uppfyllt',
   'role.openRatingsNotLoaded': 'Öppna betygsdetaljer är inte inlästa för detta konto.',
   'role.ratingsReceived': 'Mottagna betyg',
@@ -3588,6 +3708,12 @@ export const sv: LocaleCatalog = {
 };
 
 export const nb: LocaleCatalog = {
+  "activity.sort": "Vurderte nylig andre",
+  "activity.unavailable": "Nylig aktivitet er utilgjengelig. Innlastede kontoer vises etter navn; oppdater for å prøve igjen.",
+
+  "sort.label": "Sorter etter",
+  "status.unverifiedMeaning": "Ikke nok kvalifisert støtte for Bronse. Denne statusen hindrer ikke minting.",
+
   'rating.submitted': 'Vurdering sendt',
   'readonly.note': 'Skrivebeskyttet modus. Åpne denne appen i Qortium Home for å vurdere kontoer.',
   'tooltip.blocksMinted': 'Totalt antall blokker denne kontoen har minet.',
@@ -3768,7 +3894,7 @@ export const nb: LocaleCatalog = {
   'rating.statusUnlockPrompt': 'Innsending vil be om opplåsing.',
   'rating.submitting': 'Sender inn...',
   'rating.submitPending': 'Venter...',
-  'rating.value': '{sign} · {magnitude} sikkerhet',
+  'rating.value': '{sign} · {magnitude}',
   'rating.waitingConfirmation': 'Venter på blokkbekreftelse.',
   'rating.waitingConfirmationNear': 'Venter på blokkbekreftelse nær blokk {block}.',
   'rating.warning.negativeCounts': 'Negative vurderinger teller 4× og kan merke en konto som Mistenkelig, noe som blokkerer preging.',
@@ -3780,9 +3906,11 @@ export const nb: LocaleCatalog = {
   'role.guide': 'Veileder',
   'role.levelScore': 'Nivåpoeng {score}',
   'role.met': 'Oppfylt',
-  'role.nextRequirements': 'Krav for neste status vises med ikke oppfylte krav først.',
+  "role.nextRequirements": "Krav for tillitsnivå {level}",
   'role.noActiveRatings': 'Ingen aktive vurderinger mottatt i denne rollen.',
-  'role.noUnmetRequirements': 'Ingen ikke oppfylte krav for neste nivå ble rapportert.',
+  "role.noUnmetRequirements": "Ingen krav ble rapportert for dette nivået.",
+  "role.goldHighest": "Gull er den høyeste statusen for en preger. Høyere tillitsnivåer forblir Gull.",
+  "role.higherLevel": "Høyere tillitsnivå: {level}",
   'role.notMet': 'Ikke oppfylt',
   'role.openRatingsNotLoaded': 'Åpne vurderingsdetaljer er ikke lastet for denne kontoen.',
   'role.ratingsReceived': 'Mottatte vurderinger',

@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { fetchBrowserAvatar } from './browserAvatar';
 import { fetchAccountAvatar, parseAccountAvatarResponse } from './avatarClient';
 import { hasHomeBridge, qdnRequest } from './qdnRequest';
 
+vi.mock('./browserAvatar', () => ({ fetchBrowserAvatar: vi.fn().mockResolvedValue({ kind: 'unavailable' }) }));
 vi.mock('./qdnRequest', () => ({
   hasHomeBridge: vi.fn(),
   qdnRequest: vi.fn(),
@@ -19,6 +21,18 @@ describe('pointer-aware account avatar client', () => {
     hasHomeBridgeMock.mockReturnValue(true);
   });
 
+  it('uses local avatar reads only outside Home', async () => {
+    vi.mocked(fetchBrowserAvatar).mockClear();
+    hasHomeBridgeMock.mockReturnValue(false);
+    await fetchAccountAvatar(ADDRESS, []);
+    expect(fetchBrowserAvatar).toHaveBeenCalledWith(ADDRESS);
+    expect(qdnRequestMock).not.toHaveBeenCalled();
+    vi.mocked(fetchBrowserAvatar).mockClear();
+    hasHomeBridgeMock.mockReturnValue(true);
+    await fetchAccountAvatar(ADDRESS, []);
+    expect(fetchBrowserAvatar).not.toHaveBeenCalled();
+  });
+
   it('accepts a bounded pointer image only when the response matches the requested address', () => {
     expect(
       parseAccountAvatarResponse(
@@ -27,7 +41,7 @@ describe('pointer-aware account avatar client', () => {
           body: 'AQIDBA==',
           contentLength: 4,
           contentType: 'image/png',
-          descriptor: { identifier: 'avatar', name: 'alice', service: 'THUMBNAIL' },
+          descriptor: { identifier: '', name: 'alice', service: 'THUMBNAIL' },
           encoding: 'base64',
           source: 'POINTER',
         },

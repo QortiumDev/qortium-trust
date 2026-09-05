@@ -1,3 +1,4 @@
+import { fetchBrowserAvatar } from './browserAvatar';
 import { hasHomeBridge, qdnRequest } from './qdnRequest';
 import type { QdnAction } from './types';
 
@@ -48,8 +49,7 @@ function isPointerDescriptor(value: unknown) {
     value.service.trim() !== '' &&
     typeof value.name === 'string' &&
     value.name.trim() !== '' &&
-    typeof value.identifier === 'string' &&
-    value.identifier.trim() !== ''
+    typeof value.identifier === 'string'
   );
 }
 
@@ -95,7 +95,8 @@ export function parseAccountAvatarResponse(value: unknown, address: string): Acc
 }
 
 export async function fetchAccountAvatar(address: string, actions?: QdnAction[]): Promise<AccountAvatarResult> {
-  if (!hasHomeBridge() || !hasBridgeAction(actions, 'FETCH_ACCOUNT_AVATAR')) {
+  if (!hasHomeBridge()) return fetchBrowserAvatar(address);
+  if (!hasBridgeAction(actions, 'FETCH_ACCOUNT_AVATAR')) {
     return { kind: 'unavailable' };
   }
 

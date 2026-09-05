@@ -3,6 +3,12 @@ import { type TranslationKey } from '../en';
 type LocaleCatalog = Partial<Record<TranslationKey, string>>;
 
 export const ja: LocaleCatalog = {
+  "activity.sort": "最近ほかの人を評価",
+  "activity.unavailable": "最近の活動を取得できません。読み込んだアカウントを名前順で表示しています。更新して再試行してください。",
+
+  "sort.label": "並べ替え",
+  "status.unverifiedMeaning": "ブロンズに必要な有効な支持が不足しています。この状態はミンティングを妨げません。",
+
   'rating.submitted': '評価を送信しました',
   'readonly.note': '読み取り専用モードです。アカウントを評価するには、このアプリを Qortium Home で開いてください。',
   'tooltip.blocksMinted': 'このアカウントが鋳造したブロックの総数。',
@@ -183,7 +189,7 @@ export const ja: LocaleCatalog = {
   'rating.statusUnlockPrompt': '送信するとロック解除を求められます。',
   'rating.submitting': '送信中...',
   'rating.submitPending': '保留中...',
-  'rating.value': '{sign}・{magnitude}の確信度',
+  'rating.value': '{sign}・{magnitude}',
   'rating.waitingConfirmation': 'ブロックの確認を待っています。',
   'rating.waitingConfirmationNear': 'ブロック {block} 付近でのブロック確認を待っています。',
   'rating.warning.negativeCounts': 'ネガティブな評価は4倍でカウントされ、アカウントを「疑わしい」としてマークすることがあり、これは鋳造をブロックします。',
@@ -195,9 +201,11 @@ export const ja: LocaleCatalog = {
   'role.guide': 'ガイド',
   'role.levelScore': 'レベルスコア {score}',
   'role.met': '達成',
-  'role.nextRequirements': '次の地位の要件は、未達成の要件を先に表示します。',
+  "role.nextRequirements": "信頼レベル{level}の要件",
   'role.noActiveRatings': 'このロールでは有効な評価を受け取っていません。',
-  'role.noUnmetRequirements': '次のレベルの未達成要件は報告されていません。',
+  "role.noUnmetRequirements": "このレベルの要件は報告されていません。",
+  "role.goldHighest": "ゴールドは鋳造者の最高ステータスです。信頼レベルがさらに上がってもゴールドのままです。",
+  "role.higherLevel": "より高い信頼レベル：{level}",
   'role.notMet': '未達成',
   'role.openRatingsNotLoaded': 'このアカウントの未処理の評価詳細は読み込まれていません。',
   'role.ratingsReceived': '受け取った評価',
@@ -242,6 +250,12 @@ export const ja: LocaleCatalog = {
 };
 
 export const ko: LocaleCatalog = {
+  "activity.sort": "최근 다른 사람을 평가",
+  "activity.unavailable": "최근 활동을 불러올 수 없습니다. 불러온 계정을 이름순으로 표시합니다. 새로고침하여 다시 시도하세요.",
+
+  "sort.label": "정렬 기준",
+  "status.unverifiedMeaning": "브론즈에 필요한 유효한 지지가 부족합니다. 이 상태는 민팅을 차단하지 않습니다.",
+
   'rating.submitted': '평가가 제출되었습니다',
   'readonly.note': '읽기 전용 모드입니다. 계정을 평가하려면 Qortium Home에서 이 앱을 여세요.',
   'tooltip.blocksMinted': '이 계정이 채굴한 총 블록 수.',
@@ -422,7 +436,7 @@ export const ko: LocaleCatalog = {
   'rating.statusUnlockPrompt': '제출하면 잠금 해제가 요청됩니다.',
   'rating.submitting': '제출 중...',
   'rating.submitPending': '대기 중...',
-  'rating.value': '{sign} · {magnitude} 확신도',
+  'rating.value': '{sign} · {magnitude}',
   'rating.waitingConfirmation': '블록 확인을 기다리는 중.',
   'rating.waitingConfirmationNear': '블록 {block} 근처에서 블록 확인을 기다리는 중.',
   'rating.warning.negativeCounts': '부정적인 평가는 4배로 반영되며 계정을 의심스러움으로 표시할 수 있고, 이는 채굴을 차단합니다.',
@@ -434,9 +448,11 @@ export const ko: LocaleCatalog = {
   'role.guide': '가이드',
   'role.levelScore': '레벨 점수 {score}',
   'role.met': '충족됨',
-  'role.nextRequirements': '다음 지위에 대한 요건은 충족되지 않은 요건을 먼저 표시합니다.',
+  "role.nextRequirements": "신뢰 레벨 {level}의 요건",
   'role.noActiveRatings': '이 역할에서 받은 활성 평가가 없습니다.',
-  'role.noUnmetRequirements': '다음 레벨에 대한 미충족 요건이 보고되지 않았습니다.',
+  "role.noUnmetRequirements": "이 레벨에 대한 요건이 보고되지 않았습니다.",
+  "role.goldHighest": "골드는 채굴자의 최고 상태입니다. 신뢰 레벨이 더 높아져도 골드로 유지됩니다.",
+  "role.higherLevel": "더 높은 신뢰 레벨: {level}",
   'role.notMet': '미충족',
   'role.openRatingsNotLoaded': '이 계정의 미처리 평가 세부정보가 로드되지 않았습니다.',
   'role.ratingsReceived': '받은 평가',
@@ -481,6 +497,12 @@ export const ko: LocaleCatalog = {
 };
 
 export const zhCN: LocaleCatalog = {
+  "activity.sort": "最近评价过他人",
+  "activity.unavailable": "无法获取最近活动。已加载的账户按名称显示，请刷新重试。",
+
+  "sort.label": "排序依据",
+  "status.unverifiedMeaning": "达到青铜所需的有效支持不足。此状态不会阻止铸造。",
+
   'rating.submitted': '评分已提交',
   'readonly.note': '只读模式。请在 Qortium Home 中打开此应用以评分账户。',
   'tooltip.blocksMinted': '该账户铸造的区块总数。',
@@ -661,7 +683,7 @@ export const zhCN: LocaleCatalog = {
   'rating.statusUnlockPrompt': '提交时将提示解锁。',
   'rating.submitting': '正在提交…',
   'rating.submitPending': '待处理…',
-  'rating.value': '{sign} · {magnitude}把握',
+  'rating.value': '{sign} · {magnitude}',
   'rating.waitingConfirmation': '等待区块确认。',
   'rating.waitingConfirmationNear': '等待在区块 {block} 附近的区块确认。',
   'rating.warning.negativeCounts': '负面评分按 4 倍计入，可能将账户标记为可疑，从而阻止铸造。',
@@ -673,9 +695,11 @@ export const zhCN: LocaleCatalog = {
   'role.guide': '向导',
   'role.levelScore': '等级分数 {score}',
   'role.met': '已满足',
-  'role.nextRequirements': '下一地位的要求会优先显示未满足的要求。',
+  "role.nextRequirements": "信任等级 {level} 的要求",
   'role.noActiveRatings': '此角色未收到任何有效评分。',
-  'role.noUnmetRequirements': '未报告下一等级的未满足要求。',
+  "role.noUnmetRequirements": "未报告此等级的要求。",
+  "role.goldHighest": "黄金是铸造者的最高状态。信任等级继续提高时，状态仍为黄金。",
+  "role.higherLevel": "更高的信任等级：{level}",
   'role.notMet': '未满足',
   'role.openRatingsNotLoaded': '此账户的未处理评分详情尚未加载。',
   'role.ratingsReceived': '收到的评分',
@@ -720,6 +744,12 @@ export const zhCN: LocaleCatalog = {
 };
 
 export const zhTW: LocaleCatalog = {
+  "activity.sort": "最近評價過他人",
+  "activity.unavailable": "無法取得最近活動。已載入的帳戶按名稱顯示，請重新整理再試。",
+
+  "sort.label": "排序依據",
+  "status.unverifiedMeaning": "達到青銅所需的有效支持不足。此狀態不會阻止鑄造。",
+
   'rating.submitted': '評分已送出',
   'readonly.note': '唯讀模式。請在 Qortium Home 中開啟此應用以評分帳戶。',
   'tooltip.blocksMinted': '此帳戶鑄造的區塊總數。',
@@ -900,7 +930,7 @@ export const zhTW: LocaleCatalog = {
   'rating.statusUnlockPrompt': '提交時將會提示解鎖。',
   'rating.submitting': '提交中...',
   'rating.submitPending': '待處理中...',
-  'rating.value': '{sign}・{magnitude}確定度',
+  'rating.value': '{sign}・{magnitude}',
   'rating.waitingConfirmation': '等待區塊確認中。',
   'rating.waitingConfirmationNear': '等待在區塊 {block} 附近的區塊確認。',
   'rating.warning.negativeCounts': '負面評分以 4 倍計入，並可能將帳戶標記為可疑，進而阻止鑄造。',
@@ -912,9 +942,11 @@ export const zhTW: LocaleCatalog = {
   'role.guide': '指南',
   'role.levelScore': '等級分數 {score}',
   'role.met': '已符合',
-  'role.nextRequirements': '下一地位的要求會優先顯示未符合的要求。',
+  "role.nextRequirements": "信任等級 {level} 的要求",
   'role.noActiveRatings': '此角色未收到任何有效評分。',
-  'role.noUnmetRequirements': '未回報下一等級的未符合要求。',
+  "role.noUnmetRequirements": "未回報此等級的要求。",
+  "role.goldHighest": "金是鑄造者的最高狀態。信任等級繼續提高時，狀態仍為金。",
+  "role.higherLevel": "更高的信任等級：{level}",
   'role.notMet': '未符合',
   'role.openRatingsNotLoaded': '此帳戶的未處理評分詳細資料尚未載入。',
   'role.ratingsReceived': '收到的評分',

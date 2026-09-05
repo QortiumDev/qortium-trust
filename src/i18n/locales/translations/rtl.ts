@@ -3,6 +3,12 @@ import { type TranslationKey } from '../en';
 type LocaleCatalog = Partial<Record<TranslationKey, string>>;
 
 export const ar: LocaleCatalog = {
+  "activity.sort": "قيّموا الآخرين مؤخرًا",
+  "activity.unavailable": "النشاط الأخير غير متاح. تُعرض الحسابات المحمّلة حسب الاسم؛ حدّث الصفحة لإعادة المحاولة.",
+
+  "sort.label": "الترتيب حسب",
+  "status.unverifiedMeaning": "لا يوجد دعم مؤهل كافٍ للوصول إلى البرونزي. هذه الحالة لا تمنع سك الكتل.",
+
   'rating.submitted': 'تم إرسال التقييم',
   'readonly.note': 'وضع القراءة فقط. افتح هذا التطبيق في Qortium Home لتقييم الحسابات.',
   'tooltip.blocksMinted': 'إجمالي الكتل التي قام هذا الحساب بسكها.',
@@ -183,7 +189,7 @@ export const ar: LocaleCatalog = {
   'rating.statusUnlockPrompt': 'سيؤدي الإرسال إلى طلب فتح القفل.',
   'rating.submitting': 'جارٍ الإرسال...',
   'rating.submitPending': 'قيد الانتظار...',
-  'rating.value': '‏{sign} · ثقة {magnitude}',
+  'rating.value': '‏{sign} · {magnitude}',
   'rating.waitingConfirmation': 'في انتظار تأكيد الكتلة.',
   'rating.waitingConfirmationNear': 'في انتظار تأكيد الكتلة قرب الكتلة {block}.',
   'rating.warning.negativeCounts': 'تُحتسب التقييمات السلبية بمعدل 4× ويمكن أن تُصنِّف الحساب كمشبوه، مما يمنع التعدين.',
@@ -195,9 +201,11 @@ export const ar: LocaleCatalog = {
   'role.guide': 'مرشد',
   'role.levelScore': 'درجة المستوى {score}',
   'role.met': 'مُستوفى',
-  'role.nextRequirements': 'تُعرض متطلبات المكانة التالية مع إظهار المتطلبات غير المستوفاة أولًا.',
+  "role.nextRequirements": "متطلبات مستوى الثقة {level}",
   'role.noActiveRatings': 'لم يتم استلام أي تقييمات نشطة في هذا الدور.',
-  'role.noUnmetRequirements': 'لم يتم الإبلاغ عن أي متطلبات غير مستوفاة للمستوى التالي.',
+  "role.noUnmetRequirements": "لم يتم الإبلاغ عن متطلبات لهذا المستوى.",
+  "role.goldHighest": "ذهبي هو أعلى وضع للمُعدِّن. تبقى مستويات الثقة الأعلى في الوضع الذهبي.",
+  "role.higherLevel": "مستوى ثقة أعلى: {level}",
   'role.notMet': 'غير مُستوفى',
   'role.openRatingsNotLoaded': 'لم يتم تحميل تفاصيل التقييمات المفتوحة لهذا الحساب.',
   'role.ratingsReceived': 'التقييمات المستلمة',
@@ -242,6 +250,12 @@ export const ar: LocaleCatalog = {
 };
 
 export const he: LocaleCatalog = {
+  "activity.sort": "דירגו אחרים לאחרונה",
+  "activity.unavailable": "הפעילות האחרונה אינה זמינה. החשבונות שנטענו מוצגים לפי שם; יש לרענן כדי לנסות שוב.",
+
+  "sort.label": "מיון לפי",
+  "status.unverifiedMeaning": "אין מספיק תמיכה מתאימה לארד. מצב זה אינו חוסם יצירת בלוקים.",
+
   'rating.submitted': 'הדירוג נשלח',
   'readonly.note': 'מצב קריאה בלבד. פתח אפליקציה זו ב-Qortium Home כדי לדרג חשבונות.',
   'tooltip.blocksMinted': 'סך הבלוקים שחשבון זה כרה.',
@@ -422,7 +436,7 @@ export const he: LocaleCatalog = {
   'rating.statusUnlockPrompt': 'השליחה תבקש ביטול נעילה.',
   'rating.submitting': 'שולח...',
   'rating.submitPending': 'ממתין...',
-  'rating.value': '{sign} · ביטחון {magnitude}',
+  'rating.value': '{sign} · {magnitude}',
   'rating.waitingConfirmation': 'ממתין לאישור הבלוק.',
   'rating.waitingConfirmationNear': 'ממתין לאישור הבלוק סמוך לבלוק {block}.',
   'rating.warning.negativeCounts': 'דירוגים שליליים נספרים פי 4 ויכולים לסמן חשבון כחשוד, מה שחוסם הטבעה.',
@@ -434,9 +448,11 @@ export const he: LocaleCatalog = {
   'role.guide': 'מדריך',
   'role.levelScore': 'ניקוד רמה {score}',
   'role.met': 'התקיים',
-  'role.nextRequirements': 'הדרישות למעמד הבא מוצגות עם הדרישות שלא התקיימו תחילה.',
+  "role.nextRequirements": "דרישות לרמת אמון {level}",
   'role.noActiveRatings': 'לא התקבלו דירוגים פעילים בתפקיד זה.',
-  'role.noUnmetRequirements': 'לא דווחו דרישות שלא התקיימו עבור הרמה הבאה.',
+  "role.noUnmetRequirements": "לא דווחו דרישות לרמה זו.",
+  "role.goldHighest": "זהב הוא המעמד הגבוה ביותר למטביע. ברמות אמון גבוהות יותר המעמד נשאר זהב.",
+  "role.higherLevel": "רמת אמון גבוהה יותר: {level}",
   'role.notMet': 'לא התקיים',
   'role.openRatingsNotLoaded': 'פרטי דירוגים פתוחים אינם טעונים עבור חשבון זה.',
   'role.ratingsReceived': 'דירוגים שהתקבלו',

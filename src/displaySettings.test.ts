@@ -110,6 +110,9 @@ describe('QDN display settings helpers', () => {
     });
 
     expect(getInitialDisplaySettings().uiStyle).toBe('classic');
+    expect(getInitialDisplaySettings().theme).toBe('dark');
+    vi.stubGlobal('window', { _qdnTheme: 'light' });
+    expect(getInitialDisplaySettings().theme).toBe('light');
   });
 
   it('updates individual settings from Home messages', () => {

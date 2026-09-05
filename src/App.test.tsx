@@ -9,6 +9,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import App from './App';
+import { loadRecentDirectory } from './recentActivity';
+vi.mock('./browserAvatar', () => ({ fetchBrowserAvatar: vi.fn().mockResolvedValue({ kind: 'unavailable' }) }));
+vi.mock('./recentActivity', () => ({ loadRecentDirectory: vi.fn() }));
 import { getBridgeState } from './qdnRequest';
 import {
   ensureAccountUnlocked,
@@ -121,7 +124,7 @@ const TARGET_DERIVATION: TrustDerivation = {
   derivedTrustStatus: 'SILVER',
   derivedTrustStatusValue: 3,
   derivedTrustWeightPercent: 50,
-  mintingSeedMember: false,
+  mintingSeedMember: true,
 };
 
 function cooldown(overrides: Partial<AccountRatingCooldown> = {}): AccountRatingCooldown {
@@ -175,6 +178,7 @@ describe('App rating flow (pending -> confirm/timeout, and account-switch immuni
   let cooldownActiveRating: number | null = null;
 
   beforeEach(() => {
+    vi.mocked(loadRecentDirectory).mockReset().mockImplementation(async (_height, page) => ({ activity: {}, derivations: page.derivations, total: page.derivations.length }));
     // Only fake setTimeout/Date (what the poll loop and the timeout check use). Leaving
     // queueMicrotask/MessageChannel untouched keeps React's own effect-flushing scheduler (used by
     // `act()`) running normally, otherwise `act()` calls made under fake timers hang forever.
@@ -182,6 +186,8 @@ describe('App rating flow (pending -> confirm/timeout, and account-switch immuni
     // Each App mount reads the route from window.location on its first effect — reset it so a
     // previous test's navigateToRoute() push doesn't leak into the next test's fresh render.
     window.history.replaceState(null, '', '/');
+    HTMLDialogElement.prototype.showModal = function () { this.setAttribute('open', ''); };
+    HTMLDialogElement.prototype.close = function () { this.removeAttribute('open'); };
     cooldownActiveRating = null;
 
     getBridgeStateMock.mockReset().mockResolvedValue({
@@ -189,7 +195,7 @@ describe('App rating flow (pending -> confirm/timeout, and account-switch immuni
       isHomeBridge: true,
       ui: 'test',
     } as BridgeState);
-    getNodeStatusMock.mockReset().mockResolvedValue({});
+    getNodeStatusMock.mockReset().mockResolvedValue({ height: 10, isSynchronizing: false });
     getTrustSummaryMock.mockReset().mockResolvedValue({} as TrustSummary);
     getTrustPolicyMock.mockReset().mockResolvedValue({} as TrustPolicy);
     getTrustDerivationPageMock.mockReset().mockResolvedValue({ derivations: [TARGET_DERIVATION], total: 1 });
@@ -204,7 +210,7 @@ describe('App rating flow (pending -> confirm/timeout, and account-switch immuni
       blocksMinted: 10,
       effectiveVoteWeight: 1,
       activeWeightCategory: 'SUBJECT',
-      mintingSeedMember: false,
+      mintingSeedMember: true,
       categories: [],
     } as unknown as AccountTrustProfile);
     getTrustExplanationMock.mockReset().mockResolvedValue({
@@ -214,7 +220,7 @@ describe('App rating flow (pending -> confirm/timeout, and account-switch immuni
       trustStatusValue: 3,
       trustWeightPercent: 50,
       activeWeightCategory: 'SUBJECT',
-      mintingSeedMember: false,
+      mintingSeedMember: true,
       categories: [],
     } as unknown as AccountTrustExplanation);
     getAccountRatingsPageMock.mockReset().mockResolvedValue({ ratings: [], nextOffset: null });
@@ -235,6 +241,158 @@ describe('App rating flow (pending -> confirm/timeout, and account-switch immuni
   afterEach(() => {
     vi.useRealTimers();
     vi.clearAllMocks();
+  });
+
+  it.each(['SUBJECT', 'PLAYER', 'TRAINER', 'MANAGER'] as const)('opens and submits the feed role %s without leaving the list', async (role) => {
+    localStorage.setItem('qortium-trust.showAllRoles', 'true');
+    render(<App />);
+    await flush();
+    const roleName = { SUBJECT: 'Minters', PLAYER: 'Voters', TRAINER: 'Guides', MANAGER: 'Designers' }[role];
+    fireEvent.click(screen.getByRole('button', { name: `Rate ${roleName} — Qtarget` }));
+    await flush();
+    expect(screen.getByRole('dialog', { name: `Qtarget ${roleName}` })).toBeTruthy();
+    expect(window.location.search).toBe('');
+    expect(getRatingCooldownMock).toHaveBeenLastCalledWith(expect.objectContaining({ category: role, target: 'targetPub' }));
+    fireEvent.click(screen.getByRole('button', { name: role === 'SUBJECT' ? 'Yes' : 'Positive' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Medium' }));
+    await flush();
+    fireEvent.click(screen.getByRole('button', { name: 'Submit rating' }));
+    await flush();
+    expect(submitRatingMock).toHaveBeenCalledExactlyOnceWith({ category: role, rating: 2, targetPublicKey: 'targetPub' });
+    fireEvent.click(screen.getByRole('button', { name: 'Dismiss' }));
+    await flush();
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Open Qtarget' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: `Rate ${roleName} — Qtarget` }));
+    await flush();
+    expect((screen.getByRole('button', { name: 'Pending...' }) as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByRole('button', { name: 'Medium' }).getAttribute('aria-pressed')).toBe('true');
+    fireEvent.click(screen.getByRole('button', { name: 'Dismiss' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Open Qtarget' }));
+    await flush();
+    fireEvent.click(screen.getByRole('button', { name: new RegExp(`^${roleName}`) }));
+    await flush();
+    expect(document.querySelector('.detail-role-workspace')?.getAttribute('data-role')).toBe(role);
+    expect((screen.getByRole('button', { name: 'Pending...' }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it('keeps the rating dialog mounted during unlock/broadcast, then permits dismissal', async () => {
+    localStorage.setItem('qortium-trust.showAllRoles', 'true');
+    let finishUnlock!: (account: SelfAccount) => void;
+    ensureAccountUnlockedMock.mockImplementationOnce(() => new Promise(resolve => { finishUnlock = resolve; }));
+    render(<App />);
+    await flush();
+    fireEvent.click(screen.getByRole('button', { name: 'Rate Voters — Qtarget' }));
+    await flush();
+    fireEvent.click(screen.getByRole('button', { name: 'Positive' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Medium' }));
+    await flush();
+    fireEvent.click(screen.getByRole('button', { name: 'Submit rating' }));
+    await flush();
+    expect((screen.getByRole('button', { name: 'Dismiss' }) as HTMLButtonElement).disabled).toBe(true);
+    fireEvent(screen.getByRole('dialog'), new Event('cancel', { cancelable: true }));
+    expect(screen.getByRole('dialog')).toBeTruthy();
+    finishUnlock(SELF);
+    await flush();
+    expect(submitRatingMock).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole('button', { name: 'Dismiss' }));
+    await flush();
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('returns through linked accounts and keeps browser Forward usable', async () => {
+    const other = { ...TARGET_DERIVATION, accountAddress: 'Qother', accountPublicKey: 'otherPub' };
+    getTrustDerivationPageMock.mockResolvedValue({ derivations: [TARGET_DERIVATION, other], total: 2 });
+    getTrustExplanationMock.mockImplementation(async (publicKey) => ({
+      targetPublicKey: publicKey, targetAddress: publicKey === 'targetPub' ? 'Qtarget' : 'Qother',
+      trustStatus: 'SILVER', trustStatusValue: 3, trustWeightPercent: 70,
+      activeWeightCategory: 'SUBJECT', mintingSeedMember: true,
+      categories: [{ category: 'SUBJECT', level: 2, mappedTrustStatus: 'SILVER',
+        score: 10, levelScore: 10, levelScoreCap: 100, mappedTrustStatusValue: 3, mappedTrustWeightPercent: 70,
+        inboundRatings: counts(), positiveMinBranchCount: 2, suspiciousThreshold: -100,
+        suspiciousLevelScoreCap: 100, suspiciousMinRaterCount: 2, suspiciousMinBranchCount: 2, suspiciousMinRatingConfidence: 2,
+        configuredLevels: [], requirements: [], topNegativeImpacts: [],
+        topPositiveImpacts: [{ raterAddress: publicKey === 'targetPub' ? 'Qother' : 'Qtarget', impact: 10, rating: 2,
+          raterPublicKey: publicKey === 'targetPub' ? 'otherPub' : 'targetPub', ratingDirection: 'POSITIVE',
+          ratingConfidence: 2, evaluatorLevel: 2, evaluatorScore: 10, trustBranchKeys: [], trustBranchCount: 0 }],
+      }],
+    }));
+    render(<App />);
+    await flush();
+    fireEvent.click(screen.getByRole('button', { name: 'Open Qtarget' }));
+    await flush();
+    fireEvent.click(screen.getByRole('button', { name: 'Qother' }));
+    await flush();
+    expect(window.location.search).toContain('account=Qother');
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+    await act(async () => { await vi.advanceTimersByTimeAsync(50); });
+    await flush();
+    expect(screen.getByRole('heading', { name: 'Qtarget' })).toBeTruthy();
+    expect(window.location.search).toContain('account=Qtarget');
+    await act(async () => { window.history.forward(); await vi.advanceTimersByTimeAsync(50); });
+    await flush();
+    expect(screen.getByRole('heading', { name: 'Qother' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+    await act(async () => { await vi.advanceTimersByTimeAsync(50); });
+    await flush();
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+    await act(async () => { await vi.advanceTimersByTimeAsync(50); });
+    await flush();
+    expect(screen.getByRole('button', { name: 'Open Qtarget' })).toBeTruthy();
+    expect(window.location.search).toBe('');
+  });
+
+  it('keeps a direct-link Back inside the app and preserves display parameters', async () => {
+    window.history.replaceState(null, '', '/?account=Qtarget&theme=dark');
+    render(<App />);
+    await flush();
+    expect(screen.getByRole('heading', { name: 'Qtarget' })).toBeTruthy();
+    const length = window.history.length;
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+    await flush();
+    expect(screen.getByRole('button', { name: 'Open Qtarget' })).toBeTruthy();
+    expect(window.location.search).toBe('?theme=dark');
+    expect(window.history.length).toBe(length);
+  });
+
+  it('excludes non-members in recent and other sorts, including the directory summary', async () => {
+    const outsider = { ...TARGET_DERIVATION, accountAddress: 'Qoutsider', accountPublicKey: 'outsiderPub', mintingSeedMember: false };
+    getTrustDerivationPageMock.mockResolvedValue({ derivations: [TARGET_DERIVATION, outsider], total: 2 });
+    render(<App />);
+    await flush(20);
+    expect(getTrustDerivationPageMock).toHaveBeenCalledWith(expect.objectContaining({ live: true, seedMember: true }));
+    expect(screen.queryByRole('button', { name: /Open Qoutsider/ })).toBeNull();
+    expect(document.querySelectorAll('tbody tr')).toHaveLength(1);
+    fireEvent.change(screen.getByRole('combobox', { name: 'Sort by' }), { target: { value: 'blocksMinted' } });
+    await flush(20);
+    expect(document.querySelectorAll('tbody tr')).toHaveLength(1);
+    expect(document.querySelector('.network-summary-strip')?.textContent).toContain('1 Silver');
+  });
+
+  it('keeps the role toggle available inside account detail', async () => {
+    await renderAppAtAccountDetail();
+    const toggle = screen.getByRole('checkbox', { name: 'Show all roles' });
+    expect(toggle.closest('nav')).toBeTruthy();
+    if (!(toggle as HTMLInputElement).checked) fireEvent.click(toggle);
+    await flush();
+    expect(screen.getByRole('region', { name: 'Trust roles' })).toBeTruthy();
+    fireEvent.click(toggle);
+    await flush();
+    expect(screen.queryByRole('region', { name: 'Trust roles' })).toBeNull();
+    expect(screen.getByRole('button', { name: /submit rating|remove rating/i })).toBeTruthy();
+  });
+
+  it.each(['refresh', 'sort'])('labels the fallback honestly and retries through %s', async (retry) => {
+    vi.mocked(loadRecentDirectory).mockRejectedValueOnce(new Error('history incomplete'));
+    render(<App />);
+    await flush();
+    expect(screen.getByText(/Recent activity unavailable/)).toBeTruthy();
+    expect((screen.getByRole('combobox', { name: 'Sort by' }) as HTMLSelectElement).value).toBe('account');
+    if (retry === 'refresh') fireEvent.click(screen.getByRole('button', { name: 'Refresh trust data' }));
+    else fireEvent.change(screen.getByRole('combobox', { name: 'Sort by' }), { target: { value: 'latestRating' } });
+    await flush();
+    expect(screen.queryByText(/Recent activity unavailable/)).toBeNull();
+    expect((screen.getByRole('combobox', { name: 'Sort by' }) as HTMLSelectElement).value).toBe('latestRating');
   });
 
   it('clears the pending entry once the confirmation poll sees the rating active', async () => {

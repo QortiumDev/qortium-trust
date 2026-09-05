@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   changeAccountSortState,
+  RECENT_ACCOUNT_SORT,
   compareAccountRows,
   getTrustDerivationServerSort,
   UNRATED_SORT_VALUE,
@@ -183,11 +184,11 @@ describe('getTrustDerivationServerSort', () => {
   it('maps supported primary sort keys to Core orderBy values', () => {
     expect(getTrustDerivationServerSort([{ key: 'score', direction: 'desc' }])).toEqual({
       orderBy: 'score',
-      reverse: true,
+      reverse: undefined,
     });
     expect(getTrustDerivationServerSort([{ key: 'level', direction: 'asc' }])).toEqual({
       orderBy: 'level',
-      reverse: undefined,
+      reverse: true,
     });
   });
 
@@ -201,4 +202,49 @@ describe('getTrustDerivationServerSort', () => {
     expect(getTrustDerivationServerSort([{ key: 'account', direction: 'asc' }])).toEqual({});
     expect(getTrustDerivationServerSort([{ key: 'youRated', direction: 'desc' }])).toEqual({});
   });
+});
+
+// Core selects pages after its default descending numeric comparison. Local row sorting cannot
+// recover large accounts accidentally excluded from the first page.
+it('selects the highest 250 minted counts before the next page', () => {
+  const accounts = Array.from({ length: 251 }, (_, blocksMinted) => derivation(`Q${blocksMinted}`, { blocksMinted }));
+  const request = getTrustDerivationServerSort([{ key: 'blocksMinted', direction: 'desc' }]);
+  const serverOrdered = [...accounts].sort((a, b) => b.blocksMinted! - a.blocksMinted!);
+  if (request.reverse) serverOrdered.reverse();
+  const firstPage = serverOrdered.slice(0, 250);
+  expect(firstPage[0].blocksMinted).toBe(250);
+  expect(firstPage.at(-1)?.blocksMinted).toBe(1);
+  expect(serverOrdered[250].blocksMinted).toBe(0);
+});
+
+it('orders latest outgoing submissions ahead of minting count and leaves no-activity accounts last', () => {
+  const newer = derivation('Qnew', { blocksMinted: 0 });
+  const older = derivation('Qold', { blocksMinted: 100000 });
+  const none = derivation('Qnone', { blocksMinted: 200000 });
+  const activity = { Qnew: { timestamp: 200, signature: 'new', publicKey: 'newKey' }, Qold: { timestamp: 100, signature: 'old', publicKey: 'oldKey' } };
+  expect([none, older, newer].sort((a, b) => -compareAccountRows(a, b, 'latestRating', CATEGORY, profiles, {}, activity)).map(a => a.accountAddress)).toEqual(['Qnew', 'Qold', 'Qnone']);
+});
+
+it('uses Minter status then name to break activity ties, including people who never rated', () => {
+  const rows = [
+    derivation('QgoldB', { derivedTrustStatusValue: 4 }),
+    derivation('Qsilver', { derivedTrustStatusValue: 3 }),
+    derivation('QgoldA', { derivedTrustStatusValue: 4 }),
+    derivation('Qactive', { derivedTrustStatusValue: 0 }),
+    derivation('Qsuspicious', { derivedTrustStatusValue: -1 }),
+  ];
+  const activity = { Qactive: { timestamp: 200, signature: 'one', publicKey: 'key' } };
+  const sorted = [...rows].sort((a, b) => {
+    for (const entry of RECENT_ACCOUNT_SORT) {
+      const value = compareAccountRows(a, b, entry.key, 'MANAGER', profiles, {}, activity);
+      if (value) return entry.direction === 'desc' ? -value : value;
+    }
+    return 0;
+  });
+  expect(sorted.map(row => row.accountAddress)).toEqual(['Qactive', 'QgoldA', 'QgoldB', 'Qsilver', 'Qsuspicious']);
+  const fromOtherSort = changeAccountSortState([{ key: 'blocksMinted', direction: 'desc' }], 'latestRating');
+  expect(fromOtherSort).toEqual(RECENT_ACCOUNT_SORT);
+  expect(changeAccountSortState(fromOtherSort, 'latestRating')).toEqual([
+    { key: 'latestRating', direction: 'asc' }, ...RECENT_ACCOUNT_SORT.slice(1),
+  ]);
 });
