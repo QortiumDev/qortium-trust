@@ -11,8 +11,8 @@ Qortium’s community trust system. It runs inside Qortium Home through the
   account name. Repeated raters appear once; removals count.
 - Only current minting-group members appear in the account directory, regardless
   of their trust status or blocks minted. The directory summary uses those same accounts.
-- Show all roles expands each account into one combined group containing Designers,
-  Guides, Voters and Minters. The role selector controls role-specific sorting.
+- Show all roles expands each account into one combined group containing Minters,
+  Voters, Guides and Designers. The role selector controls role-specific sorting.
 - Account rows retain trust status, blocks minted, standing and personal ratings;
   the combined view also shows every role's score and received rating counts.
 - Click an account card or name to open its details; the Minters view also offers

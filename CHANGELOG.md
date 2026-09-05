@@ -25,3 +25,4 @@
 - Restore avatars in read-only browser previews with pointer-first Core reads and
   primary-name legacy fallback; keep Home bridge gating, bounded image validation
   and pending retries. Accept valid default-resource pointers with empty identifiers.
+- Order combined account roles and received-rating groups Minters, Voters, Guides, Designers.

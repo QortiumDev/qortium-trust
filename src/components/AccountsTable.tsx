@@ -30,7 +30,7 @@ import { RoleIcon } from './TrustIcons';
 const MemoIdentityAvatar = memo(IdentityAvatar);
 const MemoStatusBadge = memo(StatusBadge);
 
-const ROLE_ORDER: AccountRatingCategory[] = ['MANAGER', 'TRAINER', 'PLAYER', 'SUBJECT'];
+const ROLE_ORDER: AccountRatingCategory[] = ['SUBJECT', 'PLAYER', 'TRAINER', 'MANAGER'];
 
 // Decomposed sign+magnitude form everywhere a rating value renders (owner copy rule). `category`
 // picks Minter (Yes/No) vs role (Positive/Negative) wording; 0 (only ever seen mid-flight, while a

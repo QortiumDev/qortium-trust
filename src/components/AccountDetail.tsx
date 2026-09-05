@@ -33,7 +33,7 @@ import { TrustStatusHelp } from './TrustStatusHelp';
 import { RatingForm } from './RatingControls';
 import { t, type TranslationKey } from '../i18n';
 
-const ROLE_ORDER: AccountRatingCategory[] = ['MANAGER', 'TRAINER', 'PLAYER', 'SUBJECT'];
+const ROLE_ORDER: AccountRatingCategory[] = ['SUBJECT', 'PLAYER', 'TRAINER', 'MANAGER'];
 
 const ROLE_PURPOSE_KEYS: Record<AccountRatingCategory, TranslationKey> = {
   MANAGER: 'category.designers.purpose',
