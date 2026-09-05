@@ -425,8 +425,8 @@ export function AccountDetail({
                 />
               </div>
 
-              <div className="mini-section role-requirements">
-                <h3>{t('role.whyStanding')}</h3>
+              <details className="mini-section role-requirements" key={activeCategory}>
+                <summary>{t('role.whyStanding')}</summary>
                 {activeRequirements.length === 0 ? (
                   <p className="muted">
                     {activeExplanation
@@ -460,7 +460,7 @@ export function AccountDetail({
                     </ul>
                   </>
                 )}
-              </div>
+              </details>
             </div>
           </section>
 

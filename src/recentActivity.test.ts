@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { loadRecentDirectory, readRecentActivity } from './recentActivity';
-import { fetchNodeApiData, getTrustDerivationPage, getTrustProfile } from './trustApi';
+import { fetchNodeApiData, getTrustDerivationPage } from './trustApi';
 
 vi.mock('./trustApi', () => ({ fetchNodeApiData: vi.fn(), getTrustDerivationPage: vi.fn(), getTrustProfile: vi.fn() }));
 const read = vi.mocked(fetchNodeApiData);
@@ -50,16 +50,15 @@ describe('complete confirmed outgoing activity', () => {
     expect(await loadRecentDirectory(10, { derivations: [], total: 0 }, 250, 'SUBJECT')).toEqual({ activity: {}, derivations: [], total: 0 });
   });
 
-  it('loads a real profile for a historical-only rater after their final edge was cleared', async () => {
+  it('keeps current members without activity and does not restore historical non-members', async () => {
     read.mockResolvedValueOnce({ signature: 'A' }).mockResolvedValueOnce([tx({ rating: 0 })]).mockResolvedValueOnce({ signature: 'A' });
-    vi.mocked(getTrustProfile).mockResolvedValue({
-      targetAddress: 'Qrater', targetPublicKey: 'raterKey', trustStatus: 'UNVERIFIED', trustStatusValue: 0,
-      trustWeightPercent: 0, trustAllowsMinting: true, blocksMinted: 12, effectiveVoteWeight: 0,
-      activeWeightCategory: 'SUBJECT', mintingSeedMember: false, categories: [],
-    });
-    const result = await loadRecentDirectory(10, { derivations: [], total: 0 }, 250, 'SUBJECT');
-    expect(getTrustProfile).toHaveBeenCalledWith('raterKey');
-    expect(result.derivations[0]).toMatchObject({ accountAddress: 'Qrater', blocksMinted: 12 });
+    const member = {
+      accountAddress: 'Qmember', accountPublicKey: 'memberKey', derivedTrustStatus: 'UNVERIFIED' as const,
+      derivedTrustStatusValue: 0, derivedTrustWeightPercent: 0, mintingSeedMember: true, categories: [],
+    };
+    const result = await loadRecentDirectory(10, { derivations: [member], total: 1 }, 250, 'SUBJECT');
+    expect(result.derivations).toEqual([member]);
+    expect(result.activity.Qrater).toBeTruthy();
     expect(result.total).toBe(1);
   });
 
@@ -67,5 +66,6 @@ describe('complete confirmed outgoing activity', () => {
     read.mockResolvedValueOnce({ signature: 'A' }).mockResolvedValueOnce([]);
     vi.mocked(getTrustDerivationPage).mockResolvedValue({ derivations: [], total: 6000 });
     await expect(loadRecentDirectory(10, { derivations: [], total: 6000 }, 250, 'SUBJECT')).rejects.toThrow('Account directory');
+    expect(getTrustDerivationPage).toHaveBeenCalledWith(expect.objectContaining({ live: true, seedMember: true, limit: 5000 }));
   });
 });

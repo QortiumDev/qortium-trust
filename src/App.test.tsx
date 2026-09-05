@@ -123,7 +123,7 @@ const TARGET_DERIVATION: TrustDerivation = {
   derivedTrustStatus: 'SILVER',
   derivedTrustStatusValue: 3,
   derivedTrustWeightPercent: 50,
-  mintingSeedMember: false,
+  mintingSeedMember: true,
 };
 
 function cooldown(overrides: Partial<AccountRatingCooldown> = {}): AccountRatingCooldown {
@@ -207,7 +207,7 @@ describe('App rating flow (pending -> confirm/timeout, and account-switch immuni
       blocksMinted: 10,
       effectiveVoteWeight: 1,
       activeWeightCategory: 'SUBJECT',
-      mintingSeedMember: false,
+      mintingSeedMember: true,
       categories: [],
     } as unknown as AccountTrustProfile);
     getTrustExplanationMock.mockReset().mockResolvedValue({
@@ -217,7 +217,7 @@ describe('App rating flow (pending -> confirm/timeout, and account-switch immuni
       trustStatusValue: 3,
       trustWeightPercent: 50,
       activeWeightCategory: 'SUBJECT',
-      mintingSeedMember: false,
+      mintingSeedMember: true,
       categories: [],
     } as unknown as AccountTrustExplanation);
     getAccountRatingsPageMock.mockReset().mockResolvedValue({ ratings: [], nextOffset: null });
@@ -238,6 +238,20 @@ describe('App rating flow (pending -> confirm/timeout, and account-switch immuni
   afterEach(() => {
     vi.useRealTimers();
     vi.clearAllMocks();
+  });
+
+  it('excludes non-members in recent and other sorts, including the directory summary', async () => {
+    const outsider = { ...TARGET_DERIVATION, accountAddress: 'Qoutsider', accountPublicKey: 'outsiderPub', mintingSeedMember: false };
+    getTrustDerivationPageMock.mockResolvedValue({ derivations: [TARGET_DERIVATION, outsider], total: 2 });
+    render(<App />);
+    await flush(20);
+    expect(getTrustDerivationPageMock).toHaveBeenCalledWith(expect.objectContaining({ live: true, seedMember: true }));
+    expect(screen.queryByRole('button', { name: /Open Qoutsider/ })).toBeNull();
+    expect(document.querySelectorAll('tbody tr')).toHaveLength(1);
+    fireEvent.change(screen.getByRole('combobox', { name: 'Sort by' }), { target: { value: 'blocksMinted' } });
+    await flush(20);
+    expect(document.querySelectorAll('tbody tr')).toHaveLength(1);
+    expect(document.querySelector('.network-summary-strip')?.textContent).toContain('1 Silver');
   });
 
   it('keeps the role toggle available inside account detail', async () => {

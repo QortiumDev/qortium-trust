@@ -11,6 +11,12 @@ import type { AccountSortKey, AccountSortState, RatingsByAddress, SortDirection 
 // Sentinel below the -4..+4 rating range so accounts you have not rated sort to the bottom.
 export const UNRATED_SORT_VALUE = -5;
 
+export const RECENT_ACCOUNT_SORT: AccountSortState = [
+  { direction: 'desc', key: 'latestRating' },
+  { direction: 'desc', key: 'status' },
+  { direction: 'asc', key: 'account' },
+];
+
 const SERVER_SORT_BY_KEY: Partial<Record<AccountSortKey, TrustDerivationOrderBy>> = {
   blocksMinted: 'blocksMinted',
   level: 'level',
@@ -121,6 +127,10 @@ export function getAriaSort(sort: AccountSortState, key: AccountSortKey) {
 // to primary (preserving its direction if it was already a tiebreaker, flipping it if it was already
 // primary) and keeps the previous columns as tiebreakers.
 export function changeAccountSortState(current: AccountSortState, key: AccountSortKey): AccountSortState {
+  if (key === 'latestRating') {
+    const direction = current[0]?.key === key && current[0].direction === 'desc' ? 'asc' : 'desc';
+    return [{ key, direction }, ...RECENT_ACCOUNT_SORT.slice(1)];
+  }
   const existingIndex = current.findIndex((entry) => entry.key === key);
 
   // Already the primary column: just flip its direction.

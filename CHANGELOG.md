@@ -17,3 +17,8 @@
 - Keep help collapsed by default and cover new copy in all 23 supported locale catalogs.
 - Keep Show all roles beside navigation so it can be changed within account details.
 - Default to dark mode when no explicit Home/query theme is provided.
+- Break latest-submission ties by descending Minter status, then account name.
+- Restrict the account directory to current minting-group members before pagination;
+  keep Suspicious members and never restore non-members from historical activity.
+- Calculate directory summary counts from the displayed membership scope.
+- Collapse Why this standing by default, with its existing requirements available on click.

@@ -9,7 +9,7 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { loadRecentDirectory, type RecentActivity } from './recentActivity';
-import { changeAccountSortState, getTrustDerivationServerSort } from './accountSort';
+import { changeAccountSortState, getTrustDerivationServerSort, RECENT_ACCOUNT_SORT } from './accountSort';
 import { TrustStatusHelp } from './components/TrustStatusHelp';
 import { RoleIcon } from './components/TrustIcons';
 import { AccountsTable } from './components/AccountsTable';
@@ -56,7 +56,6 @@ import type {
   SelfAccount,
   TrustDerivation,
   TrustStatus,
-  TrustSummary,
 } from './types';
 import type {
   AccountDetailState,
@@ -73,10 +72,7 @@ const APP_VERSION = __APP_VERSION__;
 const PAGE_SIZE = 250;
 const RATING_PAGE_SIZE = 1000;
 
-const DEFAULT_ACCOUNT_SORT: AccountSortState = [
-  { direction: 'desc', key: 'latestRating' },
-  { direction: 'asc', key: 'account' },
-];
+const DEFAULT_ACCOUNT_SORT = RECENT_ACCOUNT_SORT;
 
 const EMPTY_EXPLORER_STATE: ExplorerState = {
   bridge: null,
@@ -213,42 +209,19 @@ function ShowAllRolesToggle({
   );
 }
 
-// Per-status SUBJECT ("Minters") account counts from the trust-summary snapshot. Falls back to the
-// overall (active-weight-category) breakdown when no SUBJECT-specific entry is present — still
-// meaningful since SUBJECT is the default active weight category.
-function subjectStatusCounts(summary: TrustSummary): { accountCount: number; status: TrustStatus }[] {
-  const subjectCategory = (summary.categorySummaries ?? []).find((entry) => entry.category === 'SUBJECT');
-
-  if (subjectCategory) {
-    return subjectCategory.statusCounts.map((entry) => ({ accountCount: entry.accountCount, status: entry.status }));
-  }
-
-  return (summary.statusSummaries ?? []).map((entry) => ({ accountCount: entry.accountCount, status: entry.status }));
-}
-
-function subjectRatingCount(summary: TrustSummary): number {
-  const subjectRatings = (summary.ratingCategorySummaries ?? []).find((entry) => entry.category === 'SUBJECT');
-
-  return subjectRatings?.ratingCount ?? summary.activeRatingCount ?? 0;
-}
-
-// Core has always returned this data (getTrustSummary) but the app never rendered it. A compact
-// one-line strip above the accounts table: active SUBJECT rating count, then non-zero account counts
-// by status, busiest first — e.g. "410 ratings · 19 Silver · 12 Unverified · 1 Suspicious".
-function NetworkSummaryStrip({ summary }: { summary: TrustSummary | null }) {
-  if (!summary) {
-    return <p className="network-summary-strip network-summary-strip--empty">{t('summary.unavailable')}</p>;
-  }
-
-  const statusParts = subjectStatusCounts(summary)
-    .filter((entry) => entry.accountCount > 0)
+// Summarize the same loaded minting-group directory shown below, not excluded accounts.
+function NetworkSummaryStrip({ derivations }: { derivations: TrustDerivation[] }) {
+  const statusParts = TRUST_STATUSES.map(status => ({
+    status, accountCount: derivations.filter(row => row.derivedTrustStatus === status).length,
+  }))
+    .filter(entry => entry.accountCount > 0)
     .sort((left, right) => right.accountCount - left.accountCount)
-    .map((entry) =>
-      t('summary.statusCount', { count: formatNumber(entry.accountCount), status: statusLabel(entry.status) }),
-    );
-  const parts = [t('summary.ratingsCount', { count: formatNumber(subjectRatingCount(summary)) }), ...statusParts];
-
-  return <p className="network-summary-strip">{parts.join(' · ')}</p>;
+    .map(entry => t('summary.statusCount', { count: formatNumber(entry.accountCount), status: statusLabel(entry.status) }));
+  const ratingCount = derivations.reduce((total, row) => {
+    const counts = row.categories.find(category => category.category === 'SUBJECT')?.inboundRatings;
+    return total + (counts?.positiveRatingCount ?? 0) + (counts?.negativeRatingCount ?? 0);
+  }, 0);
+  return <p className="network-summary-strip">{[t('summary.ratingsCount', { count: formatNumber(ratingCount) }), ...statusParts].join(' · ')}</p>;
 }
 
 export default function App() {
@@ -384,6 +357,7 @@ export default function App() {
           category,
           limit: derivationLimit,
           live: true,
+          seedMember: true,
           ...serverDerivationSort,
         }),
         getTrustChanges({ limit: 100 }),
@@ -411,7 +385,7 @@ export default function App() {
       setData({
         bridge,
         changes,
-        derivations: directory.derivations,
+        derivations: directory.derivations.filter(row => row.mintingSeedMember === true),
         nodeStatus,
         policy,
         ratings: [],
@@ -929,7 +903,7 @@ export default function App() {
           ) : view === 'accounts' ? (
             <>
               {wantsRecent && activityUnavailable ? <p className="activity-unavailable" role="status">{t('activity.unavailable')}</p> : null}
-              <NetworkSummaryStrip summary={data.summary} />
+              <NetworkSummaryStrip derivations={data.derivations} />
               <AccountsTable
                 activity={recentActivity}
                 category={category}

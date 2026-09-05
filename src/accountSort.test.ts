@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   changeAccountSortState,
+  RECENT_ACCOUNT_SORT,
   compareAccountRows,
   getTrustDerivationServerSort,
   UNRATED_SORT_VALUE,
@@ -222,4 +223,28 @@ it('orders latest outgoing submissions ahead of minting count and leaves no-acti
   const none = derivation('Qnone', { blocksMinted: 200000 });
   const activity = { Qnew: { timestamp: 200, signature: 'new', publicKey: 'newKey' }, Qold: { timestamp: 100, signature: 'old', publicKey: 'oldKey' } };
   expect([none, older, newer].sort((a, b) => -compareAccountRows(a, b, 'latestRating', CATEGORY, profiles, {}, activity)).map(a => a.accountAddress)).toEqual(['Qnew', 'Qold', 'Qnone']);
+});
+
+it('uses Minter status then name to break activity ties, including people who never rated', () => {
+  const rows = [
+    derivation('QgoldB', { derivedTrustStatusValue: 4 }),
+    derivation('Qsilver', { derivedTrustStatusValue: 3 }),
+    derivation('QgoldA', { derivedTrustStatusValue: 4 }),
+    derivation('Qactive', { derivedTrustStatusValue: 0 }),
+    derivation('Qsuspicious', { derivedTrustStatusValue: -1 }),
+  ];
+  const activity = { Qactive: { timestamp: 200, signature: 'one', publicKey: 'key' } };
+  const sorted = [...rows].sort((a, b) => {
+    for (const entry of RECENT_ACCOUNT_SORT) {
+      const value = compareAccountRows(a, b, entry.key, 'MANAGER', profiles, {}, activity);
+      if (value) return entry.direction === 'desc' ? -value : value;
+    }
+    return 0;
+  });
+  expect(sorted.map(row => row.accountAddress)).toEqual(['Qactive', 'QgoldA', 'QgoldB', 'Qsilver', 'Qsuspicious']);
+  const fromOtherSort = changeAccountSortState([{ key: 'blocksMinted', direction: 'desc' }], 'latestRating');
+  expect(fromOtherSort).toEqual(RECENT_ACCOUNT_SORT);
+  expect(changeAccountSortState(fromOtherSort, 'latestRating')).toEqual([
+    { key: 'latestRating', direction: 'asc' }, ...RECENT_ACCOUNT_SORT.slice(1),
+  ]);
 });

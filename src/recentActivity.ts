@@ -1,6 +1,6 @@
-import { fetchNodeApiData, getTrustDerivationPage, getTrustProfile } from './trustApi';
+import { fetchNodeApiData, getTrustDerivationPage } from './trustApi';
 import { t } from './i18n';
-import type { AccountRatingCategory, TrustDerivation } from './types';
+import type { AccountRatingCategory } from './types';
 
 export type RecentActivity = Record<string, { timestamp: number; signature: string; publicKey: string }>;
 type DirectoryPage = Awaited<ReturnType<typeof getTrustDerivationPage>>;
@@ -52,31 +52,13 @@ export async function loadRecentDirectory(height: number, initial: DirectoryPage
   let page = initial;
   let complete = page.total !== null ? page.derivations.length === page.total : page.derivations.length < initialLimit;
   if (!complete) {
-    page = await getTrustDerivationPage({ category, live: true, limit: 5000 });
+    page = await getTrustDerivationPage({ category, live: true, seedMember: true, limit: 5000 });
     complete = page.total !== null ? page.derivations.length === page.total : page.derivations.length < 5000;
   }
   if (!complete) throw new Error('Account directory exceeds scan budget');
-  const derivations = [...page.derivations];
-  const known = new Set(derivations.map(row => row.accountAddress));
-  const missing = Object.keys(activity).filter(address => !known.has(address));
-  if (missing.length > 32) throw new Error('Historical account lookup exceeds budget');
-  // A person who clears their last edge is still discoverable. Use their real profile;
-  // never invent an Unverified status to make an incomplete directory appear complete.
-  for (const address of missing) {
-    const profile = await getTrustProfile(activity[address].publicKey);
-    if (profile.targetAddress !== address || !Array.isArray(profile.categories)) throw new Error('Invalid historical account profile');
-    derivations.push({
-      accountAddress: profile.targetAddress,
-      accountPublicKey: profile.targetPublicKey,
-      derivedTrustStatus: profile.trustStatus,
-      derivedTrustStatusValue: profile.trustStatusValue,
-      derivedTrustWeightPercent: profile.trustWeightPercent,
-      mintingSeedMember: profile.mintingSeedMember,
-      blocksMinted: profile.blocksMinted,
-      effectiveVoteWeight: profile.effectiveVoteWeight,
-      categories: profile.categories,
-    } satisfies TrustDerivation);
-  }
+  // Live derivations already include current minting-group members even without rating
+  // edges. Historical activity must never reintroduce people outside those groups.
+  const derivations = page.derivations.filter(row => row.mintingSeedMember === true);
   const after = await fetchNodeApiData<{ signature: string }>(blockPath, t('fetch.nodeStatus'));
   if (before.signature !== after?.signature) throw new Error('Chain changed during activity read');
   return { activity, derivations, total: derivations.length };

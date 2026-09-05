@@ -3174,3 +3174,6 @@ html {
 /* Keep the role toggle available in both directory and account detail. */
 .section-nav { align-items: center; flex-wrap: wrap; }
 .section-nav > .live-toggle { margin-inline-start: auto; font-size: var(--font-size-small); }
+
+.role-requirements { align-self: start; }
+.role-requirements > summary { cursor: pointer; font-weight: 700; padding-block: 8px; }

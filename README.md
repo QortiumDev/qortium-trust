@@ -7,7 +7,10 @@ Qortium’s community trust system. It runs inside Qortium Home through the
 ## Current experience
 
 - Accounts opens with Minters and sorts by each person's latest confirmed outgoing
-  rating submission, across all roles. Repeated raters appear once; removals count.
+  rating submission, across all roles. Ties use Minter status (Gold first), then
+  account name. Repeated raters appear once; removals count.
+- Only current minting-group members appear in the account directory, regardless
+  of their trust status or blocks minted. The directory summary uses those same accounts.
 - Show all roles expands each account into one combined group containing Designers,
   Guides, Voters and Minters. The role selector controls role-specific sorting.
 - Account rows retain trust status, blocks minted, standing and personal ratings;
@@ -21,7 +24,8 @@ Qortium’s community trust system. It runs inside Qortium Home through the
   the name, address, and public key.
 - One role can be rated at a time from account detail, while all four role
   standings remain visible for comparison.
-- Detailed trust explanations show capped level score, unmet requirements,
+- Why this standing starts collapsed and expands on click. Detailed trust
+  explanations show capped level score, unmet requirements,
   strongest impacts, and the active ratings received from identifiable raters.
 - The role guide explains the community flow:
   Designers shape the system, Guides share understanding, Voters apply the
@@ -47,11 +51,11 @@ complete explorer remains available in read-only mode.
 This increment uses existing Core APIs; no backend or signing changes are required.
 It reads confirmed RATE_ACCOUNT history up to a pinned block height, verifies the
 block signature before and after, and orders people by transaction submission time.
-Only approved or approval-exempt transactions count. Historical-only raters are
-resolved through their real trust profiles.
+Only approved or approval-exempt transactions count. Current minting-group membership is filtered by Core before pagination. Historical
+activity does not add non-members back to the directory.
 
 History reads grow through 1,000 / 4,000 / 8,000 transaction prefixes; the directory
-is capped at 5,000 entries, with at most 32 missing-profile lookups. A full final
+is capped at 5,000 entries. A full final
 prefix, incomplete directory, unsupported endpoint or failed read causes an explicit
 fallback to loaded accounts by name. Refresh or selecting recent activity retries.
 A short response establishes exhaustion of the node's available history; it cannot
