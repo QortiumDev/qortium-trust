@@ -86,7 +86,7 @@ need a paginated Core activity query.
 
 ## QAVS and UI styles
 
-Trust is at QAVS `1.4.7`: `1.4` is its minimum Qortium platform level and the
+Trust is at QAVS `1.4.8`: `1.4` is its minimum Qortium platform level and the
 patch number tracks the app release. `vite.config.ts` reads `package.json`,
 injects the visible version, and emits `dist/qortium-app.json` on every build.
 
@@ -134,4 +134,4 @@ After publication, verify:
 
 - `/arbitrary/resource/status/APP/Trust/Trust?build=true` reports `READY`
 - `/render/APP/Trust/Trust` renders successfully
-- `/arbitrary/APP/Trust/Trust?filepath=qortium-app.json` reports version `1.4.7`
+- `/arbitrary/APP/Trust/Trust?filepath=qortium-app.json` reports version `1.4.8`
