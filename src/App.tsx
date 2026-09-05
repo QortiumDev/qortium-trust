@@ -14,6 +14,7 @@ import { TrustStatusHelp } from './components/TrustStatusHelp';
 import { RoleIcon } from './components/TrustIcons';
 import { AccountsTable } from './components/AccountsTable';
 import { AccountDetail } from './components/AccountDetail';
+import { RatingDialog } from './components/RatingDialog';
 import { ChangesTable } from './components/ChangesTable';
 import { NodeSyncPill } from './components/Identity';
 import { applyDisplaySettings, getDisplaySettingsUpdateFromMessage, getInitialDisplaySettings } from './displaySettings';
@@ -247,6 +248,7 @@ export default function App() {
   const [query, setQuery] = useState('');
   const [receivedRatings, setReceivedRatings] = useState<AccountRating[] | undefined>(undefined);
   const [focusRating, setFocusRating] = useState(false);
+  const [ratingTarget, setRatingTarget] = useState<{ derivation: TrustDerivation; category: AccountRatingCategory } | null>(null);
   const [selectedAddress, setSelectedAddress] = useState<string | null>(null);
   const [self, setSelf] = useState<SelfAccount | null>(null);
   const [showAllRoles, setShowAllRolesState] = useState(getInitialShowAllRoles);
@@ -935,8 +937,7 @@ export default function App() {
                 }}
                 onSelect={(derivation: TrustDerivation) => openAccount(derivation.accountAddress)}
                 onSort={changeAccountSort}
-                onRate={(derivation, role) => openAccount(derivation.accountAddress, role)}
-                ratingActionAvailable={ratingActionAvailable}
+                onRate={(derivation, role) => setRatingTarget({ derivation, category: role })}
                 pendingByKey={pendingRatings}
                 profiles={identityProfiles}
                 query={query}
@@ -970,6 +971,22 @@ export default function App() {
         </div>
       </section>
 
+      {ratingTarget ? (
+        <RatingDialog
+          key={`${ratingTarget.derivation.accountPublicKey}:${ratingTarget.category}:${self?.address ?? 'readonly'}`}
+          category={ratingTarget.category}
+          derivation={ratingTarget.derivation}
+          profile={identityProfiles[ratingTarget.derivation.accountAddress]}
+          onClose={() => setRatingTarget(null)}
+          onSubmitted={handleRatingSubmitted}
+          onDismissPending={handleDismissPending}
+          onRetryPending={handleRetryPending}
+          pendingRating={pendingRatings[pendingRatingKey(ratingTarget.category, ratingTarget.derivation.accountAddress)]?.rating}
+          pendingRatings={pendingRatings}
+          ratingActionAvailable={ratingActionAvailable}
+          self={self}
+        />
+      ) : null}
       {toast ? (
         <div className="toast" role="status">
           {toast}

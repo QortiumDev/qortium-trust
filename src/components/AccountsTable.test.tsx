@@ -123,17 +123,19 @@ describe('AccountsTable simplified Minters directory (showAllRoles off)', () => 
   });
 });
 
-it('opens combined cards without repeating details buttons', () => {
+it('rates the selected role while the identity opens details', () => {
   const onRate = vi.fn();
   const onSelect = vi.fn();
-  const { container } = render(<AccountsTable category="SUBJECT" derivations={[derivation]} onSelect={onSelect} onSort={vi.fn()} onRate={onRate} ratingActionAvailable profiles={{}} showAllRoles sort={[{ key: 'account', direction: 'asc' }]} />);
+  const { container } = render(<AccountsTable category="SUBJECT" derivations={[derivation]} onSelect={onSelect} onSort={vi.fn()} onRate={onRate} profiles={{}} showAllRoles sort={[{ key: 'account', direction: 'asc' }]} />);
   const roleCells = container.querySelectorAll('.account-role-cell');
   expect(roleCells).toHaveLength(4);
   expect(container.querySelector('.account-blocks-cell')?.textContent).toBe('42');
   expect(container.querySelectorAll('.account-rate-link')).toHaveLength(0);
-  fireEvent.click(roleCells[1]);
+  fireEvent.click(roleCells[1].querySelector('button')!);
+  expect(onRate).toHaveBeenCalledExactlyOnceWith(derivation, 'PLAYER');
+  expect(onSelect).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole('button', { name: 'Open Qtarget' }));
   expect(onSelect).toHaveBeenCalledWith(derivation);
-  expect(onRate).not.toHaveBeenCalled();
   expect(container.querySelectorAll('.account-role-cell')).toHaveLength(4);
 });
 

@@ -186,6 +186,8 @@ describe('App rating flow (pending -> confirm/timeout, and account-switch immuni
     // Each App mount reads the route from window.location on its first effect — reset it so a
     // previous test's navigateToRoute() push doesn't leak into the next test's fresh render.
     window.history.replaceState(null, '', '/');
+    HTMLDialogElement.prototype.showModal = function () { this.setAttribute('open', ''); };
+    HTMLDialogElement.prototype.close = function () { this.removeAttribute('open'); };
     cooldownActiveRating = null;
 
     getBridgeStateMock.mockReset().mockResolvedValue({
@@ -239,6 +241,63 @@ describe('App rating flow (pending -> confirm/timeout, and account-switch immuni
   afterEach(() => {
     vi.useRealTimers();
     vi.clearAllMocks();
+  });
+
+  it.each(['SUBJECT', 'PLAYER', 'TRAINER', 'MANAGER'] as const)('opens and submits the feed role %s without leaving the list', async (role) => {
+    localStorage.setItem('qortium-trust.showAllRoles', 'true');
+    render(<App />);
+    await flush();
+    const roleName = { SUBJECT: 'Minters', PLAYER: 'Voters', TRAINER: 'Guides', MANAGER: 'Designers' }[role];
+    fireEvent.click(screen.getByRole('button', { name: `Rate ${roleName} — Qtarget` }));
+    await flush();
+    expect(screen.getByRole('dialog', { name: `Qtarget ${roleName}` })).toBeTruthy();
+    expect(window.location.search).toBe('');
+    expect(getRatingCooldownMock).toHaveBeenLastCalledWith(expect.objectContaining({ category: role, target: 'targetPub' }));
+    fireEvent.click(screen.getByRole('button', { name: role === 'SUBJECT' ? 'Yes' : 'Positive' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Medium' }));
+    await flush();
+    fireEvent.click(screen.getByRole('button', { name: 'Submit rating' }));
+    await flush();
+    expect(submitRatingMock).toHaveBeenCalledExactlyOnceWith({ category: role, rating: 2, targetPublicKey: 'targetPub' });
+    fireEvent.click(screen.getByRole('button', { name: 'Dismiss' }));
+    await flush();
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Open Qtarget' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: `Rate ${roleName} — Qtarget` }));
+    await flush();
+    expect((screen.getByRole('button', { name: 'Pending...' }) as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByRole('button', { name: 'Medium' }).getAttribute('aria-pressed')).toBe('true');
+    fireEvent.click(screen.getByRole('button', { name: 'Dismiss' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Open Qtarget' }));
+    await flush();
+    fireEvent.click(screen.getByRole('button', { name: new RegExp(`^${roleName}`) }));
+    await flush();
+    expect(document.querySelector('.detail-role-workspace')?.getAttribute('data-role')).toBe(role);
+    expect((screen.getByRole('button', { name: 'Pending...' }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it('keeps the rating dialog mounted during unlock/broadcast, then permits dismissal', async () => {
+    localStorage.setItem('qortium-trust.showAllRoles', 'true');
+    let finishUnlock!: (account: SelfAccount) => void;
+    ensureAccountUnlockedMock.mockImplementationOnce(() => new Promise(resolve => { finishUnlock = resolve; }));
+    render(<App />);
+    await flush();
+    fireEvent.click(screen.getByRole('button', { name: 'Rate Voters — Qtarget' }));
+    await flush();
+    fireEvent.click(screen.getByRole('button', { name: 'Positive' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Medium' }));
+    await flush();
+    fireEvent.click(screen.getByRole('button', { name: 'Submit rating' }));
+    await flush();
+    expect((screen.getByRole('button', { name: 'Dismiss' }) as HTMLButtonElement).disabled).toBe(true);
+    fireEvent(screen.getByRole('dialog'), new Event('cancel', { cancelable: true }));
+    expect(screen.getByRole('dialog')).toBeTruthy();
+    finishUnlock(SELF);
+    await flush();
+    expect(submitRatingMock).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole('button', { name: 'Dismiss' }));
+    await flush();
+    expect(screen.queryByRole('dialog')).toBeNull();
   });
 
   it('returns through linked accounts and keeps browser Forward usable', async () => {

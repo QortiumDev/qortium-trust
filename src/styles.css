@@ -3127,7 +3127,7 @@ html {
 .detail-role-workspace__header h3 { margin: 0; }
 .detail-role-workspace > .trust-status-help { margin-bottom: 10px; }
 .detail-role-workspace__columns { gap: 14px; }
-.detail-rate .mini-section > h3 { display: none; }
+.detail-rate .mini-section > h3 { margin-top: 0; }
 .rating-cooldown { display: flex; align-items: center; gap: 6px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; color: var(--text); }
 @media (max-width: 1100px) {
   .accounts-table--all-roles .account-directory-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -3372,3 +3372,38 @@ html {
   :root[data-text-size='extra-large'] .accounts-table--all-roles .account-directory-row .account-status-cell,
   :root[data-text-size='huge'] .accounts-table--all-roles .account-directory-row .account-status-cell { align-items: flex-start; }
 }
+
+/* The role panel is a native keyboard-accessible rating trigger. */
+.accounts-table--all-roles .account-role-cell { position: relative; }
+.account-role-action {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.account-role-action:hover { background: color-mix(in srgb, var(--role-color) 8%, transparent); }
+.account-role-action:focus-visible { outline: 2px solid var(--role-color); outline-offset: -3px; }
+.rating-dialog {
+  box-sizing: border-box;
+  width: min(560px, calc(100vw - 24px));
+  max-height: calc(100dvh - 32px);
+  overflow: auto;
+  padding: 18px;
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--role-color, var(--accent));
+  border-radius: 8px 16px 8px 16px;
+  box-shadow: 0 16px 64px #00000088;
+}
+.rating-dialog::backdrop { background: #020812bb; }
+.rating-dialog__header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.rating-dialog__identity { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.rating-dialog__identity h2 { margin: 0; font-size: var(--font-size-large); overflow-wrap: anywhere; }
+.rating-dialog__role { display: flex; align-items: center; gap: 6px; color: var(--role-color); margin: 4px 0 0; }
+.rating-dialog .mini-section > h3 { margin-top: 0; }

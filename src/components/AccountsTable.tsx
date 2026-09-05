@@ -121,7 +121,6 @@ type AccountsTableProps = {
   onSelect: (derivation: TrustDerivation) => void;
   onSort: (key: AccountSortKey) => void;
   onRate?: (derivation: TrustDerivation, role: AccountRatingCategory) => void;
-  ratingActionAvailable?: boolean;
   profiles: IdentityProfilesByAddress;
   query?: string;
   selectedAddress?: string;
@@ -153,7 +152,6 @@ export function AccountsTable({
   onSelect,
   onSort,
   onRate,
-  ratingActionAvailable = false,
   pendingByAddress = {},
   pendingByKey,
   profiles,
@@ -378,6 +376,14 @@ export function AccountsTable({
 
                     return (
                       <td className="account-role-cell" data-role={role} data-label={categoryLabel(role)} key={role}>
+                        {onRate ? (
+                          <button
+                            aria-label={`${t('label.rate')} ${categoryLabel(role)} — ${profile?.name ?? derivation.accountAddress}`}
+                            className="account-role-action"
+                            onClick={(event) => { event.stopPropagation(); onRate(derivation, role); }}
+                            type="button"
+                          />
+                        ) : null}
                         <div className="account-role-summary">
                           <strong className="account-role-title"><RoleIcon category={role} />{categoryLabel(role)}</strong>
                           <div className="account-role-summary__standing">
@@ -424,7 +430,7 @@ export function AccountsTable({
                       pending={subjectDisplayed.pending ? subjectDisplayed.value : undefined}
                       value={subjectDisplayed.value}
                     />
-                    {onRate && ratingActionAvailable ? <button className="account-rate-link" type="button" onClick={event => { event.stopPropagation(); onRate(derivation, effectiveCategory); }}>{t('label.rate')}</button> : null}
+                    {onRate ? <button className="account-rate-link" type="button" onClick={event => { event.stopPropagation(); onRate(derivation, effectiveCategory); }}>{t('label.rate')}</button> : null}
                   </td>
                 )}
               </tr>

@@ -123,10 +123,10 @@ function RatingImpactNote({
 // The two-step Minter/role rating chooser (#Stage B, tasks 1-2). Presentation-layer only: it decides
 // *which* numeric rating is selected and hands it to `control.setRating`; submission itself still
 // goes through useRatingControl's existing handleSubmit/preview/cooldown machinery untouched.
-function RatingChooser({ category, control }: { category: AccountRatingCategory; control: RatingControl }) {
+function RatingChooser({ category, control, pendingRating }: { category: AccountRatingCategory; control: RatingControl; pendingRating?: number }) {
   const isMinter = category === 'SUBJECT';
   const isDesigner = category === 'MANAGER';
-  const disabled = control.submitting || control.cooldownLoading || control.isPending;
+  const disabled = !control.canInteract || control.submitting || control.cooldownLoading || control.isPending;
   const hasActiveRating = control.activeRating !== null && control.activeRating !== 0;
 
   const [answer, setAnswer] = useState<TwoStepAnswer | null>(null);
@@ -136,18 +136,20 @@ function RatingChooser({ category, control }: { category: AccountRatingCategory;
   const initializedRef = useRef(false);
 
   useEffect(() => {
-    if (!control.cooldown || control.cooldownLoading || initializedRef.current) {
+    if (initializedRef.current || (pendingRating === undefined && (!control.cooldown || control.cooldownLoading))) {
       return;
     }
 
     initializedRef.current = true;
-    const active = control.activeRating;
+    const active = pendingRating ?? control.activeRating;
 
     if (active) {
       setAnswer(active > 0 ? 'yes' : 'no');
       setConfidence(Math.min(Math.abs(active), 4) as 1 | 2 | 3 | 4);
+    } else if (pendingRating === 0) {
+      setAnswer('clear');
     }
-  }, [control.activeRating, control.cooldown, control.cooldownLoading]);
+  }, [control.activeRating, control.cooldown, control.cooldownLoading, pendingRating]);
 
   // Single place that keeps `control.rating` in sync with the two-step selection: whenever the
   // selection doesn't yet resolve to a concrete value (an answer picked but no confidence yet, or
@@ -255,11 +257,12 @@ function RatingChooser({ category, control }: { category: AccountRatingCategory;
   );
 }
 
-// Full-mode rating surface (detail view). Thin renderer over useRatingControl.
+// Shared rating surface for account detail and the feed dialog.
 export function RatingForm(
   props: RatingControlArgs & {
     // Timeout notice (Retry/Dismiss) support: the full pending map plus key-based callbacks, kept
     // separate from RatingControlArgs since useRatingControl itself has no use for them.
+    onSubmittingChange?: (submitting: boolean) => void;
     onDismissPending?: (key: string) => void;
     onRetryPending?: (key: string) => void;
     pendingRatings?: PendingRatingsByKey;
@@ -267,12 +270,15 @@ export function RatingForm(
 ) {
   const { category, onDismissPending, onRetryPending, pendingRating, pendingRatings, self, targetAddress } = props;
   const control = useRatingControl(props);
+  useEffect(() => { props.onSubmittingChange?.(control.submitting); }, [control.submitting, props.onSubmittingChange]);
 
   if (!control.canInteract) {
     return (
       <div className="mini-section">
         <h3>{t('rating.action.rateAccount')}</h3>
         <p className="muted">{control.note}</p>
+        <RatingChooser category={category} control={control} pendingRating={pendingRating} />
+        <button className="rating-submit" disabled type="button">{t('action.submitRating')}</button>
       </div>
     );
   }
@@ -290,7 +296,7 @@ export function RatingForm(
         {t('rating.context', { account: self?.name ?? compactAddress(self?.address, 8, 6), category: categoryLabel(category) })}
       </p>
 
-      <RatingChooser category={category} control={control} />
+      <RatingChooser category={category} control={control} pendingRating={pendingRating} />
       <RatingImpactNote category={category} control={control} raterAddress={self?.address} />
 
       {!isPending && onCooldown ? <p className="rating-cooldown" role="status"><Timer aria-hidden="true" size={17} />{t('rating.statusCooldown', { blocks: formatNumber(cooldown?.blocksRemaining) })}</p> : null}

@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Open a role-specific rating dialog from any feed role panel; keep username headers
+  linked to account details. Reuse the existing rating editor and parent pending state.
+- Keep rating controls visible on account detail for the selected role; show disabled
+  controls with the existing reason when Home, identity or self-rating rules prevent rating.
+- Preserve pending confidence when reopening an editor; support keyboard dialog entry,
+  focus return and dismissal after broadcast while retaining cooldown and retry handling.
+
 - Separate account cards with contrasting identity header bands and clearer top borders;
   tighten combined-role spacing and keep header metadata on one row where space allows.
 

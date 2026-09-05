@@ -15,8 +15,9 @@ Qortium’s community trust system. It runs inside Qortium Home through the
   Voters, Guides and Designers. The role selector controls role-specific sorting.
 - Account rows retain trust status, blocks minted, standing and personal ratings;
   the combined view also shows every role's score and received rating counts.
-- Click an account card or name to open its details; the Minters view also offers
-  a direct Rate action when Home supports ratings. Show all roles stays beside the
+- Click a username header to open account details. Each combined role panel opens
+  a rating dialog for that account and role; the Minters view has a direct Rate action.
+  Show all roles stays beside the
   navigation tabs, including while viewing account details.
 - Status shields differ by shape as well as color; expandable help explains voting
   weight and minting consequences using the current policy.
@@ -28,7 +29,9 @@ Qortium’s community trust system. It runs inside Qortium Home through the
   the name, address, and public key. Lists show names without redundant addresses;
   unnamed accounts retain their address as the identity fallback.
 - One role can be rated at a time from account detail, while all four role
-  standings remain visible for comparison.
+  standings remain visible for comparison. Selecting a role changes the rating editor.
+  The feed dialog uses the same editor, cooldown, unlock and pending-confirmation flow.
+  Browser previews show disabled rating controls; submission requires Qortium Home.
 - Why this standing starts collapsed and explains the current level's requirements.
   Higher-level requirements have a separate disclosure; Gold remains the highest
   Minter status even when its internal trust level increases. Detailed explanations show capped level score,

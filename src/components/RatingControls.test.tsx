@@ -139,7 +139,9 @@ describe('RatingForm write path (two-step Minter chooser)', () => {
 
     // canInteract is false for self-rating → the form renders the note, never the cooldown fetch.
     expect(getRatingCooldownMock).not.toHaveBeenCalled();
-    expect(screen.queryByRole('button', { name: 'Yes' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Yes' }).matches(':disabled')).toBe(true);
+    expect((screen.getByRole('button', { name: 'Submit rating' }) as HTMLButtonElement).disabled).toBe(true);
+    expect(submitRatingMock).not.toHaveBeenCalled();
   });
 
   it('submits No + Clear as a Clear-my-rating (0) once an active rating exists', async () => {
