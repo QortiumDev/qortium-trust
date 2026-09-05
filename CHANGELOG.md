@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.4.8 — 2026-09-05
 
 - Skip redundant Home unlock approval when the selected account is already unlocked.
 - Close the feed rating editor on Submit and show progress immediately on its role
