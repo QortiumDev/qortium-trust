@@ -363,6 +363,8 @@ export function AccountDetail({
             ) : null}
             <StatusBadge status={detail.profile?.trustStatus ?? selectedDerivation.derivedTrustStatus} />
           </div>
+        </div>
+        <div className="detail-header__identifiers">
           <div className="detail-identifier-row">
             <span>{t('label.account')}</span>
             <code>{selectedDerivation.accountAddress}</code>

@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Compact account pages with identifiers beside the name when they fit, wrapping
+  role metrics, and tighter rating/evidence spacing while retaining full copyable values.
+
 - Compact Minters-only cards into one row where space allows, wrapping fields by
   container width and text size instead of reserving full rows for identity and metadata.
 

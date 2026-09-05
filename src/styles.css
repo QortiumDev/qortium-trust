@@ -3442,3 +3442,49 @@ html {
     padding: 3px 8px;
   }
 }
+
+/* Account detail follows the same compact, wrapping identity layout as the feed. */
+.detail-header--account {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  padding: 8px 10px;
+}
+.detail-header--account > .identity-avatar { flex-shrink: 0; }
+.detail-header__identity { flex: 1 1 calc(180px * var(--text-scale)); }
+.detail-header__name-line { gap: 4px 8px; }
+.detail-header__name-line h2 { min-width: 0; overflow-wrap: anywhere; }
+.detail-header__identifiers {
+  display: grid;
+  gap: 4px;
+  flex: 2 1 calc(480px * var(--text-scale));
+  min-width: 0;
+}
+.detail-identifier-row {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 4px 8px;
+}
+.detail-identifier-row > span { grid-column: auto; }
+.detail-identifier-row code { min-width: 0; font-size: var(--font-size-small); }
+.detail-header--account .copy-value-button { min-height: 28px; padding: 3px 6px; }
+.role-standing-grid { gap: 8px; margin-bottom: 10px; }
+.role-standing-card { display: flex; flex-direction: column; gap: 4px; padding: 8px 10px; }
+.role-standing-card__title { gap: 4px 8px; }
+.role-standing-card__metrics { display: flex; flex-wrap: wrap; gap: 3px 12px; }
+.role-standing-card__metrics > span { display: inline-flex; flex-wrap: wrap; gap: 0 4px; align-items: baseline; min-width: 0; }
+.role-standing-card__metrics strong { overflow-wrap: anywhere; }
+.detail-role-workspace__header { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 4px 12px; }
+.detail-role-workspace__header > div:first-child { display: contents; }
+.detail-role-workspace__header p { order: 3; flex-basis: 100%; margin: 0; }
+.detail-role-workspace__summary { margin-inline-start: auto; align-items: center; gap: 4px 12px; }
+@media (min-width: 761px) and (max-width: 1100px) {
+  .role-standing-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 520px) {
+  .detail-identifier-row { grid-template-columns: minmax(0, 1fr) auto; }
+  .detail-identifier-row > span { grid-column: 1 / -1; }
+}
+.detail-header__name-line .copy-value-button > span:not(.sr-only) { display: none; }
+.detail-role-workspace__columns .mini-section { margin-top: 6px; padding-top: 8px; }
+.detail-role-workspace .detail-rate { margin-bottom: 0; }

@@ -30,6 +30,8 @@ Qortium’s community trust system. It runs inside Qortium Home through the
 - Account detail presents the avatar and name together with copy controls for
   the name, address, and public key. Lists show names without redundant addresses;
   unnamed accounts retain their address as the identity fallback.
+- Account-page identifiers sit beside the name where space allows and wrap below
+  on phones; role metrics and the selected-role summary also wrap compactly.
 - One role can be rated at a time from account detail, while all four role
   standings remain visible for comparison. Selecting a role changes the rating editor.
   The feed dialog uses the same editor, cooldown, unlock and pending-confirmation flow.
