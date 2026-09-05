@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.4.5 — 2026-09-05
 
 - Shorten rating summaries to answer and degree (for example, “Yes · Very high”),
   omitting the repeated confidence label across locales.
