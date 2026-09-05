@@ -196,10 +196,7 @@ function RoleStandingCard({
     >
       <span className="role-standing-card__title">
         <strong><RoleIcon category={category} />{categoryLabel(category)}</strong>
-        {/* Only the Minter card keeps a Bronze/Silver/Gold-style status badge (#Stage B, task 5) —
-            Voter/Guide/Designer cards show their trust level instead (in the metrics row below), so
-            they never imply an externally meaningful status the way Minter status does. */}
-        {status && category === 'SUBJECT' ? <StatusBadge status={status} /> : null}
+        {status ? <StatusBadge status={status} /> : <span className="muted">—</span>}
       </span>
       <span className="role-standing-card__purpose">{rolePurpose(category)}</span>
       <span className="role-standing-card__metrics">

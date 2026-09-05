@@ -20,6 +20,8 @@ Qortium’s community trust system. It runs inside Qortium Home through the
   navigation tabs, including while viewing account details.
 - Status shields differ by shape as well as color; expandable help explains voting
   weight and minting consequences using the current policy.
+- Combined role views show each role's own derived status badge, including Unverified.
+  The account header retains the overall Minter standing.
 - Account detail presents the avatar and name together with copy controls for
   the name, address, and public key. Lists show names without redundant addresses;
   unnamed accounts retain their address as the identity fallback.

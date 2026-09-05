@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Show each role's derived status badge in combined lists and account detail cards,
+  including Unverified; keep missing role data distinct from a known Unverified status.
+
 - Explain the current standing before separately collapsed higher-level requirements;
   clarify that Minter levels 3 and 4 both remain Gold. Show Suspicious conditions neutrally.
 - Return through linked accounts with the detail Back button, preserving browser Forward

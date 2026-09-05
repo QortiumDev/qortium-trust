@@ -381,12 +381,7 @@ export function AccountsTable({
                         <div className="account-role-summary">
                           <strong className="account-role-title"><RoleIcon category={role} />{categoryLabel(role)}</strong>
                           <div className="account-role-summary__standing">
-                            {/* Only the Minter (SUBJECT) column keeps a Bronze/Silver/Gold-style status
-                                badge (#Stage B, task 5) — Voter/Guide/Designer columns show trust level
-                                only, so they never imply an externally meaningful status. */}
-                            {role === 'SUBJECT' ? (
-                              roleData ? <MemoStatusBadge status={roleData.mappedTrustStatus} /> : <span className="muted">—</span>
-                            ) : null}
+                            {roleData ? <MemoStatusBadge status={roleData.mappedTrustStatus} /> : <span className="muted">—</span>}
                             <span className="account-role-summary__level">
                               {t('label.trustLevel')} {formatNumber(roleData?.level)}
                             </span>
