@@ -12,7 +12,9 @@ Qortium’s community trust system. It runs inside Qortium Home through the
   Guides, Voters and Minters. The role selector controls role-specific sorting.
 - Account rows retain trust status, blocks minted, standing and personal ratings;
   the combined view also shows every role's score and received rating counts.
-- Role-specific Rate buttons open the existing account detail rating workspace.
+- Click an account card or name to open its details; the Minters view also offers
+  a direct Rate action when Home supports ratings. Show all roles stays beside the
+  navigation tabs, including while viewing account details.
 - Status shields differ by shape as well as color; expandable help explains voting
   weight and minting consequences using the current policy.
 - Account detail presents the avatar and name together with copy controls for
@@ -63,8 +65,8 @@ patch number tracks the app release. `vite.config.ts` reads `package.json`,
 injects the visible version, and emits `dist/qortium-app.json` on every build.
 
 Classic and Fun use the available app window with responsive local constraints.
-Modern retains its intentionally wider outer margins. All three styles consume
-Home’s theme, accent, language, and text-size settings, including RTL and
+Modern retains its intentionally wider outer margins. Browser previews default to dark mode. All three styles consume
+Home’s explicit theme, accent, language, and text-size settings, including RTL and
 reduced-motion behavior. Typography switches live as well: Classic uses
 Lexend, Modern uses Inter, Fun uses Comic Neue with Fredoka display text, and
 technical values remain monospace.

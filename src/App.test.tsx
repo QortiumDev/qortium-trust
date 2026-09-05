@@ -240,6 +240,19 @@ describe('App rating flow (pending -> confirm/timeout, and account-switch immuni
     vi.clearAllMocks();
   });
 
+  it('keeps the role toggle available inside account detail', async () => {
+    await renderAppAtAccountDetail();
+    const toggle = screen.getByRole('checkbox', { name: 'Show all roles' });
+    expect(toggle.closest('nav')).toBeTruthy();
+    if (!(toggle as HTMLInputElement).checked) fireEvent.click(toggle);
+    await flush();
+    expect(screen.getByRole('region', { name: 'Trust roles' })).toBeTruthy();
+    fireEvent.click(toggle);
+    await flush();
+    expect(screen.queryByRole('region', { name: 'Trust roles' })).toBeNull();
+    expect(screen.getByRole('button', { name: /submit rating|remove rating/i })).toBeTruthy();
+  });
+
   it.each(['refresh', 'sort'])('labels the fallback honestly and retries through %s', async (retry) => {
     vi.mocked(loadRecentDirectory).mockRejectedValueOnce(new Error('history incomplete'));
     render(<App />);

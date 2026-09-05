@@ -192,7 +192,7 @@ function TrustFlowGuide({
 }
 
 // Accessible checkbox styled as a switch (reuses the existing .live-toggle pattern). Placed in the
-// accounts toolbar; the app-wide category selector and the three non-Minters role surfaces are
+// section navigation; the app-wide category selector and the three non-Minters role surfaces are
 // hidden until this is on (owner decision: Minters-first redesign, Stage A).
 function ShowAllRolesToggle({
   checked,
@@ -833,6 +833,7 @@ export default function App() {
                 {label}
               </button>
             ))}
+            <ShowAllRolesToggle checked={showAllRoles} onChange={setShowAllRoles} />
           </nav>
 
       {error ? (
@@ -889,7 +890,6 @@ export default function App() {
               </label>
               <button className="sort-direction icon-button" title={t(visibleSort[0].direction === 'asc' ? 'sort.ascending' : 'sort.descending')} aria-label={t(visibleSort[0].direction === 'asc' ? 'sort.ascending' : 'sort.descending')} onClick={() => changeAccountSort(visibleSort[0].key)} type="button">{visibleSort[0].direction === 'asc' ? '↑' : '↓'}</button>
               {showAllRoles ? <CategorySelect category={category} onChange={setCategory} /> : null}
-              <ShowAllRolesToggle checked={showAllRoles} onChange={setShowAllRoles} />
             </div>
             <div className="directory-help">
               <TrustStatusHelp policy={data.policy} />

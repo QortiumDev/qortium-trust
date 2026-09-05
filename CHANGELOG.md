@@ -9,8 +9,11 @@
   minted, detailed evidence, rating choices, pending handling and Home display settings.
 - Default to latest outgoing rating submission using existing confirmed history reads;
   expose mobile sorting and explicit fallback when complete available reads fail.
-- Open the existing selected-role rating form directly from account rows.
+- Open details from account cards/names without repeated detail buttons. Keep the
+  direct Minters Rate action when available.
 - Refresh cooldown countdowns and impact previews without overwriting draft opinions;
   recover initial read failures without inadvertently selecting rating removal.
 - Sort personal ratings from the same role-keyed current/pending data shown in the list.
 - Keep help collapsed by default and cover new copy in all 23 supported locale catalogs.
+- Keep Show all roles beside navigation so it can be changed within account details.
+- Default to dark mode when no explicit Home/query theme is provided.

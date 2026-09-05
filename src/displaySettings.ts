@@ -57,7 +57,7 @@ const DEFAULT_DISPLAY_SETTINGS: QdnDisplaySettings = {
   accent: 'green',
   language: 'en',
   textSize: 'medium',
-  theme: 'light',
+  theme: 'dark',
   uiStyle: 'classic',
 };
 

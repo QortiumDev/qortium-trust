@@ -3170,3 +3170,7 @@ html {
 }
 .account-activity { display: flex; align-items: center; gap: 5px; color: var(--muted); font-size: var(--font-size-small); margin-top: 4px; }
 .activity-unavailable { border-inline-start: 3px solid var(--accent); padding: 8px 10px; font-size: var(--font-size-small); }
+
+/* Keep the role toggle available in both directory and account detail. */
+.section-nav { align-items: center; flex-wrap: wrap; }
+.section-nav > .live-toggle { margin-inline-start: auto; font-size: var(--font-size-small); }

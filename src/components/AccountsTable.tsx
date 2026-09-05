@@ -418,7 +418,6 @@ export function AccountsTable({
                               </dd>
                             </div>
                           </dl>
-                          {onRate ? <button className="account-rate-link" type="button" onClick={event => { event.stopPropagation(); onRate(derivation, role); }}>{t(ratingActionAvailable ? 'label.rate' : 'action.viewDetails')}</button> : null}
                         </div>
                       </td>
                     );
@@ -430,7 +429,7 @@ export function AccountsTable({
                       pending={subjectDisplayed.pending ? subjectDisplayed.value : undefined}
                       value={subjectDisplayed.value}
                     />
-                    {onRate ? <button className="account-rate-link" type="button" onClick={event => { event.stopPropagation(); onRate(derivation, effectiveCategory); }}>{t(ratingActionAvailable ? 'label.rate' : 'action.viewDetails')}</button> : null}
+                    {onRate && ratingActionAvailable ? <button className="account-rate-link" type="button" onClick={event => { event.stopPropagation(); onRate(derivation, effectiveCategory); }}>{t('label.rate')}</button> : null}
                   </td>
                 )}
               </tr>

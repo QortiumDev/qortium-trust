@@ -119,14 +119,17 @@ describe('AccountsTable simplified Minters directory (showAllRoles off)', () => 
   });
 });
 
-it('keeps all four roles and blocks minted visible when a role rating action is opened', () => {
+it('opens combined cards without repeating details buttons', () => {
   const onRate = vi.fn();
-  const { container } = render(<AccountsTable category="SUBJECT" derivations={[derivation]} onSelect={vi.fn()} onSort={vi.fn()} onRate={onRate} ratingActionAvailable profiles={{}} showAllRoles sort={[{ key: 'account', direction: 'asc' }]} />);
+  const onSelect = vi.fn();
+  const { container } = render(<AccountsTable category="SUBJECT" derivations={[derivation]} onSelect={onSelect} onSort={vi.fn()} onRate={onRate} ratingActionAvailable profiles={{}} showAllRoles sort={[{ key: 'account', direction: 'asc' }]} />);
   const roleCells = container.querySelectorAll('.account-role-cell');
   expect(roleCells).toHaveLength(4);
   expect(container.querySelector('.account-blocks-cell')?.textContent).toBe('42');
-  fireEvent.click(roleCells[1].querySelector('button')!);
-  expect(onRate).toHaveBeenCalledWith(derivation, 'TRAINER');
+  expect(container.querySelectorAll('.account-rate-link')).toHaveLength(0);
+  fireEvent.click(roleCells[1]);
+  expect(onSelect).toHaveBeenCalledWith(derivation);
+  expect(onRate).not.toHaveBeenCalled();
   expect(container.querySelectorAll('.account-role-cell')).toHaveLength(4);
 });
 
