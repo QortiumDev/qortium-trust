@@ -30,7 +30,7 @@ import { AvatarActionsProvider } from './components/Identity';
 import { setTranslationLanguage, t, type TranslationKey } from './i18n';
 import { getBridgeState } from './qdnRequest';
 import { PENDING_CONFIRM_POLL_MS, PENDING_CONFIRM_TIMEOUT_MS, pendingRatingKey } from './ratingControl';
-import { getTrustRouteUrl, readTrustRoute, type TrustRoute } from './trustRoute';
+import { getTrustRouteUrl, readTrustRoute, trustHistoryDepth, type TrustRoute } from './trustRoute';
 import {
   getInitialShowAllRoles,
   getInitialTrustFlowGuideCollapsed,
@@ -424,6 +424,8 @@ export default function App() {
   useEffect(() => {
     const readRouteFromUrl = () => {
       const route = readTrustRoute(window.location.href);
+      setFocusRating(false);
+      if (!route.account) restoreListFocusRef.current = true;
       setSelectedAddress(route.account);
       setView(route.view);
     };
@@ -451,7 +453,14 @@ export default function App() {
   }, []);
 
   const navigateToRoute = useCallback((route: TrustRoute) => {
-    window.history.pushState({}, '', getTrustRouteUrl(window.location.href, route));
+    const current = readTrustRoute(window.location.href);
+    if (current.account !== route.account || current.view !== route.view) {
+      window.history.pushState(
+        { trustNavigationDepth: trustHistoryDepth(window.history.state) + 1 },
+        '',
+        getTrustRouteUrl(window.location.href, route),
+      );
+    }
     setSelectedAddress(route.account);
     setView(route.view);
   }, []);
@@ -466,9 +475,20 @@ export default function App() {
   }, [data.derivations, navigateToRoute]);
 
   const handleBack = useCallback(() => {
+    if (trustHistoryDepth(window.history.state) > 0) {
+      window.history.back();
+      return;
+    }
     restoreListFocusRef.current = true;
-    navigateToRoute({ account: null, view: 'accounts' });
-  }, [navigateToRoute]);
+    setFocusRating(false);
+    window.history.replaceState(
+      { ...window.history.state, trustNavigationDepth: 0 },
+      '',
+      getTrustRouteUrl(window.location.href, { account: null, view: 'accounts' }),
+    );
+    setSelectedAddress(null);
+    setView('accounts');
+  }, []);
 
   useEffect(() => {
     if (!selectedAddress && restoreListFocusRef.current) {

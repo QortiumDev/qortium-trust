@@ -241,6 +241,61 @@ describe('App rating flow (pending -> confirm/timeout, and account-switch immuni
     vi.clearAllMocks();
   });
 
+  it('returns through linked accounts and keeps browser Forward usable', async () => {
+    const other = { ...TARGET_DERIVATION, accountAddress: 'Qother', accountPublicKey: 'otherPub' };
+    getTrustDerivationPageMock.mockResolvedValue({ derivations: [TARGET_DERIVATION, other], total: 2 });
+    getTrustExplanationMock.mockImplementation(async (publicKey) => ({
+      targetPublicKey: publicKey, targetAddress: publicKey === 'targetPub' ? 'Qtarget' : 'Qother',
+      trustStatus: 'SILVER', trustStatusValue: 3, trustWeightPercent: 70,
+      activeWeightCategory: 'SUBJECT', mintingSeedMember: true,
+      categories: [{ category: 'SUBJECT', level: 2, mappedTrustStatus: 'SILVER',
+        score: 10, levelScore: 10, levelScoreCap: 100, mappedTrustStatusValue: 3, mappedTrustWeightPercent: 70,
+        inboundRatings: counts(), positiveMinBranchCount: 2, suspiciousThreshold: -100,
+        suspiciousLevelScoreCap: 100, suspiciousMinRaterCount: 2, suspiciousMinBranchCount: 2, suspiciousMinRatingConfidence: 2,
+        configuredLevels: [], requirements: [], topNegativeImpacts: [],
+        topPositiveImpacts: [{ raterAddress: publicKey === 'targetPub' ? 'Qother' : 'Qtarget', impact: 10, rating: 2,
+          raterPublicKey: publicKey === 'targetPub' ? 'otherPub' : 'targetPub', ratingDirection: 'POSITIVE',
+          ratingConfidence: 2, evaluatorLevel: 2, evaluatorScore: 10, trustBranchKeys: [], trustBranchCount: 0 }],
+      }],
+    }));
+    render(<App />);
+    await flush();
+    fireEvent.click(screen.getByRole('button', { name: 'Open Qtarget' }));
+    await flush();
+    fireEvent.click(screen.getByRole('button', { name: 'Qother' }));
+    await flush();
+    expect(window.location.search).toContain('account=Qother');
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+    await act(async () => { await vi.advanceTimersByTimeAsync(50); });
+    await flush();
+    expect(screen.getByRole('heading', { name: 'Qtarget' })).toBeTruthy();
+    expect(window.location.search).toContain('account=Qtarget');
+    await act(async () => { window.history.forward(); await vi.advanceTimersByTimeAsync(50); });
+    await flush();
+    expect(screen.getByRole('heading', { name: 'Qother' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+    await act(async () => { await vi.advanceTimersByTimeAsync(50); });
+    await flush();
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+    await act(async () => { await vi.advanceTimersByTimeAsync(50); });
+    await flush();
+    expect(screen.getByRole('button', { name: 'Open Qtarget' })).toBeTruthy();
+    expect(window.location.search).toBe('');
+  });
+
+  it('keeps a direct-link Back inside the app and preserves display parameters', async () => {
+    window.history.replaceState(null, '', '/?account=Qtarget&theme=dark');
+    render(<App />);
+    await flush();
+    expect(screen.getByRole('heading', { name: 'Qtarget' })).toBeTruthy();
+    const length = window.history.length;
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+    await flush();
+    expect(screen.getByRole('button', { name: 'Open Qtarget' })).toBeTruthy();
+    expect(window.location.search).toBe('?theme=dark');
+    expect(window.history.length).toBe(length);
+  });
+
   it('excludes non-members in recent and other sorts, including the directory summary', async () => {
     const outsider = { ...TARGET_DERIVATION, accountAddress: 'Qoutsider', accountPublicKey: 'outsiderPub', mintingSeedMember: false };
     getTrustDerivationPageMock.mockResolvedValue({ derivations: [TARGET_DERIVATION, outsider], total: 2 });

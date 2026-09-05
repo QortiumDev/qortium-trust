@@ -2452,6 +2452,10 @@ tbody tr:hover,
   border-color: var(--positive);
 }
 
+.role-higher-requirements {
+  margin-top: 12px;
+}
+
 .requirement p {
   margin: 2px 0;
 }

@@ -64,6 +64,8 @@ describe('AccountsTable unified role directory (showAllRoles on)', () => {
       />,
     );
 
+    expect(container.querySelector('.identity-label')?.textContent).toBe('Target');
+    expect(container.querySelector('.identity-address')).toBeNull();
     expect(screen.getByRole('columnheader', { name: 'Designers' })).toBeTruthy();
     expect(screen.getByRole('columnheader', { name: 'Guides' })).toBeTruthy();
     expect(screen.getByRole('columnheader', { name: 'Voters' })).toBeTruthy();

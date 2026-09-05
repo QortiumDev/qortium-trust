@@ -124,28 +124,39 @@ function ratingValue(value: number | undefined, category: AccountRatingCategory)
   );
 }
 
-function relevantRequirements(
+function requirementsForLevel(
   category: ExplanationCategoryWithRequirements | undefined,
+  level: number | undefined,
 ): TrustRequirement[] {
-  if (!category?.requirements?.length) {
-    return [];
-  }
-
-  const nextLevelPrefix = `level.${category.level + 1}.`;
-  const nextLevel = category.requirements.filter((requirement) => requirement.name.startsWith(nextLevelPrefix));
-  const positiveGate = category.requirements.filter(
-    (requirement) => requirement.name === 'positive.raw-score' && !requirement.passed,
-  );
-
-  if (nextLevel.length + positiveGate.length > 0) {
-    return [...positiveGate, ...nextLevel].sort((left, right) => Number(left.passed) - Number(right.passed));
-  }
-
-  // At the highest level, retain unmet positive requirements when present. Suspicious checks are
-  // intentionally excluded here: not meeting a suspicious threshold is usually the desired result.
-  return category.requirements
-    .filter((requirement) => !requirement.passed && !requirement.name.startsWith('suspicious.'))
+  return (category?.requirements ?? [])
+    .filter((requirement) => requirement.name === 'positive.raw-score' ||
+      (level !== undefined && requirement.name.startsWith(`level.${level}.`)))
     .sort((left, right) => Number(left.passed) - Number(right.passed));
+}
+
+function RequirementList({ requirements, suspicious = false }: {
+  requirements: TrustRequirement[];
+  suspicious?: boolean;
+}) {
+  return (
+    <ul className="requirement-list">
+      {requirements.map((requirement) => (
+        <li
+          className={`requirement requirement--${suspicious ? 'neutral' : requirement.passed ? 'passed' : 'failed'}`}
+          key={requirement.name}
+        >
+          <span aria-hidden="true">{suspicious ? '•' : requirement.passed ? '✓' : '!'}</span>
+          <div>
+            <strong>{requirement.passed ? t('role.met') : t('role.notMet')}</strong>
+            <p>{publicizeTrustText(requirement.description)}</p>
+            <span className="muted">
+              {t('role.currentNeeded', { actual: requirement.actual, required: requirement.required })}
+            </span>
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
 }
 
 function RoleStandingCard({
@@ -310,7 +321,16 @@ export function AccountDetail({
     [detail.explanation?.categories],
   );
   const activeExplanation = explanationByCategory.get(activeCategory);
-  const activeRequirements = relevantRequirements(activeExplanation);
+  const configuredLevels = (activeExplanation?.configuredLevels ?? [])
+    .map(({ level }) => level).filter((level) => level > 0).sort((a, b) => a - b);
+  const suspicious = activeExplanation?.mappedTrustStatus === 'SUSPICIOUS';
+  const currentLevel = activeExplanation?.level ?? 0;
+  const displayedLevel = currentLevel > 0 ? currentLevel : configuredLevels[0];
+  const activeRequirements = suspicious
+    ? (activeExplanation?.requirements ?? []).filter(({ name }) => name.startsWith('suspicious.'))
+    : requirementsForLevel(activeExplanation, displayedLevel);
+  const higherLevel = currentLevel > 0 ? configuredLevels.find((level) => level > currentLevel) : undefined;
+  const higherRequirements = higherLevel === undefined ? [] : requirementsForLevel(activeExplanation, higherLevel);
   const activePending = getDisplayedRating(
     pendingRatings,
     undefined,
@@ -326,7 +346,7 @@ export function AccountDetail({
     <>
       <div className="detail-back">
         <button
-          aria-label={t('action.backToList')}
+          aria-label={t('action.back')}
           className="back-button"
           onClick={onBack}
           ref={backButtonRef}
@@ -426,41 +446,29 @@ export function AccountDetail({
                 />
               </div>
 
-              <details className="mini-section role-requirements" key={activeCategory}>
+              <details className="mini-section role-requirements" key={`${selectedDerivation.accountAddress}:${activeCategory}`}>
                 <summary>{t('role.whyStanding')}</summary>
+                {activeCategory === 'SUBJECT' && activeExplanation?.mappedTrustStatus === 'GOLD' ? (
+                  <p className="muted">{t('role.goldHighest')}</p>
+                ) : null}
+                {activeExplanation && !suspicious && displayedLevel !== undefined ? (
+                  <p className="muted">
+                    {currentLevel > 0
+                      ? `${t('label.trustLevel')} ${formatNumber(currentLevel)}`
+                      : t('role.nextRequirements', { level: formatNumber(displayedLevel) })}
+                  </p>
+                ) : null}
                 {activeRequirements.length === 0 ? (
                   <p className="muted">
-                    {activeExplanation
-                      ? t('role.noUnmetRequirements')
-                      : t('role.detailUnavailable')}
+                    {activeExplanation ? t('role.noUnmetRequirements') : t('role.detailUnavailable')}
                   </p>
-                ) : (
-                  <>
-                    <p className="muted">
-                      {t('role.nextRequirements')}
-                    </p>
-                    <ul className="requirement-list">
-                      {activeRequirements.map((requirement) => (
-                        <li
-                          className={requirement.passed ? 'requirement requirement--passed' : 'requirement requirement--failed'}
-                          key={requirement.name}
-                        >
-                          <span aria-hidden="true">{requirement.passed ? '✓' : '!'}</span>
-                          <div>
-                            <strong>{requirement.passed ? t('role.met') : t('role.notMet')}</strong>
-                            <p>{publicizeTrustText(requirement.description)}</p>
-                            <span className="muted">
-                              {t('role.currentNeeded', {
-                                actual: requirement.actual,
-                                required: requirement.required,
-                              })}
-                            </span>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  </>
-                )}
+                ) : <RequirementList requirements={activeRequirements} suspicious={suspicious} />}
+                {higherLevel !== undefined && higherRequirements.length > 0 ? (
+                  <details className="role-higher-requirements">
+                    <summary>{t('role.higherLevel', { level: formatNumber(higherLevel) })}</summary>
+                    <RequirementList requirements={higherRequirements} />
+                  </details>
+                ) : null}
               </details>
             </div>
           </section>

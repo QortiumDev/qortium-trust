@@ -21,11 +21,13 @@ Qortium’s community trust system. It runs inside Qortium Home through the
 - Status shields differ by shape as well as color; expandable help explains voting
   weight and minting consequences using the current policy.
 - Account detail presents the avatar and name together with copy controls for
-  the name, address, and public key.
+  the name, address, and public key. Lists show names without redundant addresses;
+  unnamed accounts retain their address as the identity fallback.
 - One role can be rated at a time from account detail, while all four role
   standings remain visible for comparison.
-- Why this standing starts collapsed and expands on click. Detailed trust
-  explanations show capped level score, unmet requirements,
+- Why this standing starts collapsed and explains the current level's requirements.
+  Higher-level requirements have a separate disclosure; Gold remains the highest
+  Minter status even when its internal trust level increases. Detailed explanations show capped level score,
   strongest impacts, and the active ratings received from identifiable raters.
 - The role guide explains the community flow:
   Designers shape the system, Guides share understanding, Voters apply the
@@ -35,7 +37,8 @@ Qortium’s community trust system. It runs inside Qortium Home through the
 - Deep links use `?account=<address>` or the legacy `?target=<address>`. Account
   and section changes create browser-history entries while retaining Home's
   display and bridge query parameters, so Home Back and Forward can traverse
-  the in-app route history.
+  the in-app route history. The detail Back button follows that same history;
+  a directly opened account returns to the list without leaving the app.
 - Home-mediated rating submission includes unlock prompts, cooldown checks,
   impact preview, optimistic pending state, and confirmation polling. The open
   editor refreshes its remaining-block countdown and preserves draft selections.

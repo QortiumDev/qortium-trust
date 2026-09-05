@@ -7,6 +7,13 @@ export interface TrustRoute {
 
 const TRUST_ROUTE_KEYS = ['account', 'target', 'view'] as const;
 
+// Only traverse history entries created inside this app. A direct account link has no
+// previous app route, so its Back action must stay in the app and open the account list.
+export function trustHistoryDepth(state: unknown): number {
+  const depth = (state as { trustNavigationDepth?: unknown } | null)?.trustNavigationDepth;
+  return typeof depth === 'number' && Number.isSafeInteger(depth) && depth > 0 ? depth : 0;
+}
+
 export function readTrustRoute(input: string | URL): TrustRoute {
   const url = input instanceof URL ? input : new URL(input, 'http://localhost');
   const requestedView = url.searchParams.get('view');

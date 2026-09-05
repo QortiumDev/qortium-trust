@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Explain the current standing before separately collapsed higher-level requirements;
+  clarify that Minter levels 3 and 4 both remain Gold. Show Suspicious conditions neutrally.
+- Return through linked accounts with the detail Back button, preserving browser Forward
+  and keeping direct-link Back inside the app.
+- Omit redundant addresses beside account names in lists and evidence; retain the
+  full address with its copy control on account detail and the unnamed-account fallback.
+
 - Use red for Voters, green for Guides and purple for Designers across role icons,
   headings and panel accents in dark and light themes; keep Minters gold.
 
