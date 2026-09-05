@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.4.6 — 2026-09-05
+
+- Refresh the build and test dependencies: Vite 8.2.2, Vitest 4.1.11, React plugin
+  6.1.1, React types 19.2.18, React DOM types 19.2.5, and Undici 7.29.1.
+
 ## 1.4.5 — 2026-09-05
 
 - Shorten rating summaries to answer and degree (for example, “Yes · Very high”),
