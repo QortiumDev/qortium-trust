@@ -185,7 +185,7 @@ export const en = {
   'rating.statusUnlockPrompt': 'Submitting will prompt unlock.',
   'rating.submitting': 'Submitting...',
   'rating.submitPending': 'Pending...',
-  'rating.value': '{sign} · {magnitude} confidence',
+  'rating.value': '{sign} · {magnitude}',
   'rating.waitingConfirmation': 'Waiting for block confirmation.',
   'rating.waitingConfirmationNear': 'Waiting for block confirmation near block {block}.',
   'rating.warning.negativeCounts': 'Negative ratings count 4× and can mark an account as Suspicious, which blocks minting.',

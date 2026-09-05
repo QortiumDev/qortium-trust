@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Shorten rating summaries to answer and degree (for example, “Yes · Very high”),
+  omitting the repeated confidence label across locales.
+
 - Compact account pages with identifiers beside the name when they fit, wrapping
   role metrics, and tighter rating/evidence spacing while retaining full copyable values.
 

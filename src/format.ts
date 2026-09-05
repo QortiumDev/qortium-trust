@@ -162,8 +162,8 @@ const RATING_MAGNITUDE_KEYS: Record<1 | 2 | 3 | 4, TranslationKey> = {
 };
 
 // Sign and magnitude are always presented separately (owner copy rule): never a combined
-// "+3 - Positive (High)" string. Renders e.g. "Yes · High confidence" (minter) or
-// "Positive · High confidence" (role). Callers must never pass 0 — a "not rated"/"cleared" value
+// "+3 - Positive (High)" string. Renders e.g. "Yes · High" (minter) or
+// "Positive · High" (role). Callers must never pass 0 — a "not rated"/"cleared" value
 // has its own copy (t('rating.notRated'), t('rating.option.remove'), etc).
 export function ratingSignedLabel(value: number, variant: 'minter' | 'role') {
   const sign =
