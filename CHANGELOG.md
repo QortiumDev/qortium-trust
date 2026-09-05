@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Use red for Voters, green for Guides and purple for Designers across role icons,
+  headings and panel accents in dark and light themes; keep Minters gold.
+
 - Fix numeric account sorting so the first descending page contains the highest values when the directory spans multiple pages.
 
 - Reshape the existing account list and detail views with compact spacing, combined

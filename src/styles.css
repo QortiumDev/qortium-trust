@@ -3181,16 +3181,16 @@ html {
 /* Reference-inspired finish. Role colors are semantic; controls use Home's accent. */
 :root {
   --role-minter: #896200;
-  --role-voter: #7941ba;
-  --role-guide: #087a88;
-  --role-designer: #1d6ba9;
+  --role-voter: #b03a3a;
+  --role-guide: #237a48;
+  --role-designer: #7941ba;
   --role-icon-surface: #f7fafc;
 }
 :root[data-theme='dark'] {
   --role-minter: #f5d46d;
-  --role-voter: #c6a1ff;
-  --role-guide: #4ce2e4;
-  --role-designer: #64baff;
+  --role-voter: #ff9595;
+  --role-guide: #70d99b;
+  --role-designer: #c6a1ff;
   --role-icon-surface: #091523;
 }
 [data-role='SUBJECT'] { --role-color: var(--role-minter); }

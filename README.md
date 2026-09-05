@@ -70,7 +70,7 @@ injects the visible version, and emits `dist/qortium-app.json` on every build.
 
 Classic and Fun use the available app window with responsive local constraints.
 Modern retains its intentionally wider outer margins. Browser previews default to dark mode with a cyan accent. Classic uses navy
-  gradient panels, restrained illuminated edges and angular corner details. Role medallions use gold for Minters, purple for Voters, cyan for Guides and blue
+  gradient panels, restrained illuminated edges and angular corner details. Role medallions use gold for Minters, red for Voters, green for Guides and purple
 for Designers; status shields keep their distinct silhouettes with metallic shading.
 All three styles consume
 Home’s explicit theme, accent, language, and text-size settings, including RTL and
