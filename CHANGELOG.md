@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.4.7 — 2026-09-05
 
 - Show the signed numeric value beside rating degrees in summaries and rating choices,
   for example Very high (4) or Low (-1).
