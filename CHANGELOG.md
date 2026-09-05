@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Compact Minters-only cards into one row where space allows, wrapping fields by
+  container width and text size instead of reserving full rows for identity and metadata.
+
 - Open a role-specific rating dialog from any feed role panel; keep username headers
   linked to account details. Reuse the existing rating editor and parent pending state.
 - Keep rating controls visible on account detail for the selected role; show disabled
