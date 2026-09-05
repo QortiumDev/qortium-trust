@@ -177,6 +177,7 @@ function RoleStandingCard({
   return (
     <button
       aria-pressed={active}
+      data-role={category}
       title={rolePurpose(category)}
       className={`role-standing-card${active ? ' role-standing-card--active' : ''}`}
       onClick={onSelect}
@@ -385,7 +386,7 @@ export function AccountDetail({
           </>
           ) : null}
 
-          <section className="detail-role-workspace">
+          <section className="detail-role-workspace" data-role={activeCategory}>
             <header className="detail-role-workspace__header">
               <div>
                 <h3><RoleIcon category={activeCategory} />{categoryLabel(activeCategory)}</h3>

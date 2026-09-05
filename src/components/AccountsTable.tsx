@@ -377,7 +377,7 @@ export function AccountsTable({
                     );
 
                     return (
-                      <td className="account-role-cell" data-label={categoryLabel(role)} key={role}>
+                      <td className="account-role-cell" data-role={role} data-label={categoryLabel(role)} key={role}>
                         <div className="account-role-summary">
                           <strong className="account-role-title"><RoleIcon category={role} />{categoryLabel(role)}</strong>
                           <div className="account-role-summary__standing">

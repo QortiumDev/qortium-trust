@@ -175,7 +175,7 @@ function TrustFlowGuide({
       {collapsed ? null : (
         <ol>
           {ROLE_FLOW.map((role, index) => (
-            <li key={role}>
+            <li key={role} data-role={role}>
               <strong><RoleIcon category={role} />{categoryLabel(role)}</strong>
               <span>{t(ROLE_FLOW_COPY_KEYS[role])}</span>
               {index < ROLE_FLOW.length - 1 ? <span aria-hidden="true">→</span> : null}

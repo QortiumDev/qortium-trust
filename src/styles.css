@@ -3177,3 +3177,142 @@ html {
 
 .role-requirements { align-self: start; }
 .role-requirements > summary { cursor: pointer; font-weight: 700; padding-block: 8px; }
+
+/* Reference-inspired finish. Role colors are semantic; controls use Home's accent. */
+:root {
+  --role-minter: #896200;
+  --role-voter: #7941ba;
+  --role-guide: #087a88;
+  --role-designer: #1d6ba9;
+  --role-icon-surface: #f7fafc;
+}
+:root[data-theme='dark'] {
+  --role-minter: #f5d46d;
+  --role-voter: #c6a1ff;
+  --role-guide: #4ce2e4;
+  --role-designer: #64baff;
+  --role-icon-surface: #091523;
+}
+[data-role='SUBJECT'] { --role-color: var(--role-minter); }
+[data-role='PLAYER'] { --role-color: var(--role-voter); }
+[data-role='TRAINER'] { --role-color: var(--role-guide); }
+[data-role='MANAGER'] { --role-color: var(--role-designer); }
+.role-medallion {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: calc(32px * var(--text-scale));
+  height: calc(32px * var(--text-scale));
+  border: 1px solid color-mix(in srgb, var(--role-color) 65%, transparent);
+  border-radius: 50%;
+  color: var(--role-color);
+  background: radial-gradient(circle at 35% 20%, color-mix(in srgb, var(--role-color) 18%, transparent), var(--role-icon-surface) 80%);
+  box-shadow: inset 0 0 0 2px var(--role-icon-surface), 0 0 9px color-mix(in srgb, var(--role-color) 10%, transparent);
+}
+.role-medallion .role-icon { width: 72%; height: 72%; color: inherit; }
+.account-role-title, .role-standing-card__title strong, .detail-role-workspace__header h3, .trust-flow-guide li strong { color: var(--role-color, var(--text)); }
+.account-role-title { margin-bottom: 4px; }
+.trust-shield { width: 31px; height: 35px; }
+:root[data-theme='dark'] .trust-shield { filter: drop-shadow(0 0 3px color-mix(in srgb, currentColor 20%, transparent)); }
+.badge { font-weight: 650; letter-spacing: .01em; }
+.identity-avatar { object-fit: cover; box-shadow: 0 0 0 2px var(--panel), 0 0 0 3px color-mix(in srgb, var(--accent) 35%, var(--line)); }
+.identity-avatar-small { width: 34px; height: 34px; }
+.identity-name { font-weight: 650; }
+.account-activity { font-size: calc(11px * var(--text-scale)); gap: 6px; }
+.account-role-summary__metrics dt { color: var(--muted); }
+.account-role-summary__metrics dd { font-variant-numeric: tabular-nums; }
+.account-directory-row:focus-within { outline: 2px solid var(--accent); outline-offset: -2px; }
+.role-standing-card { border-top: 2px solid color-mix(in srgb, var(--role-color) 55%, var(--line)); }
+.role-standing-card--active { border-color: var(--role-color); background: color-mix(in srgb, var(--role-color) 9%, var(--panel)); }
+.role-standing-card:hover { border-color: var(--role-color); }
+:root[data-ui='classic'] {
+  --polish-line: color-mix(in srgb, var(--accent) 28%, var(--line));
+  --polish-glow: color-mix(in srgb, var(--accent) 9%, transparent);
+}
+:root[data-theme='dark'][data-ui='classic'] {
+  --bg: #030914;
+  --frame: #030914;
+  --frame-surface: #081425;
+  --panel: #0a1729;
+  --panel-subtle: #0d1c30;
+  --surface: #0a1729;
+  --line: #23394e;
+  --muted: #9caebe;
+  --row-hover: #10273c;
+  --badge-gold-text: #ffda73;
+  --badge-silver-text: #d4e5ef;
+  --badge-bronze-text: #eeb481;
+}
+:root[data-ui='classic'] body {
+  background: radial-gradient(ellipse at 15% 0%, var(--polish-glow), transparent 45%), var(--bg);
+}
+:root[data-ui='classic'] .app-header {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--polish-line);
+  border-radius: 4px 16px 4px 16px;
+  background: linear-gradient(110deg, color-mix(in srgb, var(--accent) 8%, var(--frame-surface)), var(--frame-surface) 55%);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--accent) 20%, transparent), 0 8px 24px #00000015;
+}
+:root[data-ui='classic'] .app-header::before {
+  content: '';
+  position: absolute;
+  pointer-events: none;
+  inset: 0 0 0 65%;
+  opacity: .3;
+  background: linear-gradient(135deg, transparent 49.5%, var(--polish-line) 50%, transparent 50.5%), linear-gradient(35deg, transparent 65%, var(--polish-line) 65.5%, transparent 66%);
+}
+:root[data-ui='classic'] .app-header__mark { color: var(--accent); filter: drop-shadow(0 0 6px var(--polish-glow)); }
+:root[data-ui='classic'] .app-header__identity h1 { letter-spacing: .04em; }
+:root[data-ui='classic'] .header-actions { position: relative; }
+:root[data-ui='classic'] .section-nav { border-color: var(--polish-line); }
+:root[data-ui='classic'] .section-nav button.active { border-color: var(--accent); color: var(--text); box-shadow: 0 5px 8px -7px var(--accent); }
+:root[data-ui='classic'] .accounts-toolbar {
+  background: linear-gradient(120deg, color-mix(in srgb, var(--accent) 3%, var(--panel)), var(--panel));
+  border-color: var(--polish-line);
+  border-radius: 4px 12px 4px 12px;
+}
+:root[data-ui='classic'] .field-control > span { letter-spacing: .02em; }
+:root[data-ui='classic'] .field-control select,
+:root[data-ui='classic'] .search-field { background: var(--frame-surface); }
+:root[data-ui='classic'] .main-panel {
+  border-color: var(--polish-line);
+  border-radius: 4px 14px 4px 14px;
+  background: linear-gradient(150deg, color-mix(in srgb, var(--accent) 3%, var(--panel)), var(--panel) 50%);
+  box-shadow: inset 0 1px 0 var(--polish-glow);
+}
+:root[data-ui='classic'] .accounts-table--unified thead th { background: color-mix(in srgb, var(--accent) 6%, var(--panel)); color: var(--muted); }
+:root[data-ui='classic'] .accounts-table--unified tbody tr:hover { background: var(--row-hover); }
+:root[data-ui='classic'] .accounts-table--all-roles .account-directory-row {
+  border-color: var(--polish-line);
+  border-radius: 3px 12px 3px 12px;
+  background: linear-gradient(115deg, color-mix(in srgb, var(--accent) 4%, var(--panel)), var(--panel));
+  box-shadow: 0 4px 12px #00000014;
+}
+:root[data-ui='classic'] .accounts-table--all-roles .account-directory-row:hover { border-color: color-mix(in srgb, var(--accent) 65%, var(--line)); }
+:root[data-ui='classic'] .accounts-table--all-roles .account-role-cell {
+  border-top: 1px solid color-mix(in srgb, var(--role-color) 35%, var(--line));
+  background: linear-gradient(150deg, color-mix(in srgb, var(--role-color) 7%, var(--panel)), var(--panel));
+}
+:root[data-ui='classic'] .account-role-cell + .account-role-cell { border-inline-start: 1px solid var(--line); }
+:root[data-ui='classic'] .detail-header--account { border-bottom-color: var(--polish-line); }
+:root[data-ui='classic'] .role-standing-card { background: linear-gradient(140deg, color-mix(in srgb, var(--role-color) 7%, var(--panel)), var(--panel)); }
+:root[data-ui='classic'] .role-standing-card--active { box-shadow: inset 0 0 18px color-mix(in srgb, var(--role-color) 8%, transparent); }
+:root[data-ui='classic'] .detail-role-workspace {
+  border-color: color-mix(in srgb, var(--role-color) 35%, var(--line));
+  background: linear-gradient(135deg, color-mix(in srgb, var(--role-color) 4%, var(--panel)), var(--panel));
+}
+:root[data-ui='classic'] .rating-submit:not(:disabled) { border-color: var(--accent); box-shadow: inset 0 1px 0 var(--polish-glow); }
+:root[data-ui='classic'] .rating-submit:hover:not(:disabled) { background: var(--accent); color: var(--accent-contrast); }
+:root[data-ui='classic'] .live-toggle--on { background: color-mix(in srgb, var(--accent) 9%, var(--panel)); border-color: var(--accent); }
+@media (max-width: 700px) {
+  .role-medallion { width: calc(28px * var(--text-scale)); height: calc(28px * var(--text-scale)); }
+  :root[data-ui='classic'] .accounts-table--unified:not(.accounts-table--all-roles) .account-directory-row { border-color: var(--polish-line); background: var(--panel); }
+}
+@media (forced-colors: active) {
+  .role-medallion, .trust-shield { filter: none; forced-color-adjust: auto; }
+}
+.identity-link { max-width: 100%; text-align: start; }
+.identity-label { flex: 1; }
+.identity-address { overflow-wrap: anywhere; }

@@ -26,3 +26,8 @@
   primary-name legacy fallback; keep Home bridge gating, bounded image validation
   and pending retries. Accept valid default-resource pointers with empty identifiers.
 - Order combined account roles and received-rating groups Minters, Voters, Guides, Designers.
+- Add reference-inspired Classic navy panels, illuminated edges and angular corners;
+  default previews to cyan while respecting explicit Home accents and themes.
+- Refine SVG role medallions with distinct role colors and metallic status shields,
+  retaining non-color status shapes. Improve avatar framing, focus and account text
+  containment at large text sizes and in right-to-left layouts.

@@ -102,8 +102,8 @@ export function IdentityLabel({ address, profile }: IdentityProps) {
 
   return (
     <span className="identity-label">
-      <span className="identity-name">{label}</span>
-      {label !== address ? <span className="mono identity-address">{compactAddress(address, 10, 7)}</span> : null}
+      <span className="identity-name" dir="auto">{label}</span>
+      {label !== address ? <span className="mono identity-address" dir="ltr">{compactAddress(address, 10, 7)}</span> : null}
     </span>
   );
 }

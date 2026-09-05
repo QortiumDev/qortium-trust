@@ -69,7 +69,10 @@ patch number tracks the app release. `vite.config.ts` reads `package.json`,
 injects the visible version, and emits `dist/qortium-app.json` on every build.
 
 Classic and Fun use the available app window with responsive local constraints.
-Modern retains its intentionally wider outer margins. Browser previews default to dark mode. All three styles consume
+Modern retains its intentionally wider outer margins. Browser previews default to dark mode with a cyan accent. Classic uses navy
+  gradient panels, restrained illuminated edges and angular corner details. Role medallions use gold for Minters, purple for Voters, cyan for Guides and blue
+for Designers; status shields keep their distinct silhouettes with metallic shading.
+All three styles consume
 Home’s explicit theme, accent, language, and text-size settings, including RTL and
 reduced-motion behavior. Typography switches live as well: Classic uses
 Lexend, Modern uses Inter, Fun uses Comic Neue with Fredoka display text, and
