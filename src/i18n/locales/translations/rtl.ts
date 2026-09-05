@@ -3,6 +3,10 @@ import { type TranslationKey } from '../en';
 type LocaleCatalog = Partial<Record<TranslationKey, string>>;
 
 export const ar: LocaleCatalog = {
+  "action.trustInfo": "حول Trust",
+  "error.accountChanged": "تغيّر الحساب المحدد. حدّث الصفحة وراجع تقييمك مجددًا.",
+  "rating.broadcastUnknown": "نتيجة البث غير معروفة. جارٍ التحقق من التأكيد؛ لا تعِد الإرسال بعد.",
+
   "activity.sort": "قيّموا الآخرين مؤخرًا",
   "activity.unavailable": "النشاط الأخير غير متاح. تُعرض الحسابات المحمّلة حسب الاسم؛ حدّث الصفحة لإعادة المحاولة.",
 
@@ -250,6 +254,10 @@ export const ar: LocaleCatalog = {
 };
 
 export const he: LocaleCatalog = {
+  "action.trustInfo": "אודות Trust",
+  "error.accountChanged": "החשבון שנבחר השתנה. יש לרענן ולבדוק שוב את הדירוג.",
+  "rating.broadcastUnknown": "תוצאת השידור אינה ידועה. האישור נבדק; אין לשלוח שוב עדיין.",
+
   "activity.sort": "דירגו אחרים לאחרונה",
   "activity.unavailable": "הפעילות האחרונה אינה זמינה. החשבונות שנטענו מוצגים לפי שם; יש לרענן כדי לנסות שוב.",
 

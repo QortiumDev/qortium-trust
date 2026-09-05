@@ -3,6 +3,10 @@ import { type TranslationKey } from '../en';
 type LocaleCatalog = Partial<Record<TranslationKey, string>>;
 
 export const de: LocaleCatalog = {
+  "action.trustInfo": "Über Trust",
+  "error.accountChanged": "Das ausgewählte Konto hat sich geändert. Aktualisiere und prüfe deine Bewertung erneut.",
+  "rating.broadcastUnknown": "Sendeergebnis unbekannt. Bestätigung wird geprüft; noch nicht erneut senden.",
+
   "activity.sort": "Zuletzt andere bewertet",
   "activity.unavailable": "Aktuelle Aktivitäten nicht verfügbar. Geladene Konten werden nach Namen angezeigt; zum Wiederholen aktualisieren.",
 
@@ -250,6 +254,10 @@ export const de: LocaleCatalog = {
 };
 
 export const el: LocaleCatalog = {
+  "action.trustInfo": "Σχετικά με το Trust",
+  "error.accountChanged": "Ο επιλεγμένος λογαριασμός άλλαξε. Ανανεώστε και ελέγξτε ξανά την αξιολόγηση.",
+  "rating.broadcastUnknown": "Άγνωστο αποτέλεσμα αποστολής. Έλεγχος επιβεβαίωσης· μην αποστείλετε ξανά ακόμη.",
+
   "activity.sort": "Αξιολόγησαν πρόσφατα άλλους",
   "activity.unavailable": "Η πρόσφατη δραστηριότητα δεν είναι διαθέσιμη. Οι φορτωμένοι λογαριασμοί εμφανίζονται ανά όνομα· ανανεώστε για νέα προσπάθεια.",
 
@@ -497,6 +505,10 @@ export const el: LocaleCatalog = {
 };
 
 export const es: LocaleCatalog = {
+  "action.trustInfo": "Acerca de Trust",
+  "error.accountChanged": "La cuenta seleccionada ha cambiado. Actualiza y revisa tu valoración.",
+  "rating.broadcastUnknown": "Resultado del envío desconocido. Comprobando la confirmación; no vuelvas a enviar todavía.",
+
   "activity.sort": "Evaluaron a otros recientemente",
   "activity.unavailable": "Actividad reciente no disponible. Se muestran las cuentas cargadas por nombre; actualiza para reintentar.",
 
@@ -744,6 +756,10 @@ export const es: LocaleCatalog = {
 };
 
 export const et: LocaleCatalog = {
+  "action.trustInfo": "Teave Trusti kohta",
+  "error.accountChanged": "Valitud konto muutus. Värskenda ja vaata hinnang uuesti üle.",
+  "rating.broadcastUnknown": "Saatmise tulemus pole teada. Kontrollime kinnitust; ära veel uuesti saada.",
+
   "activity.sort": "Hiljuti teisi hinnanud",
   "activity.unavailable": "Hiljutine tegevus pole saadaval. Laaditud kontod kuvatakse nime järgi; proovi värskendades uuesti.",
 
@@ -991,6 +1007,10 @@ export const et: LocaleCatalog = {
 };
 
 export const fi: LocaleCatalog = {
+  "action.trustInfo": "Tietoja Trustista",
+  "error.accountChanged": "Valittu tili vaihtui. Päivitä ja tarkista arviosi uudelleen.",
+  "rating.broadcastUnknown": "Lähetyksen tulos on tuntematon. Vahvistusta tarkistetaan; älä lähetä vielä uudelleen.",
+
   "activity.sort": "Äskettäin muita arvioineet",
   "activity.unavailable": "Viimeaikainen toiminta ei ole saatavilla. Ladatut tilit näytetään nimen mukaan; yritä uudelleen päivittämällä.",
 
@@ -1238,6 +1258,10 @@ export const fi: LocaleCatalog = {
 };
 
 export const fr: LocaleCatalog = {
+  "action.trustInfo": "À propos de Trust",
+  "error.accountChanged": "Le compte sélectionné a changé. Actualisez et vérifiez votre évaluation.",
+  "rating.broadcastUnknown": "Résultat de diffusion inconnu. Vérification de la confirmation ; ne renvoyez pas encore.",
+
   "activity.sort": "Ont récemment évalué des comptes",
   "activity.unavailable": "Activité récente indisponible. Les comptes chargés sont affichés par nom ; actualisez pour réessayer.",
 
@@ -1485,6 +1509,10 @@ export const fr: LocaleCatalog = {
 };
 
 export const hi: LocaleCatalog = {
+  "action.trustInfo": "Trust के बारे में",
+  "error.accountChanged": "चुना हुआ खाता बदल गया है। रीफ़्रेश करें और अपनी रेटिंग फिर जाँचें।",
+  "rating.broadcastUnknown": "प्रसारण का परिणाम अज्ञात है। पुष्टि की जाँच जारी है; अभी दोबारा न भेजें।",
+
   "activity.sort": "हाल में दूसरों को रेट किया",
   "activity.unavailable": "हाल की गतिविधि उपलब्ध नहीं है। लोड किए गए खाते नाम के अनुसार दिख रहे हैं; फिर प्रयास करने के लिए रीफ़्रेश करें।",
 
@@ -1732,6 +1760,10 @@ export const hi: LocaleCatalog = {
 };
 
 export const hu: LocaleCatalog = {
+  "action.trustInfo": "A Trustról",
+  "error.accountChanged": "A kiválasztott fiók megváltozott. Frissíts, majd ellenőrizd újra az értékelésed.",
+  "rating.broadcastUnknown": "A küldés eredménye ismeretlen. Megerősítés ellenőrzése; még ne küldd újra.",
+
   "activity.sort": "Nemrég másokat értékeltek",
   "activity.unavailable": "A legutóbbi tevékenység nem érhető el. A betöltött fiókok név szerint láthatók; frissíts az újrapróbálkozáshoz.",
 
@@ -1979,6 +2011,10 @@ export const hu: LocaleCatalog = {
 };
 
 export const it: LocaleCatalog = {
+  "action.trustInfo": "Informazioni su Trust",
+  "error.accountChanged": "L’account selezionato è cambiato. Aggiorna e ricontrolla la valutazione.",
+  "rating.broadcastUnknown": "Esito dell’invio sconosciuto. Verifica della conferma in corso; non inviare di nuovo per ora.",
+
   "activity.sort": "Hanno valutato altri di recente",
   "activity.unavailable": "Attività recente non disponibile. Gli account caricati sono mostrati per nome; aggiorna per riprovare.",
 
@@ -2226,6 +2262,10 @@ export const it: LocaleCatalog = {
 };
 
 export const nl: LocaleCatalog = {
+  "action.trustInfo": "Over Trust",
+  "error.accountChanged": "Het geselecteerde account is gewijzigd. Vernieuw en controleer je beoordeling opnieuw.",
+  "rating.broadcastUnknown": "Resultaat van verzending onbekend. Bevestiging wordt gecontroleerd; nog niet opnieuw verzenden.",
+
   "activity.sort": "Recent anderen beoordeeld",
   "activity.unavailable": "Recente activiteit niet beschikbaar. Geladen accounts worden op naam getoond; vernieuw om opnieuw te proberen.",
 
@@ -2473,6 +2513,10 @@ export const nl: LocaleCatalog = {
 };
 
 export const pl: LocaleCatalog = {
+  "action.trustInfo": "O Trust",
+  "error.accountChanged": "Wybrane konto zmieniło się. Odśwież i ponownie sprawdź ocenę.",
+  "rating.broadcastUnknown": "Wynik wysłania jest nieznany. Sprawdzanie potwierdzenia; jeszcze nie wysyłaj ponownie.",
+
   "activity.sort": "Ostatnio oceniali innych",
   "activity.unavailable": "Ostatnia aktywność jest niedostępna. Wczytane konta są wyświetlane według nazwy; odśwież, aby spróbować ponownie.",
 
@@ -2720,6 +2764,10 @@ export const pl: LocaleCatalog = {
 };
 
 export const pt: LocaleCatalog = {
+  "action.trustInfo": "Sobre o Trust",
+  "error.accountChanged": "A conta selecionada mudou. Atualize e reveja a sua avaliação.",
+  "rating.broadcastUnknown": "Resultado do envio desconhecido. A verificar a confirmação; não envie novamente por enquanto.",
+
   "activity.sort": "Avaliaram outros recentemente",
   "activity.unavailable": "Atividade recente indisponível. As contas carregadas são mostradas por nome; atualize para tentar novamente.",
 
@@ -2967,6 +3015,10 @@ export const pt: LocaleCatalog = {
 };
 
 export const ro: LocaleCatalog = {
+  "action.trustInfo": "Despre Trust",
+  "error.accountChanged": "Contul selectat s-a schimbat. Reîmprospătează și verifică din nou evaluarea.",
+  "rating.broadcastUnknown": "Rezultatul trimiterii este necunoscut. Se verifică confirmarea; nu retrimite încă.",
+
   "activity.sort": "Au evaluat recent alte conturi",
   "activity.unavailable": "Activitatea recentă nu este disponibilă. Conturile încărcate sunt afișate după nume; reîmprospătează pentru a reîncerca.",
 
@@ -3214,6 +3266,10 @@ export const ro: LocaleCatalog = {
 };
 
 export const ru: LocaleCatalog = {
+  "action.trustInfo": "О Trust",
+  "error.accountChanged": "Выбранный аккаунт изменился. Обновите страницу и проверьте оценку ещё раз.",
+  "rating.broadcastUnknown": "Результат отправки неизвестен. Проверяем подтверждение; пока не отправляйте повторно.",
+
   "activity.sort": "Недавно оценивали других",
   "activity.unavailable": "Недавняя активность недоступна. Загруженные аккаунты показаны по имени; обновите для повторной попытки.",
 
@@ -3461,6 +3517,10 @@ export const ru: LocaleCatalog = {
 };
 
 export const sv: LocaleCatalog = {
+  "action.trustInfo": "Om Trust",
+  "error.accountChanged": "Det valda kontot har ändrats. Uppdatera och granska ditt omdöme igen.",
+  "rating.broadcastUnknown": "Sändningens resultat är okänt. Kontrollerar bekräftelse; skicka inte igen ännu.",
+
   "activity.sort": "Bedömde nyligen andra",
   "activity.unavailable": "Senaste aktivitet är inte tillgänglig. Inlästa konton visas efter namn; uppdatera för att försöka igen.",
 
@@ -3708,6 +3768,10 @@ export const sv: LocaleCatalog = {
 };
 
 export const nb: LocaleCatalog = {
+  "action.trustInfo": "Om Trust",
+  "error.accountChanged": "Den valgte kontoen er endret. Oppdater og se gjennom vurderingen igjen.",
+  "rating.broadcastUnknown": "Resultatet av sendingen er ukjent. Sjekker bekreftelse; ikke send på nytt ennå.",
+
   "activity.sort": "Vurderte nylig andre",
   "activity.unavailable": "Nylig aktivitet er utilgjengelig. Innlastede kontoer vises etter navn; oppdater for å prøve igjen.",
 

@@ -38,17 +38,19 @@ const ROLE_ORDER: AccountRatingCategory[] = ['SUBJECT', 'PLAYER', 'TRAINER', 'MA
 function RatingValue({
   category,
   pending,
+  submitting,
   value,
 }: {
   category: AccountRatingCategory;
   pending?: number;
+  submitting?: boolean;
   value?: number;
 }) {
   const variant = ratingVariantForCategory(category);
 
   if (pending !== undefined) {
     return (
-      <span className="you-rated-pending" title={t('rating.pendingConfirmation')}>
+      <span className="you-rated-pending" title={t(submitting ? 'rating.submitting' : 'rating.pendingConfirmation')}>
         <span aria-hidden="true" className="you-rated-spinner" />
         {pending !== 0 ? (
           <span className={`you-rated ${ratingTone(pending)}`}>{ratingSignedLabel(pending, variant)}</span>
@@ -416,6 +418,7 @@ export function AccountsTable({
                                 <RatingValue
                                   category={role}
                                   pending={displayed.pending ? displayed.value : undefined}
+                                  submitting={displayed.submitting}
                                   value={displayed.value}
                                 />
                               </dd>
@@ -430,6 +433,7 @@ export function AccountsTable({
                     <RatingValue
                       category={effectiveCategory}
                       pending={subjectDisplayed.pending ? subjectDisplayed.value : undefined}
+                      submitting={subjectDisplayed.submitting}
                       value={subjectDisplayed.value}
                     />
                     {onRate ? <button className="account-rate-link" type="button" onClick={event => { event.stopPropagation(); onRate(derivation, effectiveCategory); }}>{t('label.rate')}</button> : null}

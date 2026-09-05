@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- Skip redundant Home unlock approval when the selected account is already unlocked.
+- Close the feed rating editor on Submit and show progress immediately on its role
+  card, allowing navigation and further ratings while Home approves/broadcasts.
+- Preserve submission failures across navigation, guard duplicate submissions, and
+  reconcile unknown broadcast outcomes without automatically resubmitting.
+- Add a header info link to the community Trust wiki article.
+
 ## 1.4.7 — 2026-09-05
 
 - Show the signed numeric value beside rating degrees in summaries and rating choices,

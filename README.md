@@ -50,11 +50,19 @@ Qortium’s community trust system. It runs inside Qortium Home through the
   display and bridge query parameters, so Home Back and Forward can traverse
   the in-app route history. The detail Back button follows that same history;
   a directly opened account returns to the list without leaving the app.
-- Home-mediated rating submission includes unlock prompts, cooldown checks,
-  impact preview, optimistic pending state, and confirmation polling. The open
-  editor refreshes its remaining-block countdown and preserves draft selections.
-- Home selected-account changes refresh the rater identity, available bridge
-  actions, current ratings, and pending editor state.
+- Home-mediated rating submission checks the live lock state and requests unlock
+  only when needed, while retaining Home's rating approval. Submitting closes the
+  feed editor immediately and shows a per-role spinner through approval/broadcast
+  and block confirmation. Browsing and other ratings remain available; duplicate
+  submissions for the same account/role are blocked. Errors remain visible after
+  navigation, with a link back to the affected account and role.
+- Cooldown checks, impact preview, confirmation polling and Retry/Dismiss remain
+  available. The open editor refreshes its remaining-block countdown and preserves
+  draft selections. Unknown broadcast outcomes are reconciled through reads, never
+  automatically resubmitted.
+- Trust retains the initially selected rating identity. If Home's live account has
+  changed, submission stops; reload Trust to adopt that account and review the draft.
+- The header info button opens the community wiki's Trust article in a new tab.
 
 The app requests live trust derivations (`live=true`). In Qortium Home, identity
 and writes stay behind the bridge. When `RATE_ACCOUNT` is unavailable, the

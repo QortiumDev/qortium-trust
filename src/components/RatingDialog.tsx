@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type ComponentProps } from 'react';
+import { useEffect, useId, useRef, type ComponentProps } from 'react';
 import { X } from 'lucide-react';
 import { categoryLabel } from '../format';
 import { getIdentityLabel } from '../identityProfiles';
@@ -16,7 +16,6 @@ type RatingDialogProps = Omit<ComponentProps<typeof RatingForm>, 'targetAddress'
 
 export function RatingDialog({ derivation, profile, onClose, ...ratingProps }: RatingDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
-  const [submitting, setSubmitting] = useState(false);
   const titleId = useId();
   const roleId = useId();
 
@@ -35,10 +34,10 @@ export function RatingDialog({ derivation, profile, onClose, ...ratingProps }: R
       aria-labelledby={`${titleId} ${roleId}`}
       className="rating-dialog"
       data-role={ratingProps.category}
-      onCancel={(event) => { event.preventDefault(); if (!submitting) onClose(); }}
+      onCancel={(event) => { event.preventDefault(); onClose(); }}
       onClick={(event) => {
         const rect = event.currentTarget.getBoundingClientRect();
-        if (event.target === event.currentTarget && !submitting &&
+        if (event.target === event.currentTarget &&
           (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom)) onClose();
       }}
       ref={dialogRef}
@@ -51,11 +50,15 @@ export function RatingDialog({ derivation, profile, onClose, ...ratingProps }: R
             <p className="rating-dialog__role" id={roleId}><RoleIcon category={ratingProps.category} />{categoryLabel(ratingProps.category)}</p>
           </div>
         </div>
-        <button aria-label={t('action.dismiss')} className="icon-button" disabled={submitting} onClick={onClose} type="button"><X aria-hidden="true" size={18} /></button>
+        <button aria-label={t('action.dismiss')} className="icon-button" onClick={onClose} type="button"><X aria-hidden="true" size={18} /></button>
       </header>
       <RatingForm
         {...ratingProps}
-        onSubmittingChange={setSubmitting}
+        onSubmissionStarted={(entry) => {
+          if (ratingProps.onSubmissionStarted?.(entry) === false) return false;
+          onClose();
+          return true;
+        }}
         targetAddress={derivation.accountAddress}
         targetPublicKey={derivation.accountPublicKey}
       />

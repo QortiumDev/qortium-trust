@@ -327,17 +327,20 @@ export async function resolveSelfAccount(): Promise<SelfAccount | null> {
 
 /**
  * Ask Qortium Home to unlock the selected account, prompting the user when it is locked.
- * Returns the selected account with its refreshed lock state; if it is already unlocked Home
- * returns immediately without a prompt. Home-only.
+ * Read the live lock state first: Home v2 always asks permission for the unlock action,
+ * even when the account is already unlocked. Home-only.
  */
 export async function ensureAccountUnlocked(): Promise<SelfAccount | null> {
   if (!hasHomeBridge()) {
     return null;
   }
 
-  const account = await qdnRequest<{ address?: string; name?: string | null; isUnlocked?: boolean } | null>({
-    action: 'UNLOCK_SELECTED_ACCOUNT',
-  });
+  type SelectedAccount = { address?: string; name?: string | null; isUnlocked?: boolean } | null;
+  let account = await qdnRequest<SelectedAccount>({ action: 'GET_SELECTED_ACCOUNT' });
+  if (!account?.address) return null;
+  if (account.isUnlocked !== true) {
+    account = await qdnRequest<SelectedAccount>({ action: 'UNLOCK_SELECTED_ACCOUNT' });
+  }
 
   if (!account?.address) {
     return null;

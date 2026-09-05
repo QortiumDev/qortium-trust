@@ -259,8 +259,6 @@ describe('App rating flow (pending -> confirm/timeout, and account-switch immuni
     fireEvent.click(screen.getByRole('button', { name: 'Submit rating' }));
     await flush();
     expect(submitRatingMock).toHaveBeenCalledExactlyOnceWith({ category: role, rating: 2, targetPublicKey: 'targetPub' });
-    fireEvent.click(screen.getByRole('button', { name: 'Dismiss' }));
-    await flush();
     expect(screen.queryByRole('dialog')).toBeNull();
     expect(screen.getByRole('button', { name: 'Open Qtarget' })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: `Rate ${roleName} — Qtarget` }));
@@ -276,28 +274,111 @@ describe('App rating flow (pending -> confirm/timeout, and account-switch immuni
     expect((screen.getByRole('button', { name: 'Pending...' }) as HTMLButtonElement).disabled).toBe(true);
   });
 
-  it('keeps the rating dialog mounted during unlock/broadcast, then permits dismissal', async () => {
+  it('closes immediately, shows a submitting spinner, and allows successive ratings while broadcasting', async () => {
     localStorage.setItem('qortium-trust.showAllRoles', 'true');
+    const other = { ...TARGET_DERIVATION, accountAddress: 'Qother', accountPublicKey: 'otherPub' };
+    getTrustDerivationPageMock.mockResolvedValue({ derivations: [TARGET_DERIVATION, other], total: 2 });
     let finishUnlock!: (account: SelfAccount) => void;
+    let finishBroadcast!: (result: { accepted: boolean }) => void;
     ensureAccountUnlockedMock.mockImplementationOnce(() => new Promise(resolve => { finishUnlock = resolve; }));
+    submitRatingMock.mockImplementationOnce(() => new Promise(resolve => { finishBroadcast = resolve; }));
     render(<App />);
     await flush();
+    const choose = async (account: string) => {
+      fireEvent.click(screen.getByRole('button', { name: `Rate Voters — ${account}` }));
+      await flush();
+      fireEvent.click(screen.getByRole('button', { name: 'Positive' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Medium (2)' }));
+      await flush();
+      fireEvent.click(screen.getByRole('button', { name: 'Submit rating' }));
+      await flush();
+    };
+    await choose('Qtarget');
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(document.querySelector('.you-rated-pending[title="Submitting..."]')).toBeTruthy();
+    // No confirmation poll or timeout before Home returns, even if approval takes a long time.
+    const cooldownReads = getRatingCooldownMock.mock.calls.length;
+    await act(async () => { await vi.advanceTimersByTimeAsync(PENDING_CONFIRM_TIMEOUT_MS + 1); });
+    expect(getRatingCooldownMock).toHaveBeenCalledTimes(cooldownReads);
+    expect(document.querySelector('.you-rated-pending[title="Submitting..."]')).toBeTruthy();
+    finishUnlock(SELF);
+    await flush();
+    expect(submitRatingMock).toHaveBeenCalledTimes(1);
+    // Reopening the same edge cannot submit again, and its dialog can always be dismissed.
     fireEvent.click(screen.getByRole('button', { name: 'Rate Voters — Qtarget' }));
     await flush();
-    fireEvent.click(screen.getByRole('button', { name: 'Positive' }));
+    expect((screen.getByRole('button', { name: 'Submitting...' }) as HTMLButtonElement).disabled).toBe(true);
+    fireEvent(screen.getByRole('dialog'), new Event('cancel', { cancelable: true }));
+    expect(screen.queryByRole('dialog')).toBeNull();
+    await choose('Qother');
+    expect(submitRatingMock).toHaveBeenCalledTimes(2);
+    expect(document.querySelectorAll('.you-rated-spinner')).toHaveLength(2);
+    fireEvent.click(screen.getByRole('button', { name: 'Open Qother' }));
+    await flush();
+    finishBroadcast({ accepted: true });
+    await flush();
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+    await act(async () => { await vi.advanceTimersByTimeAsync(50); });
+    await flush();
+    expect(document.querySelectorAll('.you-rated-pending[title="Pending confirmation"]')).toHaveLength(2);
+  });
+
+  it('keeps a submission error visible after the editor closes and the user navigates away', async () => {
+    let rejectBroadcast!: (error: Error) => void;
+    submitRatingMock.mockImplementationOnce(() => new Promise((_, reject) => { rejectBroadcast = reject; }));
+    render(<App />);
+    await flush();
+    fireEvent.click(screen.getByRole('button', { name: 'Rate Minters — Qtarget' }));
+    await flush();
+    fireEvent.click(screen.getByRole('button', { name: 'Yes' }));
     fireEvent.click(screen.getByRole('button', { name: 'Medium (2)' }));
     await flush();
     fireEvent.click(screen.getByRole('button', { name: 'Submit rating' }));
     await flush();
-    expect((screen.getByRole('button', { name: 'Dismiss' }) as HTMLButtonElement).disabled).toBe(true);
-    fireEvent(screen.getByRole('dialog'), new Event('cancel', { cancelable: true }));
-    expect(screen.getByRole('dialog')).toBeTruthy();
-    finishUnlock(SELF);
-    await flush();
-    expect(submitRatingMock).toHaveBeenCalledTimes(1);
-    fireEvent.click(screen.getByRole('button', { name: 'Dismiss' }));
-    await flush();
     expect(screen.queryByRole('dialog')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Open Qtarget' }));
+    await flush();
+    rejectBroadcast(new Error('User declined rating'));
+    await flush();
+    expect(screen.getByRole('alert').textContent).toContain('Qtarget · Minters');
+    expect(screen.getByRole('alert').textContent).toContain('User declined rating');
+    expect(document.querySelector('.you-rated-spinner')).toBeNull();
+    await act(async () => { await vi.advanceTimersByTimeAsync(10000); });
+    expect(screen.getByRole('alert')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Yes' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Medium (2)' }));
+    await flush();
+    expect((screen.getByRole('button', { name: 'Submit rating' }) as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it('reconciles an unknown broadcast with reads, without resubmitting', async () => {
+    submitRatingMock.mockResolvedValue({ accepted: false, errorType: 'BROADCAST_UNKNOWN', outcome: 'unknown', retryable: false });
+    render(<App />);
+    await flush();
+    fireEvent.click(screen.getByRole('button', { name: 'Open Qtarget' }));
+    await flush();
+    fireEvent.click(screen.getByRole('button', { name: 'Yes' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Medium (2)' }));
+    await flush();
+    fireEvent.click(screen.getByRole('button', { name: 'Submit rating' }));
+    await flush();
+    expect(document.querySelector('.detail-rate')?.textContent).toContain('Broadcast outcome unknown');
+    expect((screen.getByRole('button', { name: 'Pending...' }) as HTMLButtonElement).disabled).toBe(true);
+    await act(async () => { await vi.advanceTimersByTimeAsync(PENDING_CONFIRM_POLL_MS); });
+    expect(submitRatingMock).toHaveBeenCalledTimes(1);
+    cooldownActiveRating = 2;
+    await act(async () => { await vi.advanceTimersByTimeAsync(PENDING_CONFIRM_POLL_MS); });
+    await flush();
+    expect(screen.queryByRole('button', { name: 'Pending...' })).toBeNull();
+    expect(submitRatingMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('links the header info button to the Trust wiki article', async () => {
+    render(<App />);
+    await flush();
+    expect(screen.getByRole('link', { name: 'About Trust' }).getAttribute('href')).toBe(
+      'qdn://APP/Qortium-Unified-Community/Community-Portal/wiki/article/wk-c2d1006c55434054ae79979112e09637',
+    );
   });
 
   it('returns through linked accounts and keeps browser Forward usable', async () => {
