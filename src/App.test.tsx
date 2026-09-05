@@ -254,7 +254,7 @@ describe('App rating flow (pending -> confirm/timeout, and account-switch immuni
     expect(window.location.search).toBe('');
     expect(getRatingCooldownMock).toHaveBeenLastCalledWith(expect.objectContaining({ category: role, target: 'targetPub' }));
     fireEvent.click(screen.getByRole('button', { name: role === 'SUBJECT' ? 'Yes' : 'Positive' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Medium' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Medium (2)' }));
     await flush();
     fireEvent.click(screen.getByRole('button', { name: 'Submit rating' }));
     await flush();
@@ -266,7 +266,7 @@ describe('App rating flow (pending -> confirm/timeout, and account-switch immuni
     fireEvent.click(screen.getByRole('button', { name: `Rate ${roleName} — Qtarget` }));
     await flush();
     expect((screen.getByRole('button', { name: 'Pending...' }) as HTMLButtonElement).disabled).toBe(true);
-    expect(screen.getByRole('button', { name: 'Medium' }).getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByRole('button', { name: 'Medium (2)' }).getAttribute('aria-pressed')).toBe('true');
     fireEvent.click(screen.getByRole('button', { name: 'Dismiss' }));
     fireEvent.click(screen.getByRole('button', { name: 'Open Qtarget' }));
     await flush();
@@ -285,7 +285,7 @@ describe('App rating flow (pending -> confirm/timeout, and account-switch immuni
     fireEvent.click(screen.getByRole('button', { name: 'Rate Voters — Qtarget' }));
     await flush();
     fireEvent.click(screen.getByRole('button', { name: 'Positive' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Medium' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Medium (2)' }));
     await flush();
     fireEvent.click(screen.getByRole('button', { name: 'Submit rating' }));
     await flush();
@@ -400,7 +400,7 @@ describe('App rating flow (pending -> confirm/timeout, and account-switch immuni
 
     // Two-step Minter chooser: Yes + Medium confidence = +2 (equivalent to the old combobox pick).
     fireEvent.click(screen.getByRole('button', { name: 'Yes' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Medium' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Medium (2)' }));
     await flush();
     expect(submit.disabled).toBe(false);
 
@@ -427,7 +427,7 @@ describe('App rating flow (pending -> confirm/timeout, and account-switch immuni
 
     // Two-step Minter chooser: Yes + Medium confidence = +2 (equivalent to the old combobox pick).
     fireEvent.click(screen.getByRole('button', { name: 'Yes' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Medium' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Medium (2)' }));
     await flush();
     fireEvent.click(submit);
     await flush();
@@ -471,7 +471,7 @@ describe('App rating flow (pending -> confirm/timeout, and account-switch immuni
 
     // Two-step Minter chooser: Yes + Medium confidence = +2 (equivalent to the old combobox pick).
     fireEvent.click(screen.getByRole('button', { name: 'Yes' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Medium' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Medium (2)' }));
     await flush();
     fireEvent.click(submit);
     await flush();

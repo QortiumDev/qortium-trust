@@ -73,8 +73,8 @@ describe('AccountsTable unified role directory (showAllRoles on)', () => {
     expect(screen.queryByRole('button', { name: /^Rate$/i })).toBeNull();
     // Decomposed sign+magnitude form (owner copy rule): role columns use Positive/Negative, the
     // Minters column uses Yes/No.
-    expect(container.querySelector('[data-label="Designers"] .you-rated')?.textContent).toBe('Positive · Very high');
-    expect(container.querySelector('[data-label="Minters"] .you-rated')?.textContent).toBe('Yes · Low');
+    expect(container.querySelector('[data-label="Designers"] .you-rated')?.textContent).toBe('Positive · Very high (4)');
+    expect(container.querySelector('[data-label="Minters"] .you-rated')?.textContent).toBe('Yes · Low (1)');
 
     fireEvent.click(screen.getByRole('button', { name: /open target/i }));
     expect(onSelect).toHaveBeenCalledWith(derivation);
@@ -115,8 +115,8 @@ describe('AccountsTable simplified Minters directory (showAllRoles off)', () => 
     // status is Bronze/level 1, MANAGER (index 3) would be Silver/level 4 and rated +4.
     expect(container.querySelector('[data-label="Trust status"]')?.textContent).toBe('Bronze');
     expect(container.querySelector('[data-label="Trust level"]')?.textContent).toBe('1');
-    expect(container.querySelector('[data-label="You rated"] .you-rated')?.textContent).toBe('Yes · Low');
-    expect(screen.queryByText('Positive · Very high')).toBeNull();
+    expect(container.querySelector('[data-label="You rated"] .you-rated')?.textContent).toBe('Yes · Low (1)');
+    expect(screen.queryByText('Positive · Very high (4)')).toBeNull();
 
     fireEvent.click(screen.getByRole('button', { name: /open target/i }));
     expect(onSelect).toHaveBeenCalledWith(derivation);

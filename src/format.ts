@@ -161,9 +161,9 @@ const RATING_MAGNITUDE_KEYS: Record<1 | 2 | 3 | 4, TranslationKey> = {
   4: 'rating.magnitude.veryHigh',
 };
 
-// Sign and magnitude are always presented separately (owner copy rule): never a combined
-// "+3 - Positive (High)" string. Renders e.g. "Yes · High" (minter) or
-// "Positive · High" (role). Callers must never pass 0 — a "not rated"/"cleared" value
+// Keep the answer and degree readable, with the signed rating value in parentheses.
+// Renders e.g. "Yes · High (3)" or "Negative · High (-3)".
+// Callers must never pass 0 — a "not rated"/"cleared" value
 // has its own copy (t('rating.notRated'), t('rating.option.remove'), etc).
 export function ratingSignedLabel(value: number, variant: 'minter' | 'role') {
   const sign =
@@ -172,7 +172,7 @@ export function ratingSignedLabel(value: number, variant: 'minter' | 'role') {
       : t(variant === 'minter' ? 'value.no' : 'status.negative');
   const magnitude = Math.min(Math.max(Math.abs(value), 1), 4) as 1 | 2 | 3 | 4;
 
-  return t('rating.value', { magnitude: t(RATING_MAGNITUDE_KEYS[magnitude]), sign });
+  return t('rating.value', { magnitude: t(RATING_MAGNITUDE_KEYS[magnitude]), sign, value: value < 0 ? -magnitude : magnitude });
 }
 
 // The role a rater must be trusted as for their rating in `category` to count at all (the

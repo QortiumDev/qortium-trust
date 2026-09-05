@@ -55,18 +55,18 @@ describe('ratingVariantForCategory', () => {
 
 describe('ratingSignedLabel (decomposed sign + magnitude, owner copy rule)', () => {
   it('renders Yes/No + confidence for the minter variant', () => {
-    expect(ratingSignedLabel(1, 'minter')).toBe('Yes · Low');
-    expect(ratingSignedLabel(3, 'minter')).toBe('Yes · High');
-    expect(ratingSignedLabel(-4, 'minter')).toBe('No · Very high');
+    expect(ratingSignedLabel(1, 'minter')).toBe('Yes · Low (1)');
+    expect(ratingSignedLabel(3, 'minter')).toBe('Yes · High (3)');
+    expect(ratingSignedLabel(-4, 'minter')).toBe('No · Very high (-4)');
   });
 
   it('renders Positive/Negative + confidence for the role variant', () => {
-    expect(ratingSignedLabel(2, 'role')).toBe('Positive · Medium');
-    expect(ratingSignedLabel(-1, 'role')).toBe('Negative · Low');
+    expect(ratingSignedLabel(2, 'role')).toBe('Positive · Medium (2)');
+    expect(ratingSignedLabel(-1, 'role')).toBe('Negative · Low (-1)');
   });
 
-  it('never combines sign and magnitude into a single parenthesized string', () => {
-    expect(ratingSignedLabel(3, 'role')).not.toMatch(/\(/);
+  it('keeps the numeric value after the readable answer and degree', () => {
+    expect(ratingSignedLabel(3, 'role')).toBe('Positive · High (3)');
     expect(ratingSignedLabel(3, 'role')).not.toMatch(/^\+?\d/);
   });
 });

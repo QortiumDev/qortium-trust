@@ -75,7 +75,7 @@ describe('RatingForm write path (two-step Minter chooser)', () => {
 
     // Q1: "Is this a unique minting account?" -> Yes, then Q2: confidence -> Low (= +1).
     fireEvent.click(screen.getByRole('button', { name: 'Yes' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Low' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Low (1)' }));
 
     const submit = screen.getByRole('button', { name: /submit rating/i }) as HTMLButtonElement;
     await waitFor(() => expect(submit.disabled).toBe(false));
@@ -113,7 +113,7 @@ describe('RatingForm write path (two-step Minter chooser)', () => {
       expect((screen.getByRole('button', { name: 'Yes' }) as HTMLButtonElement).disabled).toBe(false),
     );
     fireEvent.click(screen.getByRole('button', { name: 'Yes' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Low' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Low (1)' }));
 
     const submit = screen.getByRole('button', { name: /submit rating/i }) as HTMLButtonElement;
     await waitFor(() => expect(submit.disabled).toBe(false));
@@ -195,7 +195,7 @@ describe('RatingForm write path (two-step Minter chooser)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Not sure yet' }));
 
     // No confidence step appears, and the submit button stays disabled (nothing resolved to submit).
-    expect(screen.queryByRole('button', { name: 'Low' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Low (1)' })).toBeNull();
     const submit = screen.getByRole('button', { name: /remove rating|submit rating/i }) as HTMLButtonElement;
     expect(submit.disabled).toBe(true);
     fireEvent.click(submit);
@@ -251,7 +251,7 @@ describe('RatingForm write path (two-step Minter chooser)', () => {
       expect((screen.getByRole('button', { name: 'Yes' }) as HTMLButtonElement).disabled).toBe(false),
     );
     fireEvent.click(screen.getByRole('button', { name: 'Yes' }));
-    fireEvent.click(screen.getByRole('button', { name: 'High' }));
+    fireEvent.click(screen.getByRole('button', { name: 'High (3)' }));
 
     await waitFor(() => expect(screen.getByText(/your rating counts for 40/i)).toBeTruthy());
   });
@@ -278,7 +278,7 @@ describe('RatingForm write path (two-step Minter chooser)', () => {
       expect((screen.getByRole('button', { name: 'Yes' }) as HTMLButtonElement).disabled).toBe(false),
     );
     fireEvent.click(screen.getByRole('button', { name: 'Yes' }));
-    fireEvent.click(screen.getByRole('button', { name: 'High' }));
+    fireEvent.click(screen.getByRole('button', { name: 'High (3)' }));
 
     await waitFor(() =>
       expect(screen.getByText(/doesn.t count.*trusted as a voter/i)).toBeTruthy(),
@@ -324,7 +324,7 @@ describe('RatingForm write path (two-step role chooser)', () => {
     expect(screen.queryByText(/negative ratings count 4×/i)).toBeNull();
 
     fireEvent.click(screen.getByRole('button', { name: 'Negative' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Medium' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Medium (-2)' }));
 
     const submit = screen.getByRole('button', { name: /submit rating/i }) as HTMLButtonElement;
     await waitFor(() => expect(submit.disabled).toBe(false));
