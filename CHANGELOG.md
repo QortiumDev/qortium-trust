@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.4.9 — 2026-09-05
 
 - Open the wiki through Home’s new-tab action; use the current gateway origin for
   browser clicks and copied links, bypassing the injected legacy click interceptor.
