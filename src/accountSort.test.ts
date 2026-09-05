@@ -183,11 +183,11 @@ describe('getTrustDerivationServerSort', () => {
   it('maps supported primary sort keys to Core orderBy values', () => {
     expect(getTrustDerivationServerSort([{ key: 'score', direction: 'desc' }])).toEqual({
       orderBy: 'score',
-      reverse: true,
+      reverse: undefined,
     });
     expect(getTrustDerivationServerSort([{ key: 'level', direction: 'asc' }])).toEqual({
       orderBy: 'level',
-      reverse: undefined,
+      reverse: true,
     });
   });
 
@@ -201,4 +201,17 @@ describe('getTrustDerivationServerSort', () => {
     expect(getTrustDerivationServerSort([{ key: 'account', direction: 'asc' }])).toEqual({});
     expect(getTrustDerivationServerSort([{ key: 'youRated', direction: 'desc' }])).toEqual({});
   });
+});
+
+// Core selects pages after its default descending numeric comparison. Local row sorting cannot
+// recover large accounts accidentally excluded from the first page.
+it('selects the highest 250 minted counts before the next page', () => {
+  const accounts = Array.from({ length: 251 }, (_, blocksMinted) => derivation(`Q${blocksMinted}`, { blocksMinted }));
+  const request = getTrustDerivationServerSort([{ key: 'blocksMinted', direction: 'desc' }]);
+  const serverOrdered = accounts.toSorted((a, b) => b.blocksMinted! - a.blocksMinted!);
+  if (request.reverse) serverOrdered.reverse();
+  const firstPage = serverOrdered.slice(0, 250);
+  expect(firstPage[0].blocksMinted).toBe(250);
+  expect(firstPage.at(-1)?.blocksMinted).toBe(1);
+  expect(serverOrdered[250].blocksMinted).toBe(0);
 });

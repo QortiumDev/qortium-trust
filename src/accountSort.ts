@@ -147,6 +147,7 @@ export function getTrustDerivationServerSort(sort: AccountSortState): {
 
   return {
     orderBy,
-    reverse: primary.direction === 'desc' ? true : undefined,
+    // Core's numeric comparators already sort descending before applying reverse.
+    reverse: primary.direction === 'asc' ? true : undefined,
   };
 }
