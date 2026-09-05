@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Show the signed numeric value beside rating degrees in summaries and rating choices,
+  for example Very high (4) or Low (-1).
+
 ## 1.4.6 — 2026-09-05
 
 - Refresh the build and test dependencies: Vite 8.2.2, Vitest 4.1.11, React plugin

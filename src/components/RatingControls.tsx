@@ -247,7 +247,7 @@ function RatingChooser({ category, control, pendingRating }: { category: Account
                 onClick={() => chooseConfidence(level)}
                 type="button"
               >
-                {confidenceLabel(level)}
+                {confidenceLabel(level)} <bdi>({answer === 'no' ? -level : level})</bdi>
               </button>
             ))}
           </div>
