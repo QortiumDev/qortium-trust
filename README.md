@@ -6,10 +6,15 @@ Qortium’s community trust system. It runs inside Qortium Home through the
 
 ## Current experience
 
-- Accounts is the default view and shows Designers, Guides, Voters, and Minters
-  together instead of splitting them across four nearly identical pages.
-- Every account row includes its displayed trust, blocks minted, role standing,
-  role score, ratings received, and the current user’s rating.
+- Accounts opens with Minters and sorts by each person's latest confirmed outgoing
+  rating submission, across all roles. Repeated raters appear once; removals count.
+- Show all roles expands each account into one combined group containing Designers,
+  Guides, Voters and Minters. The role selector controls role-specific sorting.
+- Account rows retain trust status, blocks minted, standing and personal ratings;
+  the combined view also shows every role's score and received rating counts.
+- Role-specific Rate buttons open the existing account detail rating workspace.
+- Status shields differ by shape as well as color; expandable help explains voting
+  weight and minting consequences using the current policy.
 - Account detail presents the avatar and name together with copy controls for
   the name, address, and public key.
 - One role can be rated at a time from account detail, while all four role
@@ -19,10 +24,6 @@ Qortium’s community trust system. It runs inside Qortium Home through the
 - The role guide explains the community flow:
   Designers shape the system, Guides share understanding, Voters apply the
   system, and Minters receive the final trust standing.
-- Network is a secondary, account-centered view backed by Core’s
-  `/account-ratings/trust-graph` endpoint. It supports direct or two-step
-  neighborhoods, incoming/outgoing filtering, positive/negative filtering,
-  pan, zoom, fullscreen, and keyboard-readable relationships.
 - Recent Changes is unified across roles, and account names link back to account
   detail wherever the account is present in the loaded directory.
 - Deep links use `?account=<address>` or the legacy `?target=<address>`. Account
@@ -30,7 +31,8 @@ Qortium’s community trust system. It runs inside Qortium Home through the
   display and bridge query parameters, so Home Back and Forward can traverse
   the in-app route history.
 - Home-mediated rating submission includes unlock prompts, cooldown checks,
-  impact preview, optimistic pending state, and confirmation polling.
+  impact preview, optimistic pending state, and confirmation polling. The open
+  editor refreshes its remaining-block countdown and preserves draft selections.
 - Home selected-account changes refresh the rater identity, available bridge
   actions, current ratings, and pending editor state.
 
@@ -38,9 +40,25 @@ The app requests live trust derivations (`live=true`). In Qortium Home, identity
 and writes stay behind the bridge. When `RATE_ACCOUNT` is unavailable, the
 complete explorer remains available in read-only mode.
 
+## Recent activity reads
+
+This increment uses existing Core APIs; no backend or signing changes are required.
+It reads confirmed RATE_ACCOUNT history up to a pinned block height, verifies the
+block signature before and after, and orders people by transaction submission time.
+Only approved or approval-exempt transactions count. Historical-only raters are
+resolved through their real trust profiles.
+
+History reads grow through 1,000 / 4,000 / 8,000 transaction prefixes; the directory
+is capped at 5,000 entries, with at most 32 missing-profile lookups. A full final
+prefix, incomplete directory, unsupported endpoint or failed read causes an explicit
+fallback to loaded accounts by name. Refresh or selecting recent activity retries.
+A short response establishes exhaustion of the node's available history; it cannot
+certify archival completeness on an arbitrary node. Larger networks may eventually
+need a paginated Core activity query.
+
 ## QAVS and UI styles
 
-Trust is at QAVS `1.4.3`: `1.4` is its minimum Qortium platform level and the
+Trust is at QAVS `1.4.4`: `1.4` is its minimum Qortium platform level and the
 patch number tracks the app release. `vite.config.ts` reads `package.json`,
 injects the visible version, and emits `dist/qortium-app.json` on every build.
 
@@ -80,4 +98,4 @@ After publication, verify:
 
 - `/arbitrary/resource/status/APP/Trust/Trust?build=true` reports `READY`
 - `/render/APP/Trust/Trust` renders successfully
-- `/arbitrary/APP/Trust/Trust/qortium-app.json` reports version `1.4.3`
+- `/arbitrary/APP/Trust/Trust/qortium-app.json` reports version `1.4.4`

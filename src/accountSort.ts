@@ -1,3 +1,4 @@
+import type { RecentActivity } from './recentActivity';
 import { getIdentityLabel } from './identityProfiles';
 import type {
   AccountRatingCategory,
@@ -66,11 +67,14 @@ export function compareAccountRows(
   category: AccountRatingCategory,
   profiles: IdentityProfilesByAddress,
   youRatedByAddress: RatingsByAddress,
+  activity: RecentActivity | null = null,
 ) {
   const leftCategory = getDerivationCategory(left, category);
   const rightCategory = getDerivationCategory(right, category);
 
   switch (sortKey) {
+    case 'latestRating':
+      return (activity?.[left.accountAddress]?.timestamp ?? 0) - (activity?.[right.accountAddress]?.timestamp ?? 0);
     case 'account':
       return compareAccountLabels(left, right, profiles);
     case 'status':

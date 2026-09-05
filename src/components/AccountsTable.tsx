@@ -1,6 +1,6 @@
 import { memo, useMemo } from 'react';
-import { ArrowDown, ArrowDownUp, ArrowUp, SearchX, Users } from 'lucide-react';
-import { categoryLabel, formatNumber, ratingSignedLabel, ratingTone, ratingVariantForCategory } from '../format';
+import { ArrowDown, ArrowDownUp, ArrowUp, Clock3, SearchX, Users } from 'lucide-react';
+import { categoryLabel, formatDate, formatNumber, ratingSignedLabel, ratingTone, ratingVariantForCategory } from '../format';
 import type {
   AccountRatingCategory,
   IdentityProfilesByAddress,
@@ -24,6 +24,8 @@ import {
 import { getDisplayedRating, pendingRatingKey } from '../ratingControl';
 import { EmptyState, IdentityAvatar, IdentityLabel, StatusBadge } from './Identity';
 import { t } from '../i18n';
+import type { RecentActivity } from '../recentActivity';
+import { RoleIcon } from './TrustIcons';
 
 const MemoIdentityAvatar = memo(IdentityAvatar);
 const MemoStatusBadge = memo(StatusBadge);
@@ -111,12 +113,15 @@ export function SortHeader({
 }
 
 type AccountsTableProps = {
+  activity?: RecentActivity | null;
   category: AccountRatingCategory;
   derivations: TrustDerivation[];
   loadedCount?: number;
   onResetFilters?: () => void;
   onSelect: (derivation: TrustDerivation) => void;
   onSort: (key: AccountSortKey) => void;
+  onRate?: (derivation: TrustDerivation, role: AccountRatingCategory) => void;
+  ratingActionAvailable?: boolean;
   profiles: IdentityProfilesByAddress;
   query?: string;
   selectedAddress?: string;
@@ -140,12 +145,15 @@ type AccountsTableProps = {
 };
 
 export function AccountsTable({
+  activity = null,
   category,
   derivations,
   loadedCount,
   onResetFilters,
   onSelect,
   onSort,
+  onRate,
+  ratingActionAvailable = false,
   pendingByAddress = {},
   pendingByKey,
   profiles,
@@ -162,8 +170,18 @@ export function AccountsTable({
   // state (which App itself pins to SUBJECT while the toggle is off — this is belt-and-suspenders).
   const effectiveCategory = showAllRoles ? category : 'SUBJECT';
   const effectiveSelectedCategoryRatings = useMemo<RatingsByAddress>(
-    () => ({ ...youRatedByAddress, ...pendingByAddress }),
-    [pendingByAddress, youRatedByAddress],
+    () => {
+      const result = { ...youRatedByAddress, ...pendingByAddress };
+      const prefix = `${effectiveCategory}:`;
+      for (const [key, value] of Object.entries(youRatedByKey ?? {})) {
+        if (key.startsWith(prefix)) result[key.slice(prefix.length)] = value;
+      }
+      for (const [key, entry] of Object.entries(pendingByKey ?? {})) {
+        if (key.startsWith(prefix)) result[key.slice(prefix.length)] = typeof entry === 'number' ? entry : entry.rating;
+      }
+      return result;
+    },
+    [effectiveCategory, pendingByAddress, pendingByKey, youRatedByAddress, youRatedByKey],
   );
 
   // `youRatedByAddress`/`pendingByAddress` are transitional (see above) and only apply to the
@@ -222,6 +240,7 @@ export function AccountsTable({
               effectiveCategory,
               profiles,
               effectiveSelectedCategoryRatings,
+              activity,
             );
 
             if (comparison !== 0) {
@@ -232,7 +251,7 @@ export function AccountsTable({
           return compareAccountLabels(left.derivation, right.derivation, profiles) || left.index - right.index;
         })
         .map(({ derivation }) => derivation),
-    [derivations, effectiveCategory, effectiveSelectedCategoryRatings, profiles, sort],
+    [activity, derivations, effectiveCategory, effectiveSelectedCategoryRatings, profiles, sort],
   );
 
   if (sortedDerivations.length === 0) {
@@ -260,8 +279,8 @@ export function AccountsTable({
 
   return (
     <div aria-label={t('nav.accounts')} className="table-wrap accounts-directory" role="region" tabIndex={0}>
-      <table className="accounts-table accounts-table--unified">
-        <caption className="table-caption">
+      <table className={`accounts-table accounts-table--unified${showAllRoles ? " accounts-table--all-roles" : ""}`}>
+        <caption className={`table-caption${showCountHint ? "" : " sr-only"}`}>
           <span className="data-mode-badge data-mode-badge--live">{t('label.live')}</span>
           {showCountHint ? (
             <span className="table-caption__count">
@@ -288,7 +307,7 @@ export function AccountsTable({
             {showAllRoles ? (
               ROLE_ORDER.map((role) => (
                 <th key={role} scope="col">
-                  {categoryLabel(role)}
+                  <RoleIcon category={role} />{categoryLabel(role)}
                 </th>
               ))
             ) : (
@@ -317,7 +336,7 @@ export function AccountsTable({
                 key={derivation.accountAddress}
                 onClick={() => onSelect(derivation)}
               >
-                <td data-label={t('label.account')}>
+                <td className="account-identity-cell" data-label={t('label.account')}>
                   <button
                     aria-label={t('action.openAccount', { name: profile?.name ?? derivation.accountAddress })}
                     className="identity-cell identity-link"
@@ -330,8 +349,9 @@ export function AccountsTable({
                     <MemoIdentityAvatar address={derivation.accountAddress} profile={profile} size="small" />
                     <IdentityLabel address={derivation.accountAddress} profile={profile} />
                   </button>
+                  {activity?.[derivation.accountAddress] ? <span className="account-activity" title={t('activity.sort')}><Clock3 aria-hidden="true" size={13} /><span className="sr-only">{t('activity.sort')}: </span><time dateTime={new Date(activity[derivation.accountAddress].timestamp).toISOString()}>{formatDate(activity[derivation.accountAddress].timestamp)}</time></span> : null}
                 </td>
-                <td data-label={t('label.trustStatus')}>
+                <td className="account-status-cell" data-label={t('label.trustStatus')}>
                   {showAllRoles ? (
                     <MemoStatusBadge status={derivation.derivedTrustStatus} />
                   ) : subjectData ? (
@@ -343,7 +363,7 @@ export function AccountsTable({
                 {showAllRoles ? null : (
                   <td data-label={t('label.trustLevel')}>{formatNumber(subjectData?.level)}</td>
                 )}
-                <td data-label={t('label.blocksMinted')}>
+                <td className="account-blocks-cell" data-label={t('label.blocksMinted')}>
                   {derivation.blocksMinted !== undefined ? formatNumber(getAccountBlocksMinted(derivation)) : '—'}
                 </td>
                 {showAllRoles ? (
@@ -359,6 +379,7 @@ export function AccountsTable({
                     return (
                       <td className="account-role-cell" data-label={categoryLabel(role)} key={role}>
                         <div className="account-role-summary">
+                          <strong className="account-role-title"><RoleIcon category={role} />{categoryLabel(role)}</strong>
                           <div className="account-role-summary__standing">
                             {/* Only the Minter (SUBJECT) column keeps a Bronze/Silver/Gold-style status
                                 badge (#Stage B, task 5) — Voter/Guide/Designer columns show trust level
@@ -397,6 +418,7 @@ export function AccountsTable({
                               </dd>
                             </div>
                           </dl>
+                          {onRate ? <button className="account-rate-link" type="button" onClick={event => { event.stopPropagation(); onRate(derivation, role); }}>{t(ratingActionAvailable ? 'label.rate' : 'action.viewDetails')}</button> : null}
                         </div>
                       </td>
                     );
@@ -408,6 +430,7 @@ export function AccountsTable({
                       pending={subjectDisplayed.pending ? subjectDisplayed.value : undefined}
                       value={subjectDisplayed.value}
                     />
+                    {onRate ? <button className="account-rate-link" type="button" onClick={event => { event.stopPropagation(); onRate(derivation, effectiveCategory); }}>{t(ratingActionAvailable ? 'label.rate' : 'action.viewDetails')}</button> : null}
                   </td>
                 )}
               </tr>

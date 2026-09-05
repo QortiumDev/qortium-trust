@@ -3,6 +3,12 @@ import { type TranslationKey } from '../en';
 type LocaleCatalog = Partial<Record<TranslationKey, string>>;
 
 export const ja: LocaleCatalog = {
+  "activity.sort": "最近ほかの人を評価",
+  "activity.unavailable": "最近の活動を取得できません。読み込んだアカウントを名前順で表示しています。更新して再試行してください。",
+
+  "sort.label": "並べ替え",
+  "status.unverifiedMeaning": "ブロンズに必要な有効な支持が不足しています。この状態はミンティングを妨げません。",
+
   'rating.submitted': '評価を送信しました',
   'readonly.note': '読み取り専用モードです。アカウントを評価するには、このアプリを Qortium Home で開いてください。',
   'tooltip.blocksMinted': 'このアカウントが鋳造したブロックの総数。',
@@ -242,6 +248,12 @@ export const ja: LocaleCatalog = {
 };
 
 export const ko: LocaleCatalog = {
+  "activity.sort": "최근 다른 사람을 평가",
+  "activity.unavailable": "최근 활동을 불러올 수 없습니다. 불러온 계정을 이름순으로 표시합니다. 새로고침하여 다시 시도하세요.",
+
+  "sort.label": "정렬 기준",
+  "status.unverifiedMeaning": "브론즈에 필요한 유효한 지지가 부족합니다. 이 상태는 민팅을 차단하지 않습니다.",
+
   'rating.submitted': '평가가 제출되었습니다',
   'readonly.note': '읽기 전용 모드입니다. 계정을 평가하려면 Qortium Home에서 이 앱을 여세요.',
   'tooltip.blocksMinted': '이 계정이 채굴한 총 블록 수.',
@@ -481,6 +493,12 @@ export const ko: LocaleCatalog = {
 };
 
 export const zhCN: LocaleCatalog = {
+  "activity.sort": "最近评价过他人",
+  "activity.unavailable": "无法获取最近活动。已加载的账户按名称显示，请刷新重试。",
+
+  "sort.label": "排序依据",
+  "status.unverifiedMeaning": "达到青铜所需的有效支持不足。此状态不会阻止铸造。",
+
   'rating.submitted': '评分已提交',
   'readonly.note': '只读模式。请在 Qortium Home 中打开此应用以评分账户。',
   'tooltip.blocksMinted': '该账户铸造的区块总数。',
@@ -720,6 +738,12 @@ export const zhCN: LocaleCatalog = {
 };
 
 export const zhTW: LocaleCatalog = {
+  "activity.sort": "最近評價過他人",
+  "activity.unavailable": "無法取得最近活動。已載入的帳戶按名稱顯示，請重新整理再試。",
+
+  "sort.label": "排序依據",
+  "status.unverifiedMeaning": "達到青銅所需的有效支持不足。此狀態不會阻止鑄造。",
+
   'rating.submitted': '評分已送出',
   'readonly.note': '唯讀模式。請在 Qortium Home 中開啟此應用以評分帳戶。',
   'tooltip.blocksMinted': '此帳戶鑄造的區塊總數。',

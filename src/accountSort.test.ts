@@ -208,10 +208,18 @@ describe('getTrustDerivationServerSort', () => {
 it('selects the highest 250 minted counts before the next page', () => {
   const accounts = Array.from({ length: 251 }, (_, blocksMinted) => derivation(`Q${blocksMinted}`, { blocksMinted }));
   const request = getTrustDerivationServerSort([{ key: 'blocksMinted', direction: 'desc' }]);
-  const serverOrdered = accounts.toSorted((a, b) => b.blocksMinted! - a.blocksMinted!);
+  const serverOrdered = [...accounts].sort((a, b) => b.blocksMinted! - a.blocksMinted!);
   if (request.reverse) serverOrdered.reverse();
   const firstPage = serverOrdered.slice(0, 250);
   expect(firstPage[0].blocksMinted).toBe(250);
   expect(firstPage.at(-1)?.blocksMinted).toBe(1);
   expect(serverOrdered[250].blocksMinted).toBe(0);
+});
+
+it('orders latest outgoing submissions ahead of minting count and leaves no-activity accounts last', () => {
+  const newer = derivation('Qnew', { blocksMinted: 0 });
+  const older = derivation('Qold', { blocksMinted: 100000 });
+  const none = derivation('Qnone', { blocksMinted: 200000 });
+  const activity = { Qnew: { timestamp: 200, signature: 'new', publicKey: 'newKey' }, Qold: { timestamp: 100, signature: 'old', publicKey: 'oldKey' } };
+  expect([none, older, newer].sort((a, b) => -compareAccountRows(a, b, 'latestRating', CATEGORY, profiles, {}, activity)).map(a => a.accountAddress)).toEqual(['Qnew', 'Qold', 'Qnone']);
 });

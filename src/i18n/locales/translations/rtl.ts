@@ -3,6 +3,12 @@ import { type TranslationKey } from '../en';
 type LocaleCatalog = Partial<Record<TranslationKey, string>>;
 
 export const ar: LocaleCatalog = {
+  "activity.sort": "قيّموا الآخرين مؤخرًا",
+  "activity.unavailable": "النشاط الأخير غير متاح. تُعرض الحسابات المحمّلة حسب الاسم؛ حدّث الصفحة لإعادة المحاولة.",
+
+  "sort.label": "الترتيب حسب",
+  "status.unverifiedMeaning": "لا يوجد دعم مؤهل كافٍ للوصول إلى البرونزي. هذه الحالة لا تمنع سك الكتل.",
+
   'rating.submitted': 'تم إرسال التقييم',
   'readonly.note': 'وضع القراءة فقط. افتح هذا التطبيق في Qortium Home لتقييم الحسابات.',
   'tooltip.blocksMinted': 'إجمالي الكتل التي قام هذا الحساب بسكها.',
@@ -242,6 +248,12 @@ export const ar: LocaleCatalog = {
 };
 
 export const he: LocaleCatalog = {
+  "activity.sort": "דירגו אחרים לאחרונה",
+  "activity.unavailable": "הפעילות האחרונה אינה זמינה. החשבונות שנטענו מוצגים לפי שם; יש לרענן כדי לנסות שוב.",
+
+  "sort.label": "מיון לפי",
+  "status.unverifiedMeaning": "אין מספיק תמיכה מתאימה לארד. מצב זה אינו חוסם יצירת בלוקים.",
+
   'rating.submitted': 'הדירוג נשלח',
   'readonly.note': 'מצב קריאה בלבד. פתח אפליקציה זו ב-Qortium Home כדי לדרג חשבונות.',
   'tooltip.blocksMinted': 'סך הבלוקים שחשבון זה כרה.',

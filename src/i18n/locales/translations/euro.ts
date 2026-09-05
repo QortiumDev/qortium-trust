@@ -3,6 +3,12 @@ import { type TranslationKey } from '../en';
 type LocaleCatalog = Partial<Record<TranslationKey, string>>;
 
 export const de: LocaleCatalog = {
+  "activity.sort": "Zuletzt andere bewertet",
+  "activity.unavailable": "Aktuelle Aktivitäten nicht verfügbar. Geladene Konten werden nach Namen angezeigt; zum Wiederholen aktualisieren.",
+
+  "sort.label": "Sortieren nach",
+  "status.unverifiedMeaning": "Nicht genügend qualifizierte Unterstützung für Bronze. Dieser Status verhindert das Minting nicht.",
+
   'rating.submitted': 'Bewertung gesendet',
   'readonly.note': 'Schreibgeschützter Modus. Öffne diese App in Qortium Home, um Konten zu bewerten.',
   'tooltip.blocksMinted': 'Gesamtzahl der von diesem Konto geprägten Blöcke.',
@@ -242,6 +248,12 @@ export const de: LocaleCatalog = {
 };
 
 export const el: LocaleCatalog = {
+  "activity.sort": "Αξιολόγησαν πρόσφατα άλλους",
+  "activity.unavailable": "Η πρόσφατη δραστηριότητα δεν είναι διαθέσιμη. Οι φορτωμένοι λογαριασμοί εμφανίζονται ανά όνομα· ανανεώστε για νέα προσπάθεια.",
+
+  "sort.label": "Ταξινόμηση κατά",
+  "status.unverifiedMeaning": "Δεν υπάρχει αρκετή κατάλληλη υποστήριξη για Bronze. Αυτή η κατάσταση δεν εμποδίζει το minting.",
+
   'rating.submitted': 'Η αξιολόγηση υποβλήθηκε',
   'readonly.note': 'Λειτουργία μόνο για ανάγνωση. Ανοίξτε αυτήν την εφαρμογή στο Qortium Home για να αξιολογήσετε λογαριασμούς.',
   'tooltip.blocksMinted': 'Συνολικά μπλοκ που έχει δημιουργήσει αυτός ο λογαριασμός.',
@@ -481,6 +493,12 @@ export const el: LocaleCatalog = {
 };
 
 export const es: LocaleCatalog = {
+  "activity.sort": "Evaluaron a otros recientemente",
+  "activity.unavailable": "Actividad reciente no disponible. Se muestran las cuentas cargadas por nombre; actualiza para reintentar.",
+
+  "sort.label": "Ordenar por",
+  "status.unverifiedMeaning": "No hay suficiente apoyo válido para Bronce. Este estado no impide acuñar.",
+
   'rating.submitted': 'Valoración enviada',
   'readonly.note': 'Modo de solo lectura. Abre esta app en Qortium Home para valorar cuentas.',
   'tooltip.blocksMinted': 'Total de bloques que ha forjado esta cuenta.',
@@ -720,6 +738,12 @@ export const es: LocaleCatalog = {
 };
 
 export const et: LocaleCatalog = {
+  "activity.sort": "Hiljuti teisi hinnanud",
+  "activity.unavailable": "Hiljutine tegevus pole saadaval. Laaditud kontod kuvatakse nime järgi; proovi värskendades uuesti.",
+
+  "sort.label": "Sordi alusel",
+  "status.unverifiedMeaning": "Pronksi jaoks pole piisavalt nõuetele vastavat toetust. See olek ei takista vermimist.",
+
   'rating.submitted': 'Hinnang esitatud',
   'readonly.note': 'Kirjutuskaitstud režiim. Kontode hindamiseks ava see rakendus Qortium Home is.',
   'tooltip.blocksMinted': 'Selle konto loodud plokkide koguarv.',
@@ -959,6 +983,12 @@ export const et: LocaleCatalog = {
 };
 
 export const fi: LocaleCatalog = {
+  "activity.sort": "Äskettäin muita arvioineet",
+  "activity.unavailable": "Viimeaikainen toiminta ei ole saatavilla. Ladatut tilit näytetään nimen mukaan; yritä uudelleen päivittämällä.",
+
+  "sort.label": "Lajitteluperuste",
+  "status.unverifiedMeaning": "Bronze-tilaan ei ole riittävästi kelpoista tukea. Tämä tila ei estä minttausta.",
+
   'rating.submitted': 'Arvio lähetetty',
   'readonly.note': 'Vain luku -tila. Avaa tämä sovellus Qortium Homessa arvioidaksesi tilejä.',
   'tooltip.blocksMinted': 'Tämän tilin louhimien lohkojen kokonaismäärä.',
@@ -1198,6 +1228,12 @@ export const fi: LocaleCatalog = {
 };
 
 export const fr: LocaleCatalog = {
+  "activity.sort": "Ont récemment évalué des comptes",
+  "activity.unavailable": "Activité récente indisponible. Les comptes chargés sont affichés par nom ; actualisez pour réessayer.",
+
+  "sort.label": "Trier par",
+  "status.unverifiedMeaning": "Le soutien admissible est insuffisant pour Bronze. Ce statut ne bloque pas la création de blocs.",
+
   'rating.submitted': 'Évaluation envoyée',
   'readonly.note': 'Mode lecture seule. Ouvrez cette app dans Qortium Home pour évaluer des comptes.',
   'tooltip.blocksMinted': 'Nombre total de blocs forgés par ce compte.',
@@ -1437,6 +1473,12 @@ export const fr: LocaleCatalog = {
 };
 
 export const hi: LocaleCatalog = {
+  "activity.sort": "हाल में दूसरों को रेट किया",
+  "activity.unavailable": "हाल की गतिविधि उपलब्ध नहीं है। लोड किए गए खाते नाम के अनुसार दिख रहे हैं; फिर प्रयास करने के लिए रीफ़्रेश करें।",
+
+  "sort.label": "इसके अनुसार क्रमबद्ध करें",
+  "status.unverifiedMeaning": "कांस्य के लिए पर्याप्त योग्य समर्थन नहीं है। यह स्थिति मिंटिंग को नहीं रोकती।",
+
   'rating.submitted': 'रेटिंग सबमिट की गई',
   'readonly.note': 'केवल-पढ़ने का मोड। खातों को रेट करने के लिए इस ऐप को Qortium Home में खोलें।',
   'tooltip.blocksMinted': 'इस खाते द्वारा माइन किए गए कुल ब्लॉक।',
@@ -1676,6 +1718,12 @@ export const hi: LocaleCatalog = {
 };
 
 export const hu: LocaleCatalog = {
+  "activity.sort": "Nemrég másokat értékeltek",
+  "activity.unavailable": "A legutóbbi tevékenység nem érhető el. A betöltött fiókok név szerint láthatók; frissíts az újrapróbálkozáshoz.",
+
+  "sort.label": "Rendezés",
+  "status.unverifiedMeaning": "Nincs elegendő megfelelő támogatás a Bronzhoz. Ez az állapot nem akadályozza a mintelést.",
+
   'rating.submitted': 'Értékelés elküldve',
   'readonly.note': 'Csak olvasható mód. A fiókok értékeléséhez nyisd meg ezt az alkalmazást a Qortium Home-ban.',
   'tooltip.blocksMinted': 'A fiók által generált blokkok száma összesen.',
@@ -1915,6 +1963,12 @@ export const hu: LocaleCatalog = {
 };
 
 export const it: LocaleCatalog = {
+  "activity.sort": "Hanno valutato altri di recente",
+  "activity.unavailable": "Attività recente non disponibile. Gli account caricati sono mostrati per nome; aggiorna per riprovare.",
+
+  "sort.label": "Ordina per",
+  "status.unverifiedMeaning": "Il sostegno idoneo non è sufficiente per Bronzo. Questo stato non impedisce il minting.",
+
   'rating.submitted': 'Valutazione inviata',
   'readonly.note': 'Modalità di sola lettura. Apri questa app in Qortium Home per valutare gli account.',
   'tooltip.blocksMinted': 'Totale dei blocchi forgiati da questo account.',
@@ -2154,6 +2208,12 @@ export const it: LocaleCatalog = {
 };
 
 export const nl: LocaleCatalog = {
+  "activity.sort": "Recent anderen beoordeeld",
+  "activity.unavailable": "Recente activiteit niet beschikbaar. Geladen accounts worden op naam getoond; vernieuw om opnieuw te proberen.",
+
+  "sort.label": "Sorteren op",
+  "status.unverifiedMeaning": "Onvoldoende geldige steun voor Brons. Deze status blokkeert minting niet.",
+
   'rating.submitted': 'Beoordeling verzonden',
   'readonly.note': 'Alleen-lezen modus. Open deze app in Qortium Home om accounts te beoordelen.',
   'tooltip.blocksMinted': 'Totaal aantal blokken dat dit account heeft gemined.',
@@ -2393,6 +2453,12 @@ export const nl: LocaleCatalog = {
 };
 
 export const pl: LocaleCatalog = {
+  "activity.sort": "Ostatnio oceniali innych",
+  "activity.unavailable": "Ostatnia aktywność jest niedostępna. Wczytane konta są wyświetlane według nazwy; odśwież, aby spróbować ponownie.",
+
+  "sort.label": "Sortuj według",
+  "status.unverifiedMeaning": "Za mało kwalifikowanego poparcia dla Brązu. Ten status nie blokuje mintingu.",
+
   'rating.submitted': 'Ocena wysłana',
   'readonly.note': 'Tryb tylko do odczytu. Otwórz tę aplikację w Qortium Home, aby oceniać konta.',
   'tooltip.blocksMinted': 'Łączna liczba bloków wykopanych przez to konto.',
@@ -2632,6 +2698,12 @@ export const pl: LocaleCatalog = {
 };
 
 export const pt: LocaleCatalog = {
+  "activity.sort": "Avaliaram outros recentemente",
+  "activity.unavailable": "Atividade recente indisponível. As contas carregadas são mostradas por nome; atualize para tentar novamente.",
+
+  "sort.label": "Ordenar por",
+  "status.unverifiedMeaning": "Apoio qualificado insuficiente para Bronze. Este estado não impede a cunhagem.",
+
   'rating.submitted': 'Avaliação enviada',
   'readonly.note': 'Modo somente leitura. Abra este app no Qortium Home para avaliar contas.',
   'tooltip.blocksMinted': 'Total de blocos que esta conta forjou.',
@@ -2871,6 +2943,12 @@ export const pt: LocaleCatalog = {
 };
 
 export const ro: LocaleCatalog = {
+  "activity.sort": "Au evaluat recent alte conturi",
+  "activity.unavailable": "Activitatea recentă nu este disponibilă. Conturile încărcate sunt afișate după nume; reîmprospătează pentru a reîncerca.",
+
+  "sort.label": "Sortează după",
+  "status.unverifiedMeaning": "Sprijin eligibil insuficient pentru Bronz. Acest statut nu blochează crearea de blocuri.",
+
   'rating.submitted': 'Evaluare trimisă',
   'readonly.note': 'Mod doar citire. Deschide această aplicație în Qortium Home pentru a evalua conturi.',
   'tooltip.blocksMinted': 'Numărul total de blocuri minate de acest cont.',
@@ -3110,6 +3188,12 @@ export const ro: LocaleCatalog = {
 };
 
 export const ru: LocaleCatalog = {
+  "activity.sort": "Недавно оценивали других",
+  "activity.unavailable": "Недавняя активность недоступна. Загруженные аккаунты показаны по имени; обновите для повторной попытки.",
+
+  "sort.label": "Сортировать по",
+  "status.unverifiedMeaning": "Недостаточно учитываемой поддержки для Бронзы. Этот статус не запрещает минтинг.",
+
   'rating.submitted': 'Оценка отправлена',
   'readonly.note': 'Режим только для чтения. Откройте это приложение в Qortium Home, чтобы оценивать аккаунты.',
   'tooltip.blocksMinted': 'Общее число блоков, сформированных этим аккаунтом.',
@@ -3349,6 +3433,12 @@ export const ru: LocaleCatalog = {
 };
 
 export const sv: LocaleCatalog = {
+  "activity.sort": "Bedömde nyligen andra",
+  "activity.unavailable": "Senaste aktivitet är inte tillgänglig. Inlästa konton visas efter namn; uppdatera för att försöka igen.",
+
+  "sort.label": "Sortera efter",
+  "status.unverifiedMeaning": "Inte tillräckligt med kvalificerat stöd för Brons. Denna status hindrar inte minting.",
+
   'rating.submitted': 'Betyg skickat',
   'readonly.note': 'Skrivskyddat läge. Öppna den här appen i Qortium Home för att betygsätta konton.',
   'tooltip.blocksMinted': 'Totalt antal block som detta konto har präglat.',
@@ -3588,6 +3678,12 @@ export const sv: LocaleCatalog = {
 };
 
 export const nb: LocaleCatalog = {
+  "activity.sort": "Vurderte nylig andre",
+  "activity.unavailable": "Nylig aktivitet er utilgjengelig. Innlastede kontoer vises etter navn; oppdater for å prøve igjen.",
+
+  "sort.label": "Sorter etter",
+  "status.unverifiedMeaning": "Ikke nok kvalifisert støtte for Bronse. Denne statusen hindrer ikke minting.",
+
   'rating.submitted': 'Vurdering sendt',
   'readonly.note': 'Skrivebeskyttet modus. Åpne denne appen i Qortium Home for å vurdere kontoer.',
   'tooltip.blocksMinted': 'Totalt antall blokker denne kontoen har minet.',

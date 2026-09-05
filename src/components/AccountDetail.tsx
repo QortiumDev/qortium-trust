@@ -19,7 +19,6 @@ import type {
   SelfAccount,
   TrustDerivation,
   TrustPolicy,
-  TrustStatus,
 } from '../types';
 import type {
   AccountDetailState,
@@ -29,6 +28,8 @@ import type {
 } from '../viewTypes';
 import { getDisplayedRating, type DisplayedRating } from '../ratingControl';
 import { IdentityAvatar, IdentityLabel, StatusBadge } from './Identity';
+import { RoleIcon } from './TrustIcons';
+import { TrustStatusHelp } from './TrustStatusHelp';
 import { RatingForm } from './RatingControls';
 import { t, type TranslationKey } from '../i18n';
 
@@ -123,19 +124,6 @@ function ratingValue(value: number | undefined, category: AccountRatingCategory)
   );
 }
 
-// Renders from already-fetched trust-policy data (App loads it once via getTrustPolicy). formatNumber
-// degrades any missing percent to '-' rather than hiding the whole line.
-function voteWeightExplainer(policy: TrustPolicy | null | undefined) {
-  const percentFor = (status: TrustStatus) =>
-    policy?.statusVoteWeights?.find((entry) => entry.status === status)?.voteWeightPercent;
-
-  return t('detail.voteWeightExplainer', {
-    bronze: formatNumber(percentFor('BRONZE')),
-    gold: formatNumber(percentFor('GOLD')),
-    silver: formatNumber(percentFor('SILVER')),
-  });
-}
-
 function relevantRequirements(
   category: ExplanationCategoryWithRequirements | undefined,
 ): TrustRequirement[] {
@@ -189,12 +177,13 @@ function RoleStandingCard({
   return (
     <button
       aria-pressed={active}
+      title={rolePurpose(category)}
       className={`role-standing-card${active ? ' role-standing-card--active' : ''}`}
       onClick={onSelect}
       type="button"
     >
       <span className="role-standing-card__title">
-        <strong>{categoryLabel(category)}</strong>
+        <strong><RoleIcon category={category} />{categoryLabel(category)}</strong>
         {/* Only the Minter card keeps a Bronze/Silver/Gold-style status badge (#Stage B, task 5) —
             Voter/Guide/Designer cards show their trust level instead (in the metrics row below), so
             they never imply an externally meaningful status the way Minter status does. */}
@@ -235,6 +224,7 @@ function RoleStandingCard({
 
 export function AccountDetail({
   category,
+  focusRating = false,
   detail,
   onActiveCategoryChange,
   onBack,
@@ -254,6 +244,7 @@ export function AccountDetail({
   youRatedByKey,
 }: {
   category: AccountRatingCategory;
+  focusRating?: boolean;
   detail: AccountDetailState;
   onActiveCategoryChange?: (category: AccountRatingCategory) => void;
   onBack: () => void;
@@ -280,6 +271,7 @@ export function AccountDetail({
   // Complete current-user ratings keyed by pendingRatingKey's `${category}:${targetAddress}`.
   youRatedByKey?: RatingValuesByAccountCategory;
 }) {
+  const ratingRef = useRef<HTMLDivElement>(null);
   const backButtonRef = useRef<HTMLButtonElement>(null);
   const [activeCategory, setActiveCategory] = useState(category);
   const label = getIdentityLabel(profile, selectedDerivation.accountAddress);
@@ -288,8 +280,15 @@ export function AccountDetail({
   const visibleRoles: AccountRatingCategory[] = showAllRoles ? ROLE_ORDER : ['SUBJECT'];
 
   useEffect(() => {
-    backButtonRef.current?.focus();
-  }, []);
+    if (!focusRating) backButtonRef.current?.focus();
+  }, [focusRating]);
+
+  useEffect(() => {
+    if (focusRating && !detail.loading) {
+      ratingRef.current?.scrollIntoView?.({ block: 'nearest' });
+      ratingRef.current?.querySelector<HTMLButtonElement>('button:not(:disabled)')?.focus();
+    }
+  }, [focusRating, detail.loading]);
 
   useEffect(() => {
     setActiveCategory(category);
@@ -369,7 +368,6 @@ export function AccountDetail({
         <>
           {showAllRoles ? (
           <>
-            <p className="roles-grid-intro">{t('role.gridIntro')}</p>
             <section aria-label={t('role.trustRoles')} className="role-standing-grid">
               {ROLE_ORDER.map((role) => (
                 <RoleStandingCard
@@ -390,8 +388,7 @@ export function AccountDetail({
           <section className="detail-role-workspace">
             <header className="detail-role-workspace__header">
               <div>
-                <p className="eyebrow">{t('role.selected')}</p>
-                <h3>{categoryLabel(activeCategory)}</h3>
+                <h3><RoleIcon category={activeCategory} />{categoryLabel(activeCategory)}</h3>
                 <p>{rolePurpose(activeCategory)}</p>
               </div>
               <div className="detail-role-workspace__summary">
@@ -409,10 +406,10 @@ export function AccountDetail({
                 </span>
               </div>
             </header>
-            <p className="detail-role-workspace__vote-weight-note">{voteWeightExplainer(policy)}</p>
+            <TrustStatusHelp policy={policy ?? null} />
 
             <div className="detail-role-workspace__columns">
-              <div className="detail-rate">
+              <div className="detail-rate" ref={ratingRef}>
                 <RatingForm
                   category={activeCategory}
                   key={`${selectedDerivation.accountPublicKey}:${activeCategory}`}

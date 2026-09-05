@@ -1,4 +1,10 @@
 export const en = {
+  "activity.sort": "Recently rated others",
+  "activity.unavailable": "Recent activity unavailable. Showing loaded accounts by name; refresh to retry.",
+
+  "sort.label": "Sort by",
+  "status.unverifiedMeaning": "Not enough qualifying support for Bronze. This status does not block minting.",
+
   'rating.submitted': 'Rating submitted',
   'readonly.note': 'Read-only mode. Open this app in Qortium Home to rate accounts.',
   'tooltip.blocksMinted': 'Total blocks this account has minted.',

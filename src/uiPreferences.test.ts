@@ -26,8 +26,8 @@ describe('UI preferences (localStorage-backed)', () => {
     expect(getInitialShowAllRoles()).toBe(false);
   });
 
-  it('defaults the trust flow guide to expanded and persists its collapsed state', () => {
-    expect(getInitialTrustFlowGuideCollapsed()).toBe(false);
+  it('defaults the trust flow guide to collapsed and persists its collapsed state', () => {
+    expect(getInitialTrustFlowGuideCollapsed()).toBe(true);
 
     persistTrustFlowGuideCollapsed(true);
     expect(getInitialTrustFlowGuideCollapsed()).toBe(true);

@@ -1,3 +1,4 @@
+import { Timer } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import {
   categoryLabel,
@@ -135,7 +136,7 @@ function RatingChooser({ category, control }: { category: AccountRatingCategory;
   const initializedRef = useRef(false);
 
   useEffect(() => {
-    if (control.cooldownLoading || initializedRef.current) {
+    if (!control.cooldown || control.cooldownLoading || initializedRef.current) {
       return;
     }
 
@@ -146,13 +147,14 @@ function RatingChooser({ category, control }: { category: AccountRatingCategory;
       setAnswer(active > 0 ? 'yes' : 'no');
       setConfidence(Math.min(Math.abs(active), 4) as 1 | 2 | 3 | 4);
     }
-  }, [control.activeRating, control.cooldownLoading]);
+  }, [control.activeRating, control.cooldown, control.cooldownLoading]);
 
   // Single place that keeps `control.rating` in sync with the two-step selection: whenever the
   // selection doesn't yet resolve to a concrete value (an answer picked but no confidence yet, or
   // "Not sure yet"), it falls back to the account's current active rating (or 0) — the no-op
   // selection — so a half-made choice can never be submitted as-is.
   const applySelection = (nextAnswer: TwoStepAnswer | null, nextConfidence: 1 | 2 | 3 | 4 | null) => {
+    initializedRef.current = true;
     setAnswer(nextAnswer);
     setConfidence(nextConfidence);
     const resolved = resolveTwoStepRating(nextAnswer, nextConfidence);
@@ -291,6 +293,7 @@ export function RatingForm(
       <RatingChooser category={category} control={control} />
       <RatingImpactNote category={category} control={control} raterAddress={self?.address} />
 
+      {!isPending && onCooldown ? <p className="rating-cooldown" role="status"><Timer aria-hidden="true" size={17} />{t('rating.statusCooldown', { blocks: formatNumber(cooldown?.blocksRemaining) })}</p> : null}
       <button
         className="rating-submit"
         disabled={submitDisabled}
@@ -338,7 +341,7 @@ export function RatingForm(
             </p>
           </div>
         </div>
-      ) : (
+      ) : onCooldown ? null : (
         <p className="muted rating-status">
           {cooldownLoading
             ? t('rating.checkCooldown')

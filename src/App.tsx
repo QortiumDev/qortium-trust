@@ -8,7 +8,10 @@ import {
   Search,
   ShieldCheck,
 } from 'lucide-react';
+import { loadRecentDirectory, type RecentActivity } from './recentActivity';
 import { changeAccountSortState, getTrustDerivationServerSort } from './accountSort';
+import { TrustStatusHelp } from './components/TrustStatusHelp';
+import { RoleIcon } from './components/TrustIcons';
 import { AccountsTable } from './components/AccountsTable';
 import { AccountDetail } from './components/AccountDetail';
 import { ChangesTable } from './components/ChangesTable';
@@ -18,7 +21,6 @@ import { filterDerivations } from './derivationFilter';
 import {
   categoryLabel,
   formatNumber,
-  formatRuntimeLabel,
   statusLabel,
   TRUST_CATEGORIES,
   TRUST_STATUSES,
@@ -72,7 +74,7 @@ const PAGE_SIZE = 250;
 const RATING_PAGE_SIZE = 1000;
 
 const DEFAULT_ACCOUNT_SORT: AccountSortState = [
-  { direction: 'desc', key: 'blocksMinted' },
+  { direction: 'desc', key: 'latestRating' },
   { direction: 'asc', key: 'account' },
 ];
 
@@ -157,9 +159,8 @@ function TrustFlowGuide({
   const toggleLabel = collapsed ? t('trustFlow.expand') : t('trustFlow.collapse');
 
   return (
-    <section className="trust-flow-guide" aria-labelledby="trust-flow-guide-title">
+    <section className={`trust-flow-guide${collapsed ? " trust-flow-guide--collapsed" : ""}`} aria-labelledby="trust-flow-guide-title">
       <div>
-        <p className="eyebrow">{t('trustFlow.eyebrow')}</p>
         <div className="trust-flow-guide__title-row">
           <h2 id="trust-flow-guide-title">{t('trustFlow.title')}</h2>
           <button
@@ -179,7 +180,7 @@ function TrustFlowGuide({
         <ol>
           {ROLE_FLOW.map((role, index) => (
             <li key={role}>
-              <strong>{categoryLabel(role)}</strong>
+              <strong><RoleIcon category={role} />{categoryLabel(role)}</strong>
               <span>{t(ROLE_FLOW_COPY_KEYS[role])}</span>
               {index < ROLE_FLOW.length - 1 ? <span aria-hidden="true">→</span> : null}
             </li>
@@ -251,6 +252,8 @@ function NetworkSummaryStrip({ summary }: { summary: TrustSummary | null }) {
 }
 
 export default function App() {
+  const [recentActivity, setRecentActivity] = useState<RecentActivity | null>(null);
+  const [activityUnavailable, setActivityUnavailable] = useState(false);
   const [accountSort, setAccountSort] = useState<AccountSortState>(DEFAULT_ACCOUNT_SORT);
   const [category, setCategory] = useState<AccountRatingCategory>('SUBJECT');
   const [data, setData] = useState<ExplorerState>(EMPTY_EXPLORER_STATE);
@@ -270,6 +273,7 @@ export default function App() {
   const [pendingRatings, setPendingRatings] = useState<PendingRatingsByKey>({});
   const [query, setQuery] = useState('');
   const [receivedRatings, setReceivedRatings] = useState<AccountRating[] | undefined>(undefined);
+  const [focusRating, setFocusRating] = useState(false);
   const [selectedAddress, setSelectedAddress] = useState<string | null>(null);
   const [self, setSelf] = useState<SelfAccount | null>(null);
   const [showAllRoles, setShowAllRolesState] = useState(getInitialShowAllRoles);
@@ -303,6 +307,10 @@ export default function App() {
   const navRef = useRef<HTMLElement>(null);
   const selfRef = useRef(self);
   const ratingActionAvailable = (data.bridge?.actions ?? []).includes('RATE_ACCOUNT');
+  const wantsRecent = accountSort[0].key === 'latestRating';
+  const visibleSort: AccountSortState = wantsRecent && activityUnavailable
+    ? [{ key: 'account', direction: 'asc' }]
+    : accountSort;
   const serverDerivationSort = useMemo(() => getTrustDerivationServerSort(accountSort), [accountSort]);
 
   // t() reads the active catalog synchronously. Set it during render so a Home language message
@@ -385,16 +393,31 @@ export default function App() {
         return;
       }
 
+      let directory = derivationPage;
+      if (wantsRecent) {
+        try {
+          if (nodeStatus.isSynchronizing || !nodeStatus.height) throw new Error('Node is not ready');
+          const recent = await loadRecentDirectory(nodeStatus.height, derivationPage, derivationLimit, category);
+          if (loadTokenRef.current !== token) return;
+          directory = recent;
+          setRecentActivity(recent.activity);
+          setActivityUnavailable(false);
+        } catch {
+          if (loadTokenRef.current !== token) return;
+          setRecentActivity(null);
+          setActivityUnavailable(true);
+        }
+      }
       setData({
         bridge,
         changes,
-        derivations: derivationPage.derivations,
+        derivations: directory.derivations,
         nodeStatus,
         policy,
         ratings: [],
         summary,
       });
-      setDerivationTotal(derivationPage.total);
+      setDerivationTotal(directory.total);
     } catch (loadError) {
       if (loadTokenRef.current === token && !silent) {
         setError(loadError instanceof Error ? loadError.message : t('error.trustLoadFailed'));
@@ -404,7 +427,7 @@ export default function App() {
         setLoading(false);
       }
     }
-  }, [category, derivationLimit, serverDerivationSort]);
+  }, [category, derivationLimit, serverDerivationSort, wantsRecent]);
 
   useEffect(() => {
     void loadData();
@@ -459,7 +482,9 @@ export default function App() {
     setView(route.view);
   }, []);
 
-  const openAccount = useCallback((address: string) => {
+  const openAccount = useCallback((address: string, ratingCategory?: AccountRatingCategory) => {
+    setFocusRating(ratingCategory !== undefined);
+    if (ratingCategory) setCategory(ratingCategory);
     if (!data.derivations.some((derivation) => derivation.accountAddress === address)) {
       setDerivationLimit(5_000);
     }
@@ -741,8 +766,13 @@ export default function App() {
   }, [loadData, pendingRatings, refreshYouRated]);
 
   const changeAccountSort = useCallback((key: AccountSortKey) => {
+    if (key === 'latestRating' && wantsRecent && activityUnavailable) {
+      setAccountSort(DEFAULT_ACCOUNT_SORT);
+      void loadData();
+      return;
+    }
     setAccountSort((current) => changeAccountSortState(current, key));
-  }, []);
+  }, [activityUnavailable, loadData, wantsRecent]);
 
   const handleViewChange = (next: ViewMode) => {
     navigateToRoute({ account: null, view: next });
@@ -772,11 +802,9 @@ export default function App() {
                   <h1>{t('app.title')}</h1>
                   <span className="app-version">{APP_VERSION}</span>
                 </div>
-                <p className="app-subtitle">{t('app.subtitle')}</p>
               </div>
             </div>
             <div className="header-actions">
-              <span className="runtime-pill">{formatRuntimeLabel(data.bridge?.ui)}</span>
               <NodeSyncPill nodeStatus={data.nodeStatus} />
               <button
                 aria-label={t('action.refreshTrust')}
@@ -824,10 +852,6 @@ export default function App() {
       <section className="workspace">
         {view === 'accounts' && !showAccountDetail ? (
           <>
-            <TrustFlowGuide
-              collapsed={trustFlowGuideCollapsed}
-              onToggleCollapsed={() => setTrustFlowGuideCollapsed(!trustFlowGuideCollapsed)}
-            />
             <div className="accounts-toolbar">
               <label className="search-field search-field--open">
                 <Search aria-hidden="true" size={16} />
@@ -857,8 +881,19 @@ export default function App() {
                   ))}
                 </select>
               </label>
+              <label className="field-control account-sort-select">
+                <span>{t('sort.label')}</span>
+                <select value={visibleSort[0].key} onChange={event => changeAccountSort(event.target.value as AccountSortKey)}>
+                  {([['latestRating', 'activity.sort'], ['account', 'label.account'], ['status', 'label.trustStatus'], ['blocksMinted', 'label.blocksMinted'], ['level', 'label.trustLevel'], ['score', 'label.score'], ['ratings', 'label.ratings'], ['youRated', 'label.youRated'], ['voteWeight', 'label.voteWeight'], ['seed', 'label.seed']] as [AccountSortKey, TranslationKey][]).map(([key, label]) => <option key={key} value={key}>{t(label)}</option>)}
+                </select>
+              </label>
+              <button className="sort-direction icon-button" title={t(visibleSort[0].direction === 'asc' ? 'sort.ascending' : 'sort.descending')} aria-label={t(visibleSort[0].direction === 'asc' ? 'sort.ascending' : 'sort.descending')} onClick={() => changeAccountSort(visibleSort[0].key)} type="button">{visibleSort[0].direction === 'asc' ? '↑' : '↓'}</button>
               {showAllRoles ? <CategorySelect category={category} onChange={setCategory} /> : null}
               <ShowAllRolesToggle checked={showAllRoles} onChange={setShowAllRoles} />
+            </div>
+            <div className="directory-help">
+              <TrustStatusHelp policy={data.policy} />
+              <TrustFlowGuide collapsed={trustFlowGuideCollapsed} onToggleCollapsed={() => setTrustFlowGuideCollapsed(!trustFlowGuideCollapsed)} />
             </div>
           </>
         ) : null}
@@ -867,6 +902,7 @@ export default function App() {
           {showAccountDetail ? (
             <AccountDetail
               category={category}
+              focusRating={focusRating}
               detail={detail}
               key={`${selectedDerivation.accountAddress}:${self?.address ?? 'readonly'}`}
               onActiveCategoryChange={setCategory}
@@ -892,8 +928,10 @@ export default function App() {
             loadingPanel
           ) : view === 'accounts' ? (
             <>
+              {wantsRecent && activityUnavailable ? <p className="activity-unavailable" role="status">{t('activity.unavailable')}</p> : null}
               <NetworkSummaryStrip summary={data.summary} />
               <AccountsTable
+                activity={recentActivity}
                 category={category}
                 derivations={filteredDerivations}
                 loadedCount={data.derivations.length}
@@ -903,12 +941,14 @@ export default function App() {
                 }}
                 onSelect={(derivation: TrustDerivation) => openAccount(derivation.accountAddress)}
                 onSort={changeAccountSort}
+                onRate={(derivation, role) => openAccount(derivation.accountAddress, role)}
+                ratingActionAvailable={ratingActionAvailable}
                 pendingByKey={pendingRatings}
                 profiles={identityProfiles}
                 query={query}
                 selectedAddress={selectedAddress ?? undefined}
                 showAllRoles={showAllRoles}
-                sort={accountSort}
+                sort={visibleSort}
                 statusFilter={statusFilter}
                 totalCount={derivationTotal}
                 youRatedByKey={youRatedByKey}

@@ -43,7 +43,7 @@ export function persistShowAllRoles(value: boolean): void {
 }
 
 export function getInitialTrustFlowGuideCollapsed(): boolean {
-  return readStoredBoolean(TRUST_FLOW_GUIDE_COLLAPSED_KEY, false);
+  return readStoredBoolean(TRUST_FLOW_GUIDE_COLLAPSED_KEY, true);
 }
 
 export function persistTrustFlowGuideCollapsed(value: boolean): void {

@@ -3054,3 +3054,119 @@ html {
     transition: none;
   }
 }
+
+/* Compact account presentation: existing routes, rating forms and data remain shared. */
+:root[data-theme='dark'][data-ui='classic'] {
+  --bg: #080f1b;
+  --frame: #080f1b;
+  --frame-surface: #0e1928;
+  --panel: #101c2b;
+  --panel-subtle: #142236;
+  --surface: #101c2b;
+  --line: #304157;
+  --row-hover: #1b2c40;
+}
+.app-header { margin-bottom: 8px; padding-block: 10px; }
+.app-header__mark { width: 38px; height: 38px; }
+.app-header__identity h1 { font-size: calc(24px * var(--text-scale)); }
+.section-nav { margin-bottom: 8px; }
+.section-nav button { padding: 6px 12px; min-height: 36px; }
+.accounts-toolbar { gap: 8px; margin-bottom: 8px; padding: 10px; }
+.accounts-toolbar .search-field { min-width: 160px; }
+.field-control { gap: 3px; }
+.sort-direction { align-self: end; }
+.network-summary-strip { margin: 0; padding: 8px 0; font-size: var(--font-size-small); }
+.main-panel { padding: 12px; }
+.directory-help { display: flex; align-items: start; flex-wrap: wrap; gap: 8px 18px; margin-block: 0 8px; }
+.trust-flow-guide, .trust-status-help { border: 0; background: transparent; margin: 0; padding: 0; }
+.trust-flow-guide { display: block; flex: 1 1 360px; }
+.trust-flow-guide--collapsed { flex: 0 1 auto; }
+.trust-flow-guide h2 { font-size: var(--font-size-small); margin: 0; }
+.trust-flow-guide__title-row { display: flex; align-items: center; gap: 5px; }
+.trust-flow-guide__collapse-toggle { min-height: 28px; }
+.trust-flow-guide ol { margin-top: 10px; }
+.trust-flow-guide li strong, .role-standing-card__title strong, .detail-role-workspace h3 { display: flex; align-items: center; gap: 6px; }
+.trust-status-help { font-size: var(--font-size-small); }
+.trust-status-help summary { cursor: pointer; min-height: 28px; padding-block: 3px; }
+.trust-status-help__body { max-width: 70ch; padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
+.trust-status-help__body p { margin: 6px 0; }
+.trust-status-help__badges { display: flex; flex-wrap: wrap; gap: 12px; }
+.trust-status-help__badges > span { display: inline-flex; align-items: center; gap: 5px; }
+.badge { gap: 5px; padding: 2px 5px; background: transparent; border: 0; vertical-align: middle; }
+.trust-shield { width: 28px; height: 32px; flex: 0 0 auto; }
+.role-icon { flex-shrink: 0; vertical-align: middle; color: var(--accent); }
+.accounts-table--unified td, .accounts-table--unified th { padding: 8px 10px; }
+.accounts-table--unified .identity-cell { min-width: 0; }
+.account-rate-link { display: block; margin-top: 6px; padding: 4px 9px; min-height: 30px; font-size: var(--font-size-small); color: var(--accent); }
+.account-role-title { display: flex; align-items: center; gap: 5px; }
+/* The existing combined data cells are grouped beneath their account identity, at every width. */
+.accounts-table--all-roles, .accounts-table--all-roles tbody { display: block; }
+.accounts-table--all-roles thead { display: none; }
+.accounts-table--all-roles tbody { display: grid; gap: 10px; }
+.accounts-table--all-roles .account-directory-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--panel); }
+.accounts-table--all-roles td { display: block; width: auto; border: 0; min-width: 0; }
+.accounts-table--all-roles .account-identity-cell { grid-column: span 2; }
+.accounts-table--all-roles .account-status-cell, .accounts-table--all-roles .account-blocks-cell { align-self: center; }
+.accounts-table--all-roles .account-blocks-cell::before { content: attr(data-label); display: block; color: var(--muted); font-size: var(--font-size-small); }
+.accounts-table--all-roles .account-role-cell { border-top: 1px solid var(--line); background: var(--panel-subtle); }
+.accounts-table--all-roles .account-role-cell::before { display: none; }
+.account-role-summary { gap: 5px; }
+.account-role-summary__metrics > div { flex-wrap: wrap; gap: 2px 8px; }
+.account-role-summary__metrics dd { overflow-wrap: anywhere; }
+.role-standing-grid { gap: 8px; }
+.role-standing-card { padding: 10px; gap: 6px; }
+.role-standing-card__purpose { display: none; }
+.detail-header--account { padding: 12px; margin-bottom: 10px; }
+.detail-header--account .identity-avatar-large { width: 52px; height: 52px; }
+.detail-role-workspace { padding: 12px; }
+.detail-role-workspace__header { margin-bottom: 6px; }
+.detail-role-workspace__header h3 { margin: 0; }
+.detail-role-workspace > .trust-status-help { margin-bottom: 10px; }
+.detail-role-workspace__columns { gap: 14px; }
+.detail-rate .mini-section > h3 { display: none; }
+.rating-cooldown { display: flex; align-items: center; gap: 6px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; color: var(--text); }
+@media (max-width: 1100px) {
+  .accounts-table--all-roles .account-directory-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .accounts-table--all-roles .account-identity-cell { grid-column: 1 / -1; }
+  .accounts-table--all-roles .account-directory-row .account-status-cell,
+  .accounts-table--all-roles .account-directory-row .account-blocks-cell,
+  .accounts-table--all-roles .account-role-cell { grid-column: auto; }
+  .accounts-table--all-roles td::before { display: none; }
+  .accounts-table--all-roles .account-blocks-cell::before { display: block; }
+  .account-role-summary__metrics { font-size: var(--font-size-small); }
+}
+@media (max-width: 700px) {
+  .app-shell { padding: 10px; }
+  .app-header { flex-direction: row; align-items: center; flex-wrap: wrap; gap: 8px; }
+  .header-actions { gap: 6px; }
+  .accounts-toolbar { display: flex; flex-wrap: wrap; }
+  .accounts-toolbar .search-field { flex: 1 1 100%; }
+  .accounts-toolbar .field-control { flex: 1 1 125px; min-width: 0; }
+  .accounts-toolbar .field-control select { width: 100%; }
+  .trust-flow-guide ol { grid-template-columns: 1fr; }
+  .trust-flow-guide li > span[aria-hidden='true'] { display: none; }
+  .role-standing-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .main-panel { padding: 8px; }
+  .role-standing-card__metrics { display: grid; }
+}
+@media (max-width: 420px) {
+  :root[data-text-size='extra-large'] .accounts-table--all-roles .account-directory-row,
+  :root[data-text-size='huge'] .accounts-table--all-roles .account-directory-row,
+  :root[data-text-size='huge'] .role-standing-grid { grid-template-columns: minmax(0, 1fr); }
+}
+.account-rate-link { background: transparent; border: 1px solid var(--line); border-radius: 6px; }
+.account-rate-link:hover { border-color: var(--accent); }
+.trust-flow-guide__collapse-toggle { background: transparent; color: var(--text); border: 1px solid var(--line); border-radius: 6px; }
+@media (max-width: 1100px) {
+  .accounts-table--unified:not(.accounts-table--all-roles) .account-directory-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .accounts-table--unified:not(.accounts-table--all-roles) .account-directory-row td { grid-column: auto; padding: 8px 10px; min-width: 0; }
+  .accounts-table--unified:not(.accounts-table--all-roles) .account-directory-row .account-identity-cell { grid-column: 1 / -1; }
+  .accounts-table--unified .account-identity-cell::before, .accounts-table--unified .account-status-cell::before { display: none; }
+  .accounts-table--unified:not(.accounts-table--all-roles) .account-directory-row td::before { font-size: var(--font-size-small); margin-bottom: 3px; }
+}
+@media (max-width: 480px) {
+  .accounts-toolbar .account-sort-select { flex-basis: calc(100% - 55px); }
+  .accounts-toolbar > .field-control:not(.account-sort-select) { flex-basis: 100%; }
+}
+.account-activity { display: flex; align-items: center; gap: 5px; color: var(--muted); font-size: var(--font-size-small); margin-top: 4px; }
+.activity-unavailable { border-inline-start: 3px solid var(--accent); padding: 8px 10px; font-size: var(--font-size-small); }

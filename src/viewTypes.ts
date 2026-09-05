@@ -15,6 +15,7 @@ import type {
 export type ViewMode = 'accounts' | 'changes';
 
 export type AccountSortKey =
+  | 'latestRating'
   | 'account'
   | 'status'
   | 'level'

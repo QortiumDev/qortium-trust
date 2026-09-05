@@ -118,3 +118,20 @@ describe('AccountsTable simplified Minters directory (showAllRoles off)', () => 
     expect(onSelect).toHaveBeenCalledWith(derivation);
   });
 });
+
+it('keeps all four roles and blocks minted visible when a role rating action is opened', () => {
+  const onRate = vi.fn();
+  const { container } = render(<AccountsTable category="SUBJECT" derivations={[derivation]} onSelect={vi.fn()} onSort={vi.fn()} onRate={onRate} ratingActionAvailable profiles={{}} showAllRoles sort={[{ key: 'account', direction: 'asc' }]} />);
+  const roleCells = container.querySelectorAll('.account-role-cell');
+  expect(roleCells).toHaveLength(4);
+  expect(container.querySelector('.account-blocks-cell')?.textContent).toBe('42');
+  fireEvent.click(roleCells[1].querySelector('button')!);
+  expect(onRate).toHaveBeenCalledWith(derivation, 'TRAINER');
+  expect(container.querySelectorAll('.account-role-cell')).toHaveLength(4);
+});
+
+it('sorts personal ratings using the same category-keyed values displayed in the cells', () => {
+  const another = { ...derivation, accountAddress: 'Qanother' };
+  const { container } = render(<AccountsTable category="SUBJECT" derivations={[derivation, another]} onSelect={vi.fn()} onSort={vi.fn()} profiles={{}} showAllRoles={false} sort={[{ key: 'youRated', direction: 'desc' }]} youRatedByKey={{ 'SUBJECT:Qtarget': 1, 'SUBJECT:Qanother': 4 }} />);
+  expect(container.querySelector('tbody tr .identity-name')?.textContent).toBe('Qanother');
+});

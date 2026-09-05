@@ -9,6 +9,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import App from './App';
+import { loadRecentDirectory } from './recentActivity';
+vi.mock('./recentActivity', () => ({ loadRecentDirectory: vi.fn() }));
 import { getBridgeState } from './qdnRequest';
 import {
   ensureAccountUnlocked,
@@ -175,6 +177,7 @@ describe('App rating flow (pending -> confirm/timeout, and account-switch immuni
   let cooldownActiveRating: number | null = null;
 
   beforeEach(() => {
+    vi.mocked(loadRecentDirectory).mockReset().mockImplementation(async (_height, page) => ({ activity: {}, derivations: page.derivations, total: page.derivations.length }));
     // Only fake setTimeout/Date (what the poll loop and the timeout check use). Leaving
     // queueMicrotask/MessageChannel untouched keeps React's own effect-flushing scheduler (used by
     // `act()`) running normally, otherwise `act()` calls made under fake timers hang forever.
@@ -189,7 +192,7 @@ describe('App rating flow (pending -> confirm/timeout, and account-switch immuni
       isHomeBridge: true,
       ui: 'test',
     } as BridgeState);
-    getNodeStatusMock.mockReset().mockResolvedValue({});
+    getNodeStatusMock.mockReset().mockResolvedValue({ height: 10, isSynchronizing: false });
     getTrustSummaryMock.mockReset().mockResolvedValue({} as TrustSummary);
     getTrustPolicyMock.mockReset().mockResolvedValue({} as TrustPolicy);
     getTrustDerivationPageMock.mockReset().mockResolvedValue({ derivations: [TARGET_DERIVATION], total: 1 });
@@ -235,6 +238,19 @@ describe('App rating flow (pending -> confirm/timeout, and account-switch immuni
   afterEach(() => {
     vi.useRealTimers();
     vi.clearAllMocks();
+  });
+
+  it.each(['refresh', 'sort'])('labels the fallback honestly and retries through %s', async (retry) => {
+    vi.mocked(loadRecentDirectory).mockRejectedValueOnce(new Error('history incomplete'));
+    render(<App />);
+    await flush();
+    expect(screen.getByText(/Recent activity unavailable/)).toBeTruthy();
+    expect((screen.getByRole('combobox', { name: 'Sort by' }) as HTMLSelectElement).value).toBe('account');
+    if (retry === 'refresh') fireEvent.click(screen.getByRole('button', { name: 'Refresh trust data' }));
+    else fireEvent.change(screen.getByRole('combobox', { name: 'Sort by' }), { target: { value: 'latestRating' } });
+    await flush();
+    expect(screen.queryByText(/Recent activity unavailable/)).toBeNull();
+    expect((screen.getByRole('combobox', { name: 'Sort by' }) as HTMLSelectElement).value).toBe('latestRating');
   });
 
   it('clears the pending entry once the confirmation poll sees the rating active', async () => {

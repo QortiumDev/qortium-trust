@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, render } from '@testing-library/react';
+import { act, cleanup, render } from '@testing-library/react';
 import { createElement, useEffect } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -12,13 +12,14 @@ import {
   type RatingControl,
   type RatingControlArgs,
 } from './ratingControl';
-import { ensureAccountUnlocked, getRatingCooldown, resolveSelfAccount, submitRating } from './trustApi';
+import { ensureAccountUnlocked, getRatingCooldown, getRatingPreview, resolveSelfAccount, submitRating } from './trustApi';
 import type { AccountRatingCooldown, RatingImpactPreview, SelfAccount } from './types';
 import type { PendingRatingEntry } from './viewTypes';
 
 vi.mock('./trustApi', () => ({
   ensureAccountUnlocked: vi.fn(),
   getRatingCooldown: vi.fn(),
+  getRatingPreview: vi.fn().mockResolvedValue({ canSubmit: true }),
   resolveSelfAccount: vi.fn(),
   submitRating: vi.fn(),
 }));
@@ -217,6 +218,55 @@ describe('useRatingControl.handleSubmit unlock branches', () => {
 
   afterEach(() => {
     vi.clearAllMocks();
+  });
+
+  it.each([false, true])('recovers initial cooldown failure without selecting an unintended removal (edited=%s)', async (edited) => {
+    vi.useFakeTimers();
+    try {
+      getRatingCooldownMock.mockRejectedValueOnce(new Error('offline'))
+        .mockResolvedValue(cooldown({ activeRating: 2 }));
+      const harness = mountControl();
+      await flush();
+      if (edited) await act(async () => { harness.control.setRating(3); });
+      await act(async () => { await vi.advanceTimersByTimeAsync(8000); });
+      expect(harness.control.activeRating).toBe(2);
+      expect(harness.control.rating).toBe(edited ? 3 : 2);
+      expect(harness.control.unchanged).toBe(!edited);
+    } finally { cleanup(); vi.useRealTimers(); }
+  });
+
+  it('refreshes remaining blocks without overwriting a draft, and preserves state through a failed refresh', async () => {
+    vi.useFakeTimers();
+    try {
+      getRatingCooldownMock
+        .mockResolvedValueOnce(cooldown({ activeRating: 1, canChangeNow: false, blocksRemaining: 2 }))
+        .mockRejectedValueOnce(new Error('temporary outage'))
+        .mockResolvedValue(cooldown({ activeRating: 1, canChangeNow: true, blocksRemaining: 0 }));
+      vi.mocked(getRatingPreview).mockResolvedValueOnce({ canSubmit: false, validationResult: 'TOO_SOON' } as RatingImpactPreview);
+      const harness = mountControl();
+      await flush();
+      await act(async () => { harness.control.setRating(3); });
+      await act(async () => { await vi.advanceTimersByTimeAsync(400); });
+      expect(harness.control.previewInvalid).toBe(true);
+      expect(harness.control.cooldown?.blocksRemaining).toBe(2);
+      expect(harness.control.submitDisabled).toBe(true);
+      await act(async () => { await vi.advanceTimersByTimeAsync(8000); });
+      expect(harness.control.cooldown?.blocksRemaining).toBe(2);
+      expect(harness.control.rating).toBe(3);
+      await act(async () => { await vi.advanceTimersByTimeAsync(8000); });
+      await act(async () => { await vi.advanceTimersByTimeAsync(400); });
+      expect(harness.control.previewInvalid).toBe(false);
+      expect(vi.mocked(getRatingPreview)).toHaveBeenCalledTimes(2);
+      expect(harness.control.cooldown?.blocksRemaining).toBe(0);
+      expect(harness.control.rating).toBe(3);
+      expect(harness.control.submitDisabled).toBe(false);
+      cleanup();
+      await vi.advanceTimersByTimeAsync(16000);
+      expect(getRatingCooldownMock).toHaveBeenCalledTimes(3);
+    } finally {
+      cleanup();
+      vi.useRealTimers();
+    }
   });
 
   it('returns false and surfaces a message when unlock yields null', async () => {
