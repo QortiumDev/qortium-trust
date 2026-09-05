@@ -287,6 +287,8 @@ export function RatingForm(
     control;
   const variant = ratingVariantForCategory(category);
   const pendingKey = pendingRatingKey(category, targetAddress);
+  const submissionInFlight = !!pendingRatings?.[pendingKey]?.submitting;
+  const confirmationUnknown = !!pendingRatings?.[pendingKey]?.confirmationUnknown;
   const pendingTimedOut = !!pendingRatings?.[pendingKey]?.timedOut;
 
   return (
@@ -306,10 +308,15 @@ export function RatingForm(
         onClick={() => void control.handleSubmit()}
         type="button"
       >
-        {submitting ? t('rating.submitting') : isPending ? t('rating.submitPending') : control.rating === 0 ? t('action.removeRating') : t('action.submitRating')}
+        {submitting || submissionInFlight ? t('rating.submitting') : isPending ? t('rating.submitPending') : control.rating === 0 ? t('action.removeRating') : t('action.submitRating')}
       </button>
 
-      {isPending && pendingTimedOut ? (
+      {submissionInFlight ? (
+        <div className="rating-pending" role="status">
+          <span className="rating-pending__spinner" aria-hidden="true" />
+          <strong>{t('rating.submitting')}</strong>
+        </div>
+      ) : isPending && pendingTimedOut ? (
         <div className="rating-pending rating-pending--timed-out">
           <div>
             <strong>{t('rating.pendingTimeout')}</strong>
@@ -341,7 +348,7 @@ export function RatingForm(
                 : t('rating.pendingValue', { rating: ratingSignedLabel(pendingRating!, variant) })}
             </strong>
             <p className="muted">
-              {cooldown?.candidateChangeHeight
+              {confirmationUnknown ? t('rating.broadcastUnknown') : cooldown?.candidateChangeHeight
                 ? t('rating.waitingConfirmationNear', { block: formatNumber(cooldown.candidateChangeHeight) })
                 : t('rating.waitingConfirmation')}
             </p>

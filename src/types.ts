@@ -371,6 +371,10 @@ export type RateAccountRequest = {
 
 /** Envelope Qortium Home returns after building, signing, and broadcasting the rating. */
 export type RateAccountResult = {
+  error?: string;
+  errorType?: string;
+  outcome?: string;
+  retryable?: boolean;
   accepted?: boolean;
   action?: string;
   targetPublicKey?: string;

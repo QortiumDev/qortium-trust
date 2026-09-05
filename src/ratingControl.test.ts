@@ -339,66 +339,57 @@ describe('useRatingControl.handleSubmit unlock branches', () => {
     ]);
   });
 
-  it('re-resolves self when the unlocked account differs from the cached self (item #5)', async () => {
-    ensureAccountUnlockedMock.mockResolvedValue({
-      address: 'Qother',
-      publicKey: null,
-      name: 'other',
-      isUnlocked: true,
-    });
-    resolveSelfAccountMock.mockResolvedValue({ address: 'Qother', publicKey: 'otherPub', name: 'other', isUnlocked: true });
-    submitRatingMock.mockResolvedValue({ signature: 'sig' } as never);
+  it('aborts if Home changed the selected account while the draft was open', async () => {
+    ensureAccountUnlockedMock.mockResolvedValue({ address: 'Qother', publicKey: 'otherPub', name: 'other', isUnlocked: true });
     const harness = mountControl();
     await flush();
-
-    await act(async () => {
-      harness.control.setRating(2);
-    });
-
-    let result: boolean | undefined;
-    await act(async () => {
-      result = await harness.control.handleSubmit();
-    });
-
-    expect(result).toBe(true);
-    expect(resolveSelfAccountMock).toHaveBeenCalledTimes(1);
-    // The optimistic pending entry must carry the freshly-resolved rater, not the stale cached one.
-    expect(harness.submitted).toEqual([
-      {
-        category: 'SUBJECT',
-        rating: 2,
-        raterPublicKey: 'otherPub',
-        submittedAt: expect.any(Number),
-        targetAddress: 'Qtarget',
-        targetPublicKey: 'tPub',
-      },
-    ]);
-  });
-
-  it('aborts when the re-resolved self is the rating target (cannot rate self)', async () => {
-    ensureAccountUnlockedMock.mockResolvedValue({
-      address: 'Qtarget',
-      publicKey: null,
-      name: 'target',
-      isUnlocked: true,
-    });
-    resolveSelfAccountMock.mockResolvedValue({ address: 'Qtarget', publicKey: 'targetPub', name: 'target', isUnlocked: true });
-    const harness = mountControl();
-    await flush();
-
-    await act(async () => {
-      harness.control.setRating(2);
-    });
-
-    let result: boolean | undefined;
-    await act(async () => {
-      result = await harness.control.handleSubmit();
-    });
-
-    expect(result).toBe(false);
+    await act(async () => { harness.control.setRating(2); });
+    await act(async () => { expect(await harness.control.handleSubmit()).toBe(false); });
     expect(submitRatingMock).not.toHaveBeenCalled();
-    expect(harness.control.message?.text).toMatch(/your own account/i);
+    expect(harness.submitted).toEqual([]);
+    expect(harness.control.message?.text).toMatch(/account changed/i);
   });
+
+  it('guards rapid duplicate submissions before React renders the disabled button', async () => {
+    let unlock!: (account: SelfAccount) => void;
+    ensureAccountUnlockedMock.mockImplementationOnce(() => new Promise(resolve => { unlock = resolve; }));
+    submitRatingMock.mockResolvedValue({ accepted: true });
+    const harness = mountControl();
+    await flush();
+    await act(async () => { harness.control.setRating(2); });
+    let first!: Promise<boolean>;
+    await act(async () => {
+      first = harness.control.handleSubmit();
+      expect(await harness.control.handleSubmit()).toBe(false);
+    });
+    expect(ensureAccountUnlockedMock).toHaveBeenCalledTimes(1);
+    await act(async () => { unlock(SELF); await first; });
+    expect(submitRatingMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('tracks an unknown broadcast for confirmation without claiming acceptance', async () => {
+    ensureAccountUnlockedMock.mockResolvedValue(SELF);
+    submitRatingMock.mockResolvedValue({ accepted: false, errorType: 'BROADCAST_UNKNOWN', outcome: 'unknown', retryable: false });
+    const harness = mountControl();
+    await flush();
+    await act(async () => { harness.control.setRating(2); });
+    await act(async () => { await harness.control.handleSubmit(); });
+    expect(harness.submitted[0]).toMatchObject({ confirmationUnknown: true, rating: 2 });
+    expect(submitRatingMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not mark a rejected broadcast as pending', async () => {
+    ensureAccountUnlockedMock.mockResolvedValue(SELF);
+    submitRatingMock.mockResolvedValue({ accepted: false, error: 'Rating rejected' });
+    const onSubmissionFailed = vi.fn();
+    const harness = mountControl({ onSubmissionFailed });
+    await flush();
+    await act(async () => { harness.control.setRating(2); });
+    await act(async () => { expect(await harness.control.handleSubmit()).toBe(false); });
+    expect(harness.submitted).toEqual([]);
+    expect(onSubmissionFailed).toHaveBeenCalledWith(expect.objectContaining({ rating: 2 }), 'Rating rejected');
+  });
+
 });
 
 describe('useRatingControl.submitDisabled gating', () => {

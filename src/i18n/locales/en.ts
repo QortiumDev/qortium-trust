@@ -1,4 +1,8 @@
 export const en = {
+  "action.trustInfo": "About Trust",
+  "error.accountChanged": "Selected account changed. Refresh and review your rating again.",
+  "rating.broadcastUnknown": "Broadcast outcome unknown. Checking for confirmation; do not resubmit yet.",
+
   "activity.sort": "Recently rated others",
   "activity.unavailable": "Recent activity unavailable. Showing loaded accounts by name; refresh to retry.",
 

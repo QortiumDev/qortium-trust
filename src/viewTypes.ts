@@ -76,6 +76,9 @@ export type AccountDetailState = {
 // `submittedAt` anchors the confirmation-poll timeout; `timedOut` flips once that timeout elapses
 // without confirmation, so the entry stays visible (with Retry/Dismiss) instead of polling forever.
 export type PendingRatingEntry = {
+  // Submitting includes Home approval and broadcast; confirmation polling starts afterward.
+  submitting?: boolean;
+  confirmationUnknown?: boolean;
   category: AccountRatingCategory;
   rating: number;
   raterPublicKey: string;

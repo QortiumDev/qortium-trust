@@ -3500,3 +3500,15 @@ html {
 .detail-header__name-line .copy-value-button > span:not(.sr-only) { display: none; }
 .detail-role-workspace__columns .mini-section { margin-top: 6px; padding-top: 8px; }
 .detail-role-workspace .detail-rate { margin-bottom: 0; }
+
+
+.submission-error { flex-wrap: wrap; }
+.submission-error > span { flex: 1 1 220px; min-width: 0; overflow-wrap: anywhere; }
+.submission-error > button {
+  background: transparent;
+  border: 1px solid var(--error-border);
+  border-radius: 5px;
+  color: inherit;
+  font: inherit;
+  padding: 4px 8px;
+}

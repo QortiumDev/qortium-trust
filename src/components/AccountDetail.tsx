@@ -215,7 +215,7 @@ function RoleStandingCard({
         </span>
         <span>
           {t('label.youRated')}{' '}
-          <strong className={displayed.pending ? 'you-rated-pending' : undefined}>
+          <strong className={displayed.pending ? 'you-rated-pending' : undefined} title={displayed.submitting ? t('rating.submitting') : displayed.pending ? t('rating.pendingConfirmation') : undefined}>
             {displayed.pending ? <span aria-hidden="true" className="you-rated-spinner" /> : null}
             {ratingValue(displayed.value, category)}
           </strong>
@@ -240,6 +240,8 @@ export function AccountDetail({
   onDismissPending,
   onOpenAccount,
   onRatingSubmitted,
+  onSubmissionStarted,
+  onSubmissionFailed,
   onRetryPending,
   pendingRatings,
   policy,
@@ -260,6 +262,8 @@ export function AccountDetail({
   onDismissPending?: (key: string) => void;
   onOpenAccount?: (address: string) => void;
   onRatingSubmitted: (entry: PendingRatingEntry) => void;
+  onSubmissionStarted?: (entry: PendingRatingEntry) => boolean;
+  onSubmissionFailed?: (entry: PendingRatingEntry, message: string) => void;
   onRetryPending?: (key: string) => void;
   // Full pending-rating map (keyed by pendingRatingKey). RatingForm reads the timed-out flag for its
   // own category/target to offer Retry/Dismiss; the role cards below use it (together with
@@ -435,6 +439,8 @@ export function AccountDetail({
                   key={`${selectedDerivation.accountPublicKey}:${activeCategory}`}
                   onDismissPending={onDismissPending}
                   onRetryPending={onRetryPending}
+                  onSubmissionStarted={onSubmissionStarted}
+                  onSubmissionFailed={onSubmissionFailed}
                   onSubmitted={onRatingSubmitted}
                   pendingRating={activePending}
                   pendingRatings={pendingRatings}

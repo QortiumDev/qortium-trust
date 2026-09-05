@@ -26,7 +26,7 @@ import {
   TRUST_CATEGORIES,
   TRUST_STATUSES,
 } from './format';
-import { loadIdentityProfiles } from './identityProfiles';
+import { getIdentityLabel, loadIdentityProfiles } from './identityProfiles';
 import { AvatarActionsProvider } from './components/Identity';
 import { setTranslationLanguage, t, type TranslationKey } from './i18n';
 import { getBridgeState } from './qdnRequest';
@@ -245,6 +245,9 @@ export default function App() {
   const [identityProfiles, setIdentityProfiles] = useState<IdentityProfilesByAddress>({});
   const [loading, setLoading] = useState(true);
   const [pendingRatings, setPendingRatings] = useState<PendingRatingsByKey>({});
+  const activeSubmissionsRef = useRef(new Set<string>());
+  const currentRaterRef = useRef<string | null>(null);
+  const [submissionErrors, setSubmissionErrors] = useState<Record<string, { entry: PendingRatingEntry; message: string }>>({});
   const [query, setQuery] = useState('');
   const [receivedRatings, setReceivedRatings] = useState<AccountRating[] | undefined>(undefined);
   const [focusRating, setFocusRating] = useState(false);
@@ -320,6 +323,7 @@ export default function App() {
       const previousAddress = previousSelfAddressRef.current;
       const nextAddress = account?.address ?? null;
       setData((current) => ({ ...current, bridge }));
+      currentRaterRef.current = account?.publicKey ?? null;
       setSelf(account);
       // Only wipe pending ratings when the resolved rater actually changed from a previously known
       // address — not on the initial null → address resolution, and not on a same-account refresh.
@@ -332,6 +336,7 @@ export default function App() {
     } catch (accountError) {
       console.warn('Failed to refresh selected account', accountError);
       const previousAddress = previousSelfAddressRef.current;
+      currentRaterRef.current = null;
       setSelf(null);
       setYouRatedRatings([]);
       if (previousAddress !== null) {
@@ -411,6 +416,7 @@ export default function App() {
 
   useEffect(() => {
     if (!data.bridge?.isHomeBridge) {
+      currentRaterRef.current = null;
       setSelf(null);
       setYouRatedRatings([]);
       return;
@@ -642,12 +648,43 @@ export default function App() {
     };
   }, [data.bridge?.actions, data.changes, data.derivations, identityProfiles, receivedRatings]);
 
+  const submissionKey = (entry: PendingRatingEntry) =>
+    `${entry.raterPublicKey}:${pendingRatingKey(entry.category, entry.targetAddress)}`;
+
+  const handleSubmissionStarted = useCallback((entry: PendingRatingEntry) => {
+    const key = submissionKey(entry);
+    if (activeSubmissionsRef.current.has(key)) return false;
+    activeSubmissionsRef.current.add(key);
+    setPendingRatings(current => ({ ...current, [pendingRatingKey(entry.category, entry.targetAddress)]: entry }));
+    setSubmissionErrors(current => {
+      const next = { ...current };
+      delete next[key];
+      return next;
+    });
+    return true;
+  }, []);
+
+  const handleSubmissionFailed = useCallback((entry: PendingRatingEntry, message: string) => {
+    activeSubmissionsRef.current.delete(submissionKey(entry));
+    setPendingRatings(current => {
+      const key = pendingRatingKey(entry.category, entry.targetAddress);
+      if (current[key] !== entry) return current;
+      const next = { ...current };
+      delete next[key];
+      return next;
+    });
+    setSubmissionErrors(current => ({ ...current, [submissionKey(entry)]: { entry, message } }));
+  }, []);
+
   const handleRatingSubmitted = useCallback((entry: PendingRatingEntry) => {
+    activeSubmissionsRef.current.delete(submissionKey(entry));
+    // A response can arrive after navigation or a selected-account change.
+    if (currentRaterRef.current !== entry.raterPublicKey) return;
     setPendingRatings((current) => ({
       ...current,
       [pendingRatingKey(entry.category, entry.targetAddress)]: entry,
     }));
-    setToast(t('rating.submitted'));
+    setToast(t(entry.confirmationUnknown ? 'rating.broadcastUnknown' : 'rating.submitted'));
   }, []);
 
   useEffect(() => {
@@ -686,7 +723,7 @@ export default function App() {
   useEffect(() => {
     // Timed-out entries stay in `pendingRatings` for the Retry/Dismiss notice, but stop being polled
     // until the user retries them.
-    const activeEntries = Object.entries(pendingRatings).filter(([, entry]) => !entry.timedOut);
+    const activeEntries = Object.entries(pendingRatings).filter(([, entry]) => !entry.timedOut && !entry.submitting);
 
     if (activeEntries.length === 0) {
       return;
@@ -802,6 +839,11 @@ export default function App() {
             </div>
             <div className="header-actions">
               <NodeSyncPill nodeStatus={data.nodeStatus} />
+              <a className="icon-button" aria-label={t('action.trustInfo')} title={t('action.trustInfo')}
+                target="_blank" rel="noopener noreferrer"
+                href="qdn://APP/Qortium-Unified-Community/Community-Portal/wiki/article/wk-c2d1006c55434054ae79979112e09637">
+                <Info aria-hidden="true" size={17} />
+              </a>
               <button
                 aria-label={t('action.refreshTrust')}
                 className="icon-button"
@@ -846,6 +888,18 @@ export default function App() {
         </div>
       ) : null}
 
+      {Object.entries(submissionErrors).map(([key, { entry, message }]) => (
+        <div className="error-banner submission-error" role="alert" key={key}>
+          <AlertTriangle aria-hidden="true" size={18} />
+          <button type="button" onClick={() => openAccount(entry.targetAddress, entry.category)}>
+            {getIdentityLabel(identityProfiles[entry.targetAddress], entry.targetAddress)} · {categoryLabel(entry.category)}
+          </button>
+          <span>{message}</span>
+          <button type="button" onClick={() => setSubmissionErrors(current => {
+            const next = { ...current }; delete next[key]; return next;
+          })}>{t('action.dismiss')}</button>
+        </div>
+      ))}
       <section className="workspace">
         {view === 'accounts' && !showAccountDetail ? (
           <>
@@ -907,6 +961,8 @@ export default function App() {
               onOpenAccount={(address) => {
                 openAccount(address);
               }}
+              onSubmissionStarted={handleSubmissionStarted}
+              onSubmissionFailed={handleSubmissionFailed}
               onRatingSubmitted={handleRatingSubmitted}
               onRetryPending={handleRetryPending}
               pendingRatings={pendingRatings}
@@ -978,6 +1034,8 @@ export default function App() {
           derivation={ratingTarget.derivation}
           profile={identityProfiles[ratingTarget.derivation.accountAddress]}
           onClose={() => setRatingTarget(null)}
+          onSubmissionStarted={handleSubmissionStarted}
+          onSubmissionFailed={handleSubmissionFailed}
           onSubmitted={handleRatingSubmitted}
           onDismissPending={handleDismissPending}
           onRetryPending={handleRetryPending}

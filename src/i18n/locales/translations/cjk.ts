@@ -3,6 +3,10 @@ import { type TranslationKey } from '../en';
 type LocaleCatalog = Partial<Record<TranslationKey, string>>;
 
 export const ja: LocaleCatalog = {
+  "action.trustInfo": "Trustについて",
+  "error.accountChanged": "選択中のアカウントが変更されました。更新して評価を再確認してください。",
+  "rating.broadcastUnknown": "送信結果が不明です。承認を確認中です。まだ再送信しないでください。",
+
   "activity.sort": "最近ほかの人を評価",
   "activity.unavailable": "最近の活動を取得できません。読み込んだアカウントを名前順で表示しています。更新して再試行してください。",
 
@@ -250,6 +254,10 @@ export const ja: LocaleCatalog = {
 };
 
 export const ko: LocaleCatalog = {
+  "action.trustInfo": "Trust 정보",
+  "error.accountChanged": "선택한 계정이 변경되었습니다. 새로고침하고 평가를 다시 확인하세요.",
+  "rating.broadcastUnknown": "전송 결과를 알 수 없습니다. 확인 중이므로 아직 다시 제출하지 마세요.",
+
   "activity.sort": "최근 다른 사람을 평가",
   "activity.unavailable": "최근 활동을 불러올 수 없습니다. 불러온 계정을 이름순으로 표시합니다. 새로고침하여 다시 시도하세요.",
 
@@ -497,6 +505,10 @@ export const ko: LocaleCatalog = {
 };
 
 export const zhCN: LocaleCatalog = {
+  "action.trustInfo": "关于 Trust",
+  "error.accountChanged": "所选账户已更改。请刷新并重新检查您的评分。",
+  "rating.broadcastUnknown": "广播结果未知。正在检查确认状态，请暂勿重新提交。",
+
   "activity.sort": "最近评价过他人",
   "activity.unavailable": "无法获取最近活动。已加载的账户按名称显示，请刷新重试。",
 
@@ -744,6 +756,10 @@ export const zhCN: LocaleCatalog = {
 };
 
 export const zhTW: LocaleCatalog = {
+  "action.trustInfo": "關於 Trust",
+  "error.accountChanged": "所選帳戶已變更。請重新整理並再次檢查您的評分。",
+  "rating.broadcastUnknown": "廣播結果未知。正在檢查確認狀態，請暫勿重新提交。",
+
   "activity.sort": "最近評價過他人",
   "activity.unavailable": "無法取得最近活動。已載入的帳戶按名稱顯示，請重新整理再試。",
 

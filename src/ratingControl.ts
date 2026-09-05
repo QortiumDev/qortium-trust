@@ -3,7 +3,6 @@ import {
   ensureAccountUnlocked,
   getRatingCooldown,
   getRatingPreview,
-  resolveSelfAccount,
   submitRating,
 } from './trustApi';
 import type { AccountRatingCategory, AccountRatingCooldown, RatingImpactPreview, SelfAccount } from './types';
@@ -26,6 +25,7 @@ export function pendingRatingKey(category: AccountRatingCategory, targetAddress:
 
 export type DisplayedRating = {
   pending: boolean;
+  submitting?: boolean;
   value: number | undefined;
 };
 
@@ -46,6 +46,7 @@ export function getDisplayedRating(
 
   return {
     pending: pendingValue !== undefined,
+    ...(typeof pendingEntry === 'object' && pendingEntry.submitting ? { submitting: true } : {}),
     value: pendingValue ?? confirmedByKey?.[key],
   };
 }
@@ -149,6 +150,8 @@ export function isSubmitDisabled(args: {
 export type RatingControlArgs = {
   category: AccountRatingCategory;
   onSubmitted: (entry: PendingRatingEntry) => void;
+  onSubmissionStarted?: (entry: PendingRatingEntry) => boolean;
+  onSubmissionFailed?: (entry: PendingRatingEntry, message: string) => void;
   pendingRating: number | undefined;
   ratingActionAvailable: boolean;
   self: SelfAccount | null;
@@ -163,6 +166,8 @@ export type RatingControlArgs = {
 export function useRatingControl({
   category,
   onSubmitted,
+  onSubmissionStarted,
+  onSubmissionFailed,
   pendingRating,
   ratingActionAvailable,
   self,
@@ -179,6 +184,7 @@ export function useRatingControl({
   const [cooldown, setCooldown] = useState<AccountRatingCooldown | null>(null);
   const [cooldownLoading, setCooldownLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const submittingRef = useRef(false);
   const [message, setMessage] = useState<{ text: string; tone: 'positive' | 'negative' } | null>(null);
   // Live preview of the selected rating's validity + trust impact (#33). Null while loading or when
   // the selection is a no-op, so it only ever reflects the latest settled fetch for the current rating.
@@ -307,76 +313,67 @@ export function useRatingControl({
   // Returns true only on a successful broadcast so callers (the quick-rate popover) get a reliable
   // success signal: reading `message` after the await would see the stale render-time value.
   const handleSubmit = async (): Promise<boolean> => {
-    if (!raterPublicKey) {
+    if (!canInteract || !raterPublicKey || submitDisabled || submittingRef.current) {
       return false;
     }
 
     const submittedRating = rating;
+    const entry: PendingRatingEntry = {
+      category, rating: submittedRating, raterPublicKey, submittedAt: Date.now(),
+      targetAddress, targetPublicKey, submitting: true,
+    };
+    if (onSubmissionStarted?.(entry) === false) return false;
+    submittingRef.current = true;
     setSubmitting(true);
     setMessage(null);
 
     try {
-      // Signing needs an unlocked account; ask Home to unlock (prompts the user only when locked).
-      // UNLOCK_SELECTED_ACCOUNT resolves (never rejects) on cancel/timeout with isUnlocked false,
-      // so we drive entirely off the returned lock state.
+      // Read Home's live lock state before requesting an unlock. A missing/false
+      // unlock result or an approval rejection must clear the background submission.
       const unlocked = await ensureAccountUnlocked();
 
       if (!unlocked) {
-        setMessage({ text: t('error.unlockConfirmFailed'), tone: 'negative' });
-        return false;
+        throw new Error(t('error.unlockConfirmFailed'));
       }
 
-      if (unlocked.isUnlocked === false) {
-        setMessage({ text: t('error.accountLocked'), tone: 'negative' });
-        return false;
+      if (unlocked.isUnlocked !== true) {
+        throw new Error(t('error.accountLocked'));
       }
 
-      // Home derives RATE_ACCOUNT's raterPublicKey from whichever account is actually unlocked, which
-      // can differ from our cached `self` (the user may have switched accounts in Home since we resolved
-      // it). If so, re-resolve self so our optimistic pending entry carries the rater that will actually
-      // sign — otherwise the confirmation poll would track the wrong rater and never clear the spinner.
-      let effectiveRaterPublicKey = raterPublicKey;
-
-      if (unlocked.address && unlocked.address !== self?.address) {
-        const refreshed = await resolveSelfAccount();
-
-        if (!refreshed?.publicKey) {
-          setMessage({
-            text: t('error.accountHistory'),
-            tone: 'negative',
-          });
-          return false;
-        }
-
-        // Cannot rate yourself, even after the account switch surfaced a different self.
-        if (refreshed.address === targetAddress) {
-          setMessage({ text: t('error.cannotRateSelf'), tone: 'negative' });
-          return false;
-        }
-
-        effectiveRaterPublicKey = refreshed.publicKey;
+      // The draft and duplicate guard belong to this identity. Do not silently send
+      // its opinion from a different account after a Home account switch.
+      if (unlocked.address !== self?.address) {
+        throw new Error(t('error.accountChanged'));
       }
 
-      // submitRating resolves once Home has broadcast (accepted) the transaction. We hand the
-      // pending entry up to the app, which tracks confirmation — neither surface blocks afterward, so
-      // the user can immediately rate other accounts.
-      await submitRating({ category, rating: submittedRating, targetPublicKey });
+      // Home returns after broadcast. Both accepted and uncertain outcomes need
+      // confirmation tracking; an uncertain response must never trigger another write.
+      const result = await submitRating({ category, rating: submittedRating, targetPublicKey });
+      const confirmationUnknown = !result || result.errorType === 'BROADCAST_UNKNOWN' || result.outcome === 'unknown' ||
+        (result.accepted === false && !result.error);
+      if (result?.accepted === false && !confirmationUnknown) {
+        throw new Error(result.error);
+      }
       onSubmitted({
+        ...(confirmationUnknown ? { confirmationUnknown: true } : {}),
         category,
         rating: submittedRating,
-        raterPublicKey: effectiveRaterPublicKey,
+        raterPublicKey,
         submittedAt: Date.now(),
         targetAddress,
         targetPublicKey,
       });
-      return true;
+      return !confirmationUnknown;
     } catch (submitError) {
+      const text = mapRatingError(submitError instanceof Error ? submitError.message : String(submitError));
+      onSubmissionFailed?.(entry, text);
       setMessage({
-        text: mapRatingError(submitError instanceof Error ? submitError.message : String(submitError)),
+        text,
         tone: 'negative',
       });
       return false;
     } finally {
+      submittingRef.current = false;
       setSubmitting(false);
     }
   };

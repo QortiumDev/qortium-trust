@@ -8,6 +8,7 @@ import {
   getAccountRatingsPage,
   getTrustDerivationPage,
   submitRating,
+  ensureAccountUnlocked,
 } from './trustApi';
 import { hasHomeBridge, qdnRequest } from './qdnRequest';
 
@@ -165,5 +166,42 @@ describe('paginated rating requests', () => {
       ratings: [{ rating: 4 }],
       nextOffset: null,
     });
+  });
+});
+
+
+describe('ensureAccountUnlocked live Home lock state', () => {
+  beforeEach(() => {
+    vi.mocked(hasHomeBridge).mockReset().mockReturnValue(true);
+    vi.mocked(qdnRequest).mockReset();
+  });
+
+  it('skips the permissioned unlock action for an already-unlocked account', async () => {
+    vi.mocked(qdnRequest).mockResolvedValue({ address: 'Qself', isUnlocked: true });
+    expect(await ensureAccountUnlocked()).toMatchObject({ address: 'Qself', isUnlocked: true });
+    expect(qdnRequest).toHaveBeenCalledExactlyOnceWith({ action: 'GET_SELECTED_ACCOUNT' });
+  });
+
+  it.each([false, undefined])('requests unlock when fresh state is %s', async (isUnlocked) => {
+    vi.mocked(qdnRequest).mockResolvedValueOnce({ address: 'Qself', isUnlocked })
+      .mockResolvedValueOnce({ address: 'Qself', isUnlocked: true });
+    expect(await ensureAccountUnlocked()).toMatchObject({ isUnlocked: true });
+    expect(qdnRequest).toHaveBeenNthCalledWith(1, { action: 'GET_SELECTED_ACCOUNT' });
+    expect(qdnRequest).toHaveBeenNthCalledWith(2, { action: 'UNLOCK_SELECTED_ACCOUNT' });
+  });
+
+  it('uses a fresh lock read on each attempt and preserves unlock cancellation', async () => {
+    vi.mocked(qdnRequest).mockResolvedValueOnce({ address: 'Qself', isUnlocked: true })
+      .mockResolvedValueOnce({ address: 'Qself', isUnlocked: false })
+      .mockResolvedValueOnce({ address: 'Qself', isUnlocked: false });
+    expect((await ensureAccountUnlocked())?.isUnlocked).toBe(true);
+    expect((await ensureAccountUnlocked())?.isUnlocked).toBe(false);
+    expect(qdnRequest).toHaveBeenLastCalledWith({ action: 'UNLOCK_SELECTED_ACCOUNT' });
+  });
+
+  it('does not ask to unlock when no account is selected', async () => {
+    vi.mocked(qdnRequest).mockResolvedValue(null);
+    expect(await ensureAccountUnlocked()).toBeNull();
+    expect(qdnRequest).toHaveBeenCalledTimes(1);
   });
 });
