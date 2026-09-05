@@ -54,15 +54,20 @@ Qortium’s community trust system. It runs inside Qortium Home through the
   only when needed, while retaining Home's rating approval. Submitting closes the
   feed editor immediately and shows a per-role spinner through approval/broadcast
   and block confirmation. Browsing and other ratings remain available; duplicate
-  submissions for the same account/role are blocked. Errors remain visible after
-  navigation, with a link back to the affected account and role.
+  submissions for the same account/role are blocked. Requests queue through Home’s
+  single proof-of-work worker while all waiting cards retain their spinners. Each
+  job checks the live lock state and identity when it starts. Errors remain visible
+  after navigation, with a link back to the affected account and role.
 - Cooldown checks, impact preview, confirmation polling and Retry/Dismiss remain
   available. The open editor refreshes its remaining-block countdown and preserves
   draft selections. Unknown broadcast outcomes are reconciled through reads, never
   automatically resubmitted.
 - Trust retains the initially selected rating identity. If Home's live account has
   changed, submission stops; reload Trust to adopt that account and review the draft.
-- The header info button opens the community wiki's Trust article in a new tab.
+- The header info button uses Home's advertised `OPEN_NEW_TAB` action. Gateway
+  links use the current gateway origin, so both clicks and copied URLs point to
+  that gateway; local Core pages retain `/render/`. The browser opens a native new
+  tab. The button bypasses Core's injected legacy click interceptor in both modes.
 
 The app requests live trust derivations (`live=true`). In Qortium Home, identity
 and writes stay behind the bridge. When `RATE_ACCOUNT` is unavailable, the

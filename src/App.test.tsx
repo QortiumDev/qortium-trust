@@ -191,7 +191,7 @@ describe('App rating flow (pending -> confirm/timeout, and account-switch immuni
     cooldownActiveRating = null;
 
     getBridgeStateMock.mockReset().mockResolvedValue({
-      actions: ['RATE_ACCOUNT'],
+      actions: ['RATE_ACCOUNT', 'OPEN_NEW_TAB'],
       isHomeBridge: true,
       ui: 'test',
     } as BridgeState);
@@ -274,14 +274,20 @@ describe('App rating flow (pending -> confirm/timeout, and account-switch immuni
     expect((screen.getByRole('button', { name: 'Pending...' }) as HTMLButtonElement).disabled).toBe(true);
   });
 
-  it('closes immediately, shows a submitting spinner, and allows successive ratings while broadcasting', async () => {
+  it('closes immediately, shows a submitting spinner, and queues three successive ratings through Home’s single proof-of-work worker', async () => {
     localStorage.setItem('qortium-trust.showAllRoles', 'true');
     const other = { ...TARGET_DERIVATION, accountAddress: 'Qother', accountPublicKey: 'otherPub' };
-    getTrustDerivationPageMock.mockResolvedValue({ derivations: [TARGET_DERIVATION, other], total: 2 });
+    const third = { ...TARGET_DERIVATION, accountAddress: 'Qthird', accountPublicKey: 'thirdPub' };
+    getTrustDerivationPageMock.mockResolvedValue({ derivations: [TARGET_DERIVATION, other, third], total: 3 });
     let finishUnlock!: (account: SelfAccount) => void;
-    let finishBroadcast!: (result: { accepted: boolean }) => void;
+    const finishBroadcast: (() => void)[] = [];
+    let powBusy = false;
     ensureAccountUnlockedMock.mockImplementationOnce(() => new Promise(resolve => { finishUnlock = resolve; }));
-    submitRatingMock.mockImplementationOnce(() => new Promise(resolve => { finishBroadcast = resolve; }));
+    submitRatingMock.mockImplementation(() => {
+      if (powBusy) return Promise.reject(new Error('QDN_POW_BUSY'));
+      powBusy = true;
+      return new Promise(resolve => finishBroadcast.push(() => { powBusy = false; resolve({ accepted: true }); }));
+    });
     render(<App />);
     await flush();
     const choose = async (account: string) => {
@@ -311,16 +317,25 @@ describe('App rating flow (pending -> confirm/timeout, and account-switch immuni
     fireEvent(screen.getByRole('dialog'), new Event('cancel', { cancelable: true }));
     expect(screen.queryByRole('dialog')).toBeNull();
     await choose('Qother');
-    expect(submitRatingMock).toHaveBeenCalledTimes(2);
-    expect(document.querySelectorAll('.you-rated-spinner')).toHaveLength(2);
+    await choose('Qthird');
+    expect(submitRatingMock).toHaveBeenCalledTimes(1);
+    expect(ensureAccountUnlockedMock).toHaveBeenCalledTimes(1);
+    expect(document.querySelectorAll('.you-rated-spinner')).toHaveLength(3);
     fireEvent.click(screen.getByRole('button', { name: 'Open Qother' }));
     await flush();
-    finishBroadcast({ accepted: true });
+    finishBroadcast[0]();
     await flush();
+    expect(submitRatingMock).toHaveBeenCalledTimes(2);
+    finishBroadcast[1]();
+    await flush();
+    expect(submitRatingMock).toHaveBeenCalledTimes(3);
+    finishBroadcast[2]();
+    await flush();
+    expect(screen.queryByRole('alert')).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Back' }));
     await act(async () => { await vi.advanceTimersByTimeAsync(50); });
     await flush();
-    expect(document.querySelectorAll('.you-rated-pending[title="Pending confirmation"]')).toHaveLength(2);
+    expect(document.querySelectorAll('.you-rated-pending[title="Pending confirmation"]')).toHaveLength(3);
   });
 
   it('keeps a submission error visible after the editor closes and the user navigates away', async () => {
