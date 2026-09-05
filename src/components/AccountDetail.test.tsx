@@ -4,6 +4,8 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { AccountDetail } from './AccountDetail';
 import type { AccountRatingCategory, RatingCounts, TrustDerivation } from '../types';
 
+vi.mock('../browserAvatar', () => ({ fetchBrowserAvatar: vi.fn().mockResolvedValue({ kind: 'unavailable' }) }));
+
 const counts = (): RatingCounts => ({
   positiveLowCount: 0,
   positiveMediumCount: 0,

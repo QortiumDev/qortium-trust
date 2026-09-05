@@ -22,3 +22,6 @@
   keep Suspicious members and never restore non-members from historical activity.
 - Calculate directory summary counts from the displayed membership scope.
 - Collapse Why this standing by default, with its existing requirements available on click.
+- Restore avatars in read-only browser previews with pointer-first Core reads and
+  primary-name legacy fallback; keep Home bridge gating, bounded image validation
+  and pending retries. Accept valid default-resource pointers with empty identifiers.

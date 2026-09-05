@@ -85,6 +85,11 @@ npm run build
 npm run preview
 ```
 
+Browser avatars use Core’s current account-avatar pointer, falling back to the
+primary name’s legacy thumbnail only when no pointer is set. Image reads are
+bounded to 500 KiB, validate raster signatures, and share a four-request queue.
+Home continues to provide avatars through its existing bridge action.
+
 The browser fallback reads from `http://127.0.0.1:24891`. Set
 `VITE_QORTIUM_NODE_API_URL` to use another development node.
 

@@ -10,6 +10,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import App from './App';
 import { loadRecentDirectory } from './recentActivity';
+vi.mock('./browserAvatar', () => ({ fetchBrowserAvatar: vi.fn().mockResolvedValue({ kind: 'unavailable' }) }));
 vi.mock('./recentActivity', () => ({ loadRecentDirectory: vi.fn() }));
 import { getBridgeState } from './qdnRequest';
 import {
