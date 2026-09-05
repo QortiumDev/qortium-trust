@@ -3408,7 +3408,24 @@ html {
 .rating-dialog__role { display: flex; align-items: center; gap: 6px; color: var(--role-color); margin: 4px 0 0; }
 .rating-dialog .mini-section > h3 { margin-top: 0; }
 
-/* Minters-only cards wrap by available width instead of reserving full rows. */
+/* Keep each identity/timestamp and label/value group inline until space runs out. */
+.accounts-table--unified:not(.accounts-table--all-roles) th:first-child { width: 34%; }
+.accounts-table--unified:not(.accounts-table--all-roles) .account-identity-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 3px 12px;
+  min-width: 0;
+}
+.accounts-table--unified:not(.accounts-table--all-roles) .account-identity-line > .identity-link { max-width: 100%; }
+.accounts-table--unified:not(.accounts-table--all-roles) .account-activity { margin-top: 0; min-width: 0; }
+.accounts-table--unified:not(.accounts-table--all-roles) .account-rate-link {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 0;
+  margin-inline-start: 6px;
+  padding: 3px 8px;
+}
 @container accounts-directory (max-width: 1100px) {
   .accounts-table--unified:not(.accounts-table--all-roles) .account-directory-row {
     display: flex;
@@ -3417,30 +3434,25 @@ html {
     padding: 2px 0;
   }
   .accounts-table--unified:not(.accounts-table--all-roles) .account-directory-row td {
-    flex: 1 1 calc(90px * var(--text-scale));
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 0 1 auto;
     width: auto;
     min-width: 0;
     border: 0;
-    padding: 5px 10px;
+    padding: 4px 8px;
   }
-  .accounts-table--unified:not(.accounts-table--all-roles) .account-directory-row .account-identity-cell { flex: 2 1 calc(180px * var(--text-scale)); }
-  .accounts-table--unified:not(.accounts-table--all-roles) .account-directory-row .account-status-cell { flex: 0 1 auto; }
-  .accounts-table--unified:not(.accounts-table--all-roles) .account-directory-row .account-blocks-cell { flex-basis: calc(125px * var(--text-scale)); }
-  .accounts-table--unified:not(.accounts-table--all-roles) .account-directory-row td::before { margin-bottom: 2px; }
-  .accounts-table--unified:not(.accounts-table--all-roles) .account-directory-row td:last-child {
-    flex-basis: calc(130px * var(--text-scale));
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 0 8px;
+  .accounts-table--unified:not(.accounts-table--all-roles) .account-directory-row .account-identity-cell { flex: 1 1 calc(250px * var(--text-scale)); }
+  .accounts-table--unified:not(.accounts-table--all-roles) .account-directory-row td::before {
+    display: inline;
+    flex: 0 1 auto;
+    margin: 0;
+    font-weight: 600;
   }
-  .accounts-table--unified:not(.accounts-table--all-roles) .account-directory-row td:last-child::before { flex-basis: 100%; }
-  .accounts-table--unified:not(.accounts-table--all-roles) .account-rate-link {
-    display: inline-flex;
-    align-items: center;
-    margin-top: 0;
-    padding: 3px 8px;
-  }
+  .accounts-table--unified:not(.accounts-table--all-roles) .account-directory-row .account-identity-cell::before,
+  .accounts-table--unified:not(.accounts-table--all-roles) .account-directory-row .account-status-cell::before { display: none; }
+  .accounts-table--unified:not(.accounts-table--all-roles) .account-rate-link { margin-inline-start: 0; flex-shrink: 0; }
 }
 
 /* Account detail follows the same compact, wrapping identity layout as the feed. */

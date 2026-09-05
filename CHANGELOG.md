@@ -5,8 +5,8 @@
 - Compact account pages with identifiers beside the name when they fit, wrapping
   role metrics, and tighter rating/evidence spacing while retaining full copyable values.
 
-- Compact Minters-only cards into one row where space allows, wrapping fields by
-  container width and text size instead of reserving full rows for identity and metadata.
+- Compact Minters-only cards into one row where space allows, with inline timestamps
+  and label/value pairs that wrap by container width and text size.
 
 - Open a role-specific rating dialog from any feed role panel; keep username headers
   linked to account details. Reuse the existing rating editor and parent pending state.

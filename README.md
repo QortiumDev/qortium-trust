@@ -25,8 +25,8 @@ Qortium’s community trust system. It runs inside Qortium Home through the
   The account header retains the overall Minter standing.
 - Contrasting account header bands separate people in the combined view; compact role
   panels and responsive header metadata reduce scrolling without hiding account data.
-- Minters-only cards place identity and metadata on one row when they fit, with
-  wrapping based on available container width and the selected text size.
+- Minters-only cards keep names and timestamps together and labels beside their values,
+  fitting one row where possible and wrapping groups for narrower views or larger text.
 - Account detail presents the avatar and name together with copy controls for
   the name, address, and public key. Lists show names without redundant addresses;
   unnamed accounts retain their address as the identity fallback.

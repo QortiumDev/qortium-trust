@@ -335,19 +335,21 @@ export function AccountsTable({
                 onClick={() => onSelect(derivation)}
               >
                 <td className="account-identity-cell" data-label={t('label.account')}>
-                  <button
-                    aria-label={t('action.openAccount', { name: profile?.name ?? derivation.accountAddress })}
-                    className="identity-cell identity-link"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      onSelect(derivation);
-                    }}
-                    type="button"
-                  >
-                    <MemoIdentityAvatar address={derivation.accountAddress} profile={profile} size="small" />
-                    <IdentityLabel address={derivation.accountAddress} profile={profile} />
-                  </button>
-                  {activity?.[derivation.accountAddress] ? <span className="account-activity" title={t('activity.sort')}><Clock3 aria-hidden="true" size={13} /><span className="sr-only">{t('activity.sort')}: </span><time dateTime={new Date(activity[derivation.accountAddress].timestamp).toISOString()}>{formatDate(activity[derivation.accountAddress].timestamp)}</time></span> : null}
+                  <div className="account-identity-line">
+                    <button
+                      aria-label={t('action.openAccount', { name: profile?.name ?? derivation.accountAddress })}
+                      className="identity-cell identity-link"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onSelect(derivation);
+                      }}
+                      type="button"
+                    >
+                      <MemoIdentityAvatar address={derivation.accountAddress} profile={profile} size="small" />
+                      <IdentityLabel address={derivation.accountAddress} profile={profile} />
+                    </button>
+                    {activity?.[derivation.accountAddress] ? <span className="account-activity" title={t('activity.sort')}><Clock3 aria-hidden="true" size={13} /><span className="sr-only">{t('activity.sort')}: </span><time dateTime={new Date(activity[derivation.accountAddress].timestamp).toISOString()}>{formatDate(activity[derivation.accountAddress].timestamp)}</time></span> : null}
+                  </div>
                 </td>
                 <td className="account-status-cell" data-label={t('label.trustStatus')}>
                   {showAllRoles ? (
