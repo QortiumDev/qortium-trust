@@ -68,6 +68,16 @@ Qortium’s community trust system. It runs inside Qortium Home through the
   links use the current gateway origin, so both clicks and copied URLs point to
   that gateway; local Core pages retain `/render/`. The browser opens a native new
   tab. The button bypasses Core's injected legacy click interceptor in both modes.
+- A Developers reference sits beside Accounts and Changes (`?view=developers`,
+  with `developer`/`reference` as aliases). It documents the Core read endpoints,
+  live policy and units, the four role mappings, rating values, bridge
+  capabilities, the selected-account/lock/approval flow, asynchronous
+  submission/pending/timeout handling, the read-only fallback, and directory/
+  activity bounds — always in English/LTR, with copyable inert examples. It
+  reads only already-loaded state; it makes no additional Core or bridge calls.
+  Opening it keeps the current account/detail, any in-progress rating draft,
+  and the pending-rating queue untouched, and its own table-of-contents links
+  (`?section=...`) scroll only its own reference pane, never Home's frame.
 
 The app requests live trust derivations (`live=true`). In Qortium Home, identity
 and writes stay behind the bridge. When `RATE_ACCOUNT` is unavailable, the
@@ -91,7 +101,7 @@ need a paginated Core activity query.
 
 ## QAVS and UI styles
 
-Trust is at QAVS `1.4.9`: `1.4` is its minimum Qortium platform level and the
+Trust is at QAVS `1.4.10`: `1.4` is its minimum Qortium platform level and the
 patch number tracks the app release. `vite.config.ts` reads `package.json`,
 injects the visible version, and emits `dist/qortium-app.json` on every build.
 
@@ -139,4 +149,4 @@ After publication, verify:
 
 - `/arbitrary/resource/status/APP/Trust/Trust?build=true` reports `READY`
 - `/render/APP/Trust/Trust` renders successfully
-- `/arbitrary/APP/Trust/Trust?filepath=qortium-app.json` reports version `1.4.9`
+- `/arbitrary/APP/Trust/Trust?filepath=qortium-app.json` reports version `1.4.10`

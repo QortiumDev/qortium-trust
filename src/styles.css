@@ -246,6 +246,18 @@
   --accent-contrast: #1e1400;
 }
 
+/* Qortium Home's clay accent — a warm terracotta, distinct from orange/red. */
+:root[data-accent='clay'] {
+  --accent: #b5652d;
+  --accent-strong: #8f4f21;
+  --accent-soft: #f3e6da;
+  --accent-pill-bg: #f8eee2;
+  --avatar-bg: #f3e6da;
+  /* Same mid-tone-warm family as orange/teal/yellow above, which all fail white and pass this dark
+     contrast; #ffffff on #b5652d = 4.32:1 ✗ → #1e1400 = ~5.0:1 ✓ */
+  --accent-contrast: #1e1400;
+}
+
 :root[data-theme='dark'][data-accent='green'] {
   --accent: #87d99b;
   --accent-strong: #a3e6b1;
@@ -334,6 +346,16 @@
   --avatar-bg: rgba(244, 203, 103, 0.16);
   /* Dark yellow is a light pastel; #ffffff = 1.55:1 ✗ → #2f2100 = 10.15:1 ✓ */
   --accent-contrast: #2f2100;
+}
+
+:root[data-theme='dark'][data-accent='clay'] {
+  --accent: #e3b48f;
+  --accent-strong: #edc7a8;
+  --accent-soft: rgba(227, 180, 143, 0.14);
+  --accent-pill-bg: rgba(227, 180, 143, 0.12);
+  --avatar-bg: rgba(227, 180, 143, 0.16);
+  /* Dark clay is a light pastel like the others above; #ffffff fails → dark warm-brown text passes. */
+  --accent-contrast: #2b1608;
 }
 
 :root[data-ui='modern'] {
@@ -3511,4 +3533,125 @@ html {
   color: inherit;
   font: inherit;
   padding: 4px 8px;
+}
+
+/* Developers reference: a self-contained, always-English/LTR workspace (the component sets dir/lang
+   explicitly on its own root) with its own header/TOC and scroll region — see
+   DevelopersReference.tsx's scrollTop math, which is confined to .developers-reference__body and
+   never touches outer app/Home scroll. */
+.developers-reference {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.developers-reference__header {
+  display: grid;
+  gap: 8px;
+}
+
+.developers-reference__intro {
+  color: var(--muted);
+  margin: 0;
+  max-width: 72ch;
+}
+
+.developers-reference__toc ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+}
+
+.developers-reference__toc button {
+  background: var(--panel-strong);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--text);
+  font-size: var(--font-size-small);
+  font-weight: 700;
+  min-height: 32px;
+  padding: 6px 12px;
+}
+
+.developers-reference__toc button:hover {
+  border-color: var(--accent-strong);
+  color: var(--text);
+}
+
+.developers-reference__body {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  min-width: 0;
+  max-height: 70vh;
+  overflow-y: auto;
+  padding-right: 4px;
+  scroll-behavior: smooth;
+}
+
+.developers-reference__body > section,
+.developers-reference .table-wrap {
+  min-width: 0;
+}
+
+.developers-reference .table-wrap {
+  max-width: 100%;
+}
+
+.developers-reference__body h3 {
+  margin-top: 0;
+}
+
+.developers-reference__body p,
+.developers-reference__body code {
+  overflow-wrap: anywhere;
+}
+
+.developers-reference__body section + section {
+  border-top: 1px solid var(--line);
+  padding-top: 20px;
+}
+
+.developer-reference__example {
+  align-items: center;
+  background: var(--panel-subtle);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  padding: 8px 10px;
+}
+
+.developer-reference__example code {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-small);
+  min-width: 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.developer-reference__copy {
+  flex: 0 0 auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .developers-reference__body {
+    scroll-behavior: auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .developers-reference__body {
+    max-height: 60vh;
+    max-height: 60dvh;
+  }
+
+  .developers-reference__toc button {
+    min-height: 44px;
+  }
 }

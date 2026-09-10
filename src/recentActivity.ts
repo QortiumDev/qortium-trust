@@ -1,6 +1,7 @@
 import { fetchNodeApiData, getTrustDerivationPage } from './trustApi';
 import { t } from './i18n';
 import type { AccountRatingCategory } from './types';
+import { ACTIVITY_SCAN_PREFIXES, MAX_DERIVATION_LIMIT } from './trustLimits';
 
 export type RecentActivity = Record<string, { timestamp: number; signature: string; publicKey: string }>;
 type DirectoryPage = Awaited<ReturnType<typeof getTrustDerivationPage>>;
@@ -9,7 +10,7 @@ type DirectoryPage = Awaited<ReturnType<typeof getTrustDerivationPage>>;
 // no stable server ordering. A short response proves exhaustion; hitting a cap never does.
 export async function readRecentActivity(height: number): Promise<RecentActivity> {
   if (!Number.isSafeInteger(height) || height < 1) throw new Error('Missing chain height');
-  for (const limit of [1000, 4000, 8000]) {
+  for (const limit of ACTIVITY_SCAN_PREFIXES) {
     const rows = await fetchNodeApiData<unknown>(
       `/transactions/search?txType=RATE_ACCOUNT&confirmationStatus=CONFIRMED&reverse=true&startBlock=1&blockLimit=${height}&limit=${limit}&offset=0`,
       t('fetch.accountRatings'),
@@ -52,8 +53,8 @@ export async function loadRecentDirectory(height: number, initial: DirectoryPage
   let page = initial;
   let complete = page.total !== null ? page.derivations.length === page.total : page.derivations.length < initialLimit;
   if (!complete) {
-    page = await getTrustDerivationPage({ category, live: true, seedMember: true, limit: 5000 });
-    complete = page.total !== null ? page.derivations.length === page.total : page.derivations.length < 5000;
+    page = await getTrustDerivationPage({ category, live: true, seedMember: true, limit: MAX_DERIVATION_LIMIT });
+    complete = page.total !== null ? page.derivations.length === page.total : page.derivations.length < MAX_DERIVATION_LIMIT;
   }
   if (!complete) throw new Error('Account directory exceeds scan budget');
   // Live derivations already include current minting-group members even without rating

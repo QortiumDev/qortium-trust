@@ -451,6 +451,61 @@ describe('App rating flow (pending -> confirm/timeout, and account-switch immuni
     expect(window.history.length).toBe(length);
   });
 
+  it('canonicalizes incoming Developer aliases without changing history state or unrelated URL data', async () => {
+    const historyState = { host: 'preserve-me' };
+    window.history.replaceState(historyState, '', '/?view=reference&target=Qtarget&unknown=seed&repeat=one&repeat=two#anchor');
+    const historyLength = window.history.length;
+
+    render(<App />);
+    await flush(20);
+
+    expect(screen.getByRole('heading', { name: 'Developers reference' })).toBeTruthy();
+    expect(window.location.search).toBe('?unknown=seed&repeat=one&repeat=two&view=developers&account=Qtarget');
+    expect(window.location.hash).toBe('#anchor');
+    expect(window.history.state).toEqual(historyState);
+    expect(window.history.length).toBe(historyLength);
+  });
+
+  it('retains the selected detail and rating draft across Developers and back to Accounts', async () => {
+    await renderAppAtAccountDetail();
+    fireEvent.click(screen.getByRole('button', { name: 'Yes' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Medium (2)' }));
+    await flush(10);
+    expect(screen.getByRole('button', { name: 'Medium (2)' }).getAttribute('aria-pressed')).toBe('true');
+
+    fireEvent.click(screen.getByRole('button', { name: /^Developers$/ }));
+    await flush(10);
+    expect(screen.getByRole('heading', { name: 'Developers reference' })).toBeTruthy();
+    expect(window.location.search).toContain('view=developers');
+    expect(window.location.search).toContain('account=Qtarget');
+
+    fireEvent.click(screen.getByRole('button', { name: /^Accounts$/ }));
+    await flush(10);
+    expect(screen.getByRole('heading', { name: 'Qtarget' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Medium (2)' }).getAttribute('aria-pressed')).toBe('true');
+    expect(submitRatingMock).not.toHaveBeenCalled();
+  });
+
+  it('closes a rating dialog during Developers navigation without submitting an extra rating', async () => {
+    render(<App />);
+    await flush(20);
+    fireEvent.click(screen.getByRole('button', { name: 'Rate Minters — Qtarget' }));
+    await flush(10);
+    expect(screen.getByRole('dialog', { name: 'Qtarget Minters' })).toBeTruthy();
+
+    act(() => {
+      window.history.pushState(window.history.state, '', '/?view=developers&account=Qtarget');
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    });
+    await flush(10);
+
+    expect(screen.getByRole('heading', { name: 'Developers reference' })).toBeTruthy();
+    expect(document.querySelector('.rating-dialog')).toBeTruthy();
+    expect(document.querySelector('.rating-dialog')?.hasAttribute('open')).toBe(false);
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(submitRatingMock).not.toHaveBeenCalled();
+  });
+
   it('excludes non-members in recent and other sorts, including the directory summary', async () => {
     const outsider = { ...TARGET_DERIVATION, accountAddress: 'Qoutsider', accountPublicKey: 'outsiderPub', mintingSeedMember: false };
     getTrustDerivationPageMock.mockResolvedValue({ derivations: [TARGET_DERIVATION, outsider], total: 2 });
@@ -583,5 +638,106 @@ describe('App rating flow (pending -> confirm/timeout, and account-switch immuni
     // pending rating (and the account it's bound to) survives untouched.
     expect(resolveSelfAccountMock).toHaveBeenCalledTimes(1);
     expect(screen.getByText(/waiting for block confirmation/i)).toBeTruthy();
+  });
+
+  it('preserves the selected account and an in-progress, unsubmitted rating draft across a Developers round-trip', async () => {
+    const submit = await renderAppAtAccountDetail();
+
+    // Two-step Minter chooser: pick Yes + Medium confidence, but deliberately never submit — this
+    // draft only lives in RatingForm's local useRatingControl state, so it is the state most at risk
+    // of being silently discarded if AccountDetail were unmounted while Developers is showing.
+    fireEvent.click(screen.getByRole('button', { name: 'Yes' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Medium (2)' }));
+    await flush();
+    const draftButton = screen.getByRole('button', { name: 'Medium (2)' });
+    expect(submit.disabled).toBe(false);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Developers' }));
+    await flush();
+
+    expect(screen.getByRole('heading', { name: 'Developers reference' })).toBeTruthy();
+    expect(window.location.search).toContain('view=developers');
+    expect(window.location.search).toContain('account=Qtarget');
+    // The account-detail view is still mounted, just not in the accessibility tree.
+    expect(screen.queryByRole('heading', { name: 'Qtarget' })).toBeNull();
+
+    await act(async () => {
+      window.history.back();
+      await vi.advanceTimersByTimeAsync(50);
+    });
+    await flush();
+
+    expect(screen.getByRole('heading', { name: 'Qtarget' })).toBeTruthy();
+    // The draft survived being hidden: still Yes + Medium, submit still enabled — not reset to 0.
+    expect(draftButton.isConnected).toBe(true);
+    expect(screen.getByRole('button', { name: 'Medium (2)' })).toBe(draftButton);
+    expect(screen.getByRole('button', { name: 'Yes' }).getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByRole('button', { name: 'Medium (2)' }).getAttribute('aria-pressed')).toBe('true');
+    expect((screen.getByRole('button', { name: 'Submit rating' }) as HTMLButtonElement).disabled).toBe(false);
+    // Nothing was submitted in the background while Developers was showing.
+    expect(submitRatingMock).not.toHaveBeenCalled();
+  });
+
+  it('keeps a pending submission visible and does not resubmit it across a Developers round-trip', async () => {
+    const submit = await renderAppAtAccountDetail();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Yes' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Medium (2)' }));
+    await flush();
+    fireEvent.click(submit);
+    await flush();
+
+    expect(submitRatingMock).toHaveBeenCalledTimes(1);
+    expect(document.querySelector('.rating-pending')).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Developers' }));
+    await flush();
+    await act(async () => {
+      window.history.back();
+      await vi.advanceTimersByTimeAsync(50);
+    });
+    await flush();
+
+    expect(screen.getByRole('heading', { name: 'Qtarget' })).toBeTruthy();
+    expect(document.querySelector('.rating-pending')).toBeTruthy();
+    expect(submitRatingMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps existing Accounts/Changes behavior unchanged: switching to either still drops the selected account', async () => {
+    render(<App />);
+    await flush();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open Qtarget' }));
+    await flush();
+    expect(screen.getByRole('heading', { name: 'Qtarget' })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Changes' }));
+    await flush();
+    expect(window.location.search).not.toContain('account=');
+    expect(screen.queryByRole('heading', { name: 'Qtarget' })).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Accounts' }));
+    await flush();
+    fireEvent.click(screen.getByRole('button', { name: 'Open Qtarget' }));
+    await flush();
+    expect(screen.getByRole('heading', { name: 'Qtarget' })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Accounts' }));
+    await flush();
+    expect(window.location.search).toBe('');
+    expect(screen.queryByRole('heading', { name: 'Qtarget' })).toBeNull();
+  });
+
+  it('retains the account search filter across a Developers round-trip', async () => {
+    render(<App />);
+    await flush();
+
+    fireEvent.change(screen.getByPlaceholderText('Search account or public key'), { target: { value: 'Qtar' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Developers' }));
+    await flush();
+    fireEvent.click(screen.getByRole('button', { name: 'Accounts' }));
+    await flush();
+
+    expect((screen.getByPlaceholderText('Search account or public key') as HTMLInputElement).value).toBe('Qtar');
   });
 });

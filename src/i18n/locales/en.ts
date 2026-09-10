@@ -145,6 +145,7 @@ export const en = {
   'label.youRated': 'You rated',
   'nav.accounts': 'Accounts',
   'nav.changes': 'Changes',
+  'nav.developers': 'Developers',
   'nav.resources': 'Resources',
   'nav.sections': 'Trust sections',
   'node.connecting': 'Connecting',
