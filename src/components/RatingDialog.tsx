@@ -10,23 +10,31 @@ import { RatingForm } from './RatingControls';
 
 type RatingDialogProps = Omit<ComponentProps<typeof RatingForm>, 'targetAddress' | 'targetPublicKey' | 'onSubmittingChange'> & {
   derivation: TrustDerivation;
+  hidden?: boolean;
   profile?: IdentityProfile;
   onClose: () => void;
 };
 
-export function RatingDialog({ derivation, profile, onClose, ...ratingProps }: RatingDialogProps) {
+export function RatingDialog({ derivation, hidden = false, profile, onClose, ...ratingProps }: RatingDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const titleId = useId();
   const roleId = useId();
+  const previousFocusRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
-    const previousFocus = document.activeElement as HTMLElement | null;
     const dialog = dialogRef.current!;
-    dialog.showModal();
-    return () => {
+    if (!hidden) {
+      previousFocusRef.current = document.activeElement as HTMLElement | null;
+      if (!dialog.open) dialog.showModal();
+    } else if (dialog.open) {
       dialog.close();
-      if (previousFocus?.isConnected) previousFocus.focus();
-    };
+    }
+  }, [hidden]);
+
+  useEffect(() => () => {
+    const dialog = dialogRef.current;
+    if (dialog?.open) dialog.close();
+    if (previousFocusRef.current?.isConnected) previousFocusRef.current.focus();
   }, []);
 
   return (

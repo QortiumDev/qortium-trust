@@ -12,7 +12,7 @@ import type {
   AccountTrustProfile,
 } from './types';
 
-export type ViewMode = 'accounts' | 'changes';
+export type ViewMode = 'accounts' | 'changes' | 'developers';
 
 export type AccountSortKey =
   | 'latestRating'

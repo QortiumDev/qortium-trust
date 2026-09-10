@@ -41,6 +41,7 @@ describe('QDN display settings helpers', () => {
     expect(normalizeTheme(' light ')).toBe('light');
     expect(normalizeAccent('BLUE')).toBe('blue');
     expect(normalizeAccent(' teal ')).toBe('teal');
+    expect(normalizeAccent('CLAY')).toBe('clay');
     expect(normalizeLanguage('HE')).toBe('he');
     expect(normalizeLanguage('zh-cn')).toBe('zh-CN');
     expect(normalizeLanguage('zh-Hant')).toBe('zh-TW');

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, Check, Copy } from 'lucide-react';
+import { copyToClipboard } from '../clipboard';
 import { getIdentityLabel } from '../identityProfiles';
 import {
   categoryLabel,
@@ -76,15 +77,9 @@ function CopyValueButton({ label, value }: { label: string; value: string }) {
       window.clearTimeout(timerRef.current);
     }
 
-    try {
-      await navigator.clipboard.writeText(value);
-      setStatus('copied');
-
-      timerRef.current = window.setTimeout(() => setStatus('idle'), 1800);
-    } catch {
-      setStatus('failed');
-      timerRef.current = window.setTimeout(() => setStatus('idle'), 2400);
-    }
+    const succeeded = await copyToClipboard(value);
+    setStatus(succeeded ? 'copied' : 'failed');
+    timerRef.current = window.setTimeout(() => setStatus('idle'), succeeded ? 1800 : 2400);
   };
 
   const actionLabel =

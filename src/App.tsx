@@ -32,7 +32,16 @@ import { AvatarActionsProvider } from './components/Identity';
 import { setTranslationLanguage, t, type TranslationKey } from './i18n';
 import { getBridgeState } from './qdnRequest';
 import { PENDING_CONFIRM_POLL_MS, PENDING_CONFIRM_TIMEOUT_MS, pendingRatingKey } from './ratingControl';
-import { getTrustRouteUrl, readTrustRoute, trustHistoryDepth, type TrustRoute } from './trustRoute';
+import {
+  getDeveloperSectionUrl,
+  getTrustRouteUrl,
+  readDeveloperSection,
+  readTrustRoute,
+  trustHistoryDepth,
+  type TrustRoute,
+} from './trustRoute';
+import { MAX_DERIVATION_LIMIT, MAX_RATINGS_SCAN, PAGE_SIZE, RATING_PAGE_SIZE } from './trustLimits';
+import { DevelopersReference } from './components/DevelopersReference';
 import {
   getInitialShowAllRoles,
   getInitialTrustFlowGuideCollapsed,
@@ -71,10 +80,23 @@ import type {
 } from './viewTypes';
 
 const APP_VERSION = __APP_VERSION__;
-const PAGE_SIZE = 250;
-const RATING_PAGE_SIZE = 1000;
 
 const DEFAULT_ACCOUNT_SORT = RECENT_ACCOUNT_SORT;
+
+function ratingTargetMatchesRoute(
+  target: { derivation: TrustDerivation; category: AccountRatingCategory },
+  route: TrustRoute,
+) {
+  if (route.view === 'developers') {
+    return route.account === target.derivation.accountAddress;
+  }
+
+  if (route.view === 'accounts') {
+    return route.account === null || route.account === target.derivation.accountAddress;
+  }
+
+  return false;
+}
 
 const EMPTY_EXPLORER_STATE: ExplorerState = {
   bridge: null,
@@ -106,7 +128,7 @@ async function getAllRatings(options: { rater?: string; target?: string }) {
   const ratings: AccountRating[] = [];
   let offset: number | null = 0;
 
-  while (offset !== null && ratings.length < 20_000) {
+  while (offset !== null && ratings.length < MAX_RATINGS_SCAN) {
     const page = await getAccountRatingsPage({
       ...options,
       limit: RATING_PAGE_SIZE,
@@ -255,6 +277,7 @@ export default function App() {
   const [ratingTarget, setRatingTarget] = useState<{ derivation: TrustDerivation; category: AccountRatingCategory } | null>(null);
   const [selectedAddress, setSelectedAddress] = useState<string | null>(null);
   const [self, setSelf] = useState<SelfAccount | null>(null);
+  const [developerSection, setDeveloperSection] = useState<string | null>(null);
   const [showAllRoles, setShowAllRolesState] = useState(getInitialShowAllRoles);
   const [statusFilter, setStatusFilter] = useState<TrustStatus | 'ALL'>('ALL');
   const [toast, setToast] = useState<string | null>(null);
@@ -433,10 +456,16 @@ export default function App() {
   useEffect(() => {
     const readRouteFromUrl = () => {
       const route = readTrustRoute(window.location.href);
+      const canonicalUrl = getTrustRouteUrl(window.location.href, route);
+      if (canonicalUrl.href !== window.location.href) {
+        window.history.replaceState(window.history.state, '', canonicalUrl);
+      }
       setFocusRating(false);
       if (!route.account) restoreListFocusRef.current = true;
       setSelectedAddress(route.account);
       setView(route.view);
+      setDeveloperSection(readDeveloperSection(window.location.href));
+      setRatingTarget((current) => current && ratingTargetMatchesRoute(current, route) ? current : null);
     };
 
     readRouteFromUrl();
@@ -470,15 +499,29 @@ export default function App() {
         getTrustRouteUrl(window.location.href, route),
       );
     }
+    setRatingTarget((target) => target && ratingTargetMatchesRoute(target, route) ? target : null);
     setSelectedAddress(route.account);
     setView(route.view);
+  }, []);
+
+  // Pushes a Developers table-of-contents anchor onto history without touching the account/view
+  // route. Kept at the same trustNavigationDepth as the current entry (rather than incrementing it):
+  // the app's own Back affordance only ever traverses account-detail entries pushed by
+  // navigateToRoute, and a section jump inside the reference has no such in-app Back UI of its own.
+  const navigateDeveloperSection = useCallback((section: string | null) => {
+    setDeveloperSection(section);
+    window.history.pushState(
+      window.history.state,
+      '',
+      getDeveloperSectionUrl(window.location.href, section),
+    );
   }, []);
 
   const openAccount = useCallback((address: string, ratingCategory?: AccountRatingCategory) => {
     setFocusRating(ratingCategory !== undefined);
     if (ratingCategory) setCategory(ratingCategory);
     if (!data.derivations.some((derivation) => derivation.accountAddress === address)) {
-      setDerivationLimit(5_000);
+      setDerivationLimit(MAX_DERIVATION_LIMIT);
     }
     navigateToRoute({ account: address, view: 'accounts' });
   }, [data.derivations, navigateToRoute]);
@@ -497,6 +540,7 @@ export default function App() {
     );
     setSelectedAddress(null);
     setView('accounts');
+    setRatingTarget((target) => target && ratingTargetMatchesRoute(target, { account: null, view: 'accounts' }) ? target : null);
   }, []);
 
   useEffect(() => {
@@ -516,11 +560,11 @@ export default function App() {
       selectedAddress &&
       !selectedDerivation &&
       !loading &&
-      derivationLimit < 5_000 &&
+      derivationLimit < MAX_DERIVATION_LIMIT &&
       (data.derivations.length >= derivationLimit ||
         (derivationTotal !== null && data.derivations.length < derivationTotal))
     ) {
-      setDerivationLimit(5_000);
+      setDerivationLimit(MAX_DERIVATION_LIMIT);
     }
   }, [
     data.derivations.length,
@@ -809,7 +853,10 @@ export default function App() {
   }, [activityUnavailable, loadData, wantsRecent]);
 
   const handleViewChange = (next: ViewMode) => {
-    navigateToRoute({ account: null, view: next });
+    // Developers is a reference overlay, so retain the selected account both entering it and when
+    // returning to Accounts. Changes keeps its existing list behavior.
+    const preserveAccount = next === 'developers' || (view === 'developers' && next === 'accounts');
+    navigateToRoute({ account: preserveAccount ? selectedAddress : null, view: next });
   };
 
   const loadingPanel = (
@@ -821,7 +868,12 @@ export default function App() {
     </div>
   );
 
-  const showAccountDetail = selectedDerivation && view === 'accounts';
+  const showAccountDetail = !!selectedDerivation && view === 'accounts';
+  // Developers preserves the selected account (see handleViewChange above) but is not the accounts
+  // view, so AccountDetail would otherwise unmount — discarding any in-progress rating draft and
+  // resetting the explorer/pending-queue-adjacent local state it owns. Keep it mounted, just hidden,
+  // whenever there is a selection to preserve while Developers is showing.
+  const detailHiddenForDevelopers = !!selectedDerivation && view === 'developers';
 
   return (
     <AvatarActionsProvider actions={data.bridge?.actions}>
@@ -857,6 +909,7 @@ export default function App() {
             {([
               ['accounts', t('nav.accounts')],
               ['changes', t('nav.changes')],
+              ['developers', t('nav.developers')],
             ] as [ViewMode, string][]).map(([candidate, label]) => (
               <button
                 aria-current={view === candidate ? 'page' : undefined}
@@ -946,34 +999,44 @@ export default function App() {
         ) : null}
 
         <div className="main-panel">
-          {showAccountDetail ? (
-            <AccountDetail
-              category={category}
-              focusRating={focusRating}
-              detail={detail}
-              key={`${selectedDerivation.accountAddress}:${self?.address ?? 'readonly'}`}
-              onActiveCategoryChange={setCategory}
-              onBack={handleBack}
-              onDismissPending={handleDismissPending}
-              onOpenAccount={(address) => {
-                openAccount(address);
-              }}
-              onSubmissionStarted={handleSubmissionStarted}
-              onSubmissionFailed={handleSubmissionFailed}
-              onRatingSubmitted={handleRatingSubmitted}
-              onRetryPending={handleRetryPending}
-              pendingRatings={pendingRatings}
+          {selectedDerivation && (showAccountDetail || detailHiddenForDevelopers) ? (
+            <div hidden={detailHiddenForDevelopers}>
+              <AccountDetail
+                category={category}
+                focusRating={focusRating}
+                detail={detail}
+                key={`${selectedDerivation.accountAddress}:${self?.address ?? 'readonly'}`}
+                onActiveCategoryChange={setCategory}
+                onBack={handleBack}
+                onDismissPending={handleDismissPending}
+                onOpenAccount={(address) => {
+                  openAccount(address);
+                }}
+                onSubmissionStarted={handleSubmissionStarted}
+                onSubmissionFailed={handleSubmissionFailed}
+                onRatingSubmitted={handleRatingSubmitted}
+                onRetryPending={handleRetryPending}
+                pendingRatings={pendingRatings}
+                policy={data.policy}
+                profile={identityProfiles[selectedDerivation.accountAddress]}
+                profiles={identityProfiles}
+                ratingActionAvailable={ratingActionAvailable}
+                receivedRatings={receivedRatings}
+                self={self}
+                selectedDerivation={selectedDerivation}
+                showAllRoles={showAllRoles}
+                youRatedByKey={youRatedByKey}
+              />
+            </div>
+          ) : null}
+          {view === 'developers' ? (
+            <DevelopersReference
+              bridge={data.bridge}
+              initialSection={developerSection}
+              onNavigateSection={navigateDeveloperSection}
               policy={data.policy}
-              profile={identityProfiles[selectedDerivation.accountAddress]}
-              profiles={identityProfiles}
-              ratingActionAvailable={ratingActionAvailable}
-              receivedRatings={receivedRatings}
-              self={self}
-              selectedDerivation={selectedDerivation}
-              showAllRoles={showAllRoles}
-              youRatedByKey={youRatedByKey}
             />
-          ) : loading ? (
+          ) : showAccountDetail ? null : loading ? (
             loadingPanel
           ) : view === 'accounts' ? (
             <>
@@ -1025,22 +1088,25 @@ export default function App() {
       </section>
 
       {ratingTarget ? (
-        <RatingDialog
-          key={`${ratingTarget.derivation.accountPublicKey}:${ratingTarget.category}:${self?.address ?? 'readonly'}`}
-          category={ratingTarget.category}
-          derivation={ratingTarget.derivation}
-          profile={identityProfiles[ratingTarget.derivation.accountAddress]}
-          onClose={() => setRatingTarget(null)}
-          onSubmissionStarted={handleSubmissionStarted}
-          onSubmissionFailed={handleSubmissionFailed}
-          onSubmitted={handleRatingSubmitted}
-          onDismissPending={handleDismissPending}
-          onRetryPending={handleRetryPending}
-          pendingRating={pendingRatings[pendingRatingKey(ratingTarget.category, ratingTarget.derivation.accountAddress)]?.rating}
-          pendingRatings={pendingRatings}
-          ratingActionAvailable={ratingActionAvailable}
-          self={self}
-        />
+        <div hidden={view === 'developers'}>
+          <RatingDialog
+            hidden={view === 'developers'}
+            key={`${ratingTarget.derivation.accountPublicKey}:${ratingTarget.category}:${self?.address ?? 'readonly'}`}
+            category={ratingTarget.category}
+            derivation={ratingTarget.derivation}
+            profile={identityProfiles[ratingTarget.derivation.accountAddress]}
+            onClose={() => setRatingTarget(null)}
+            onSubmissionStarted={handleSubmissionStarted}
+            onSubmissionFailed={handleSubmissionFailed}
+            onSubmitted={handleRatingSubmitted}
+            onDismissPending={handleDismissPending}
+            onRetryPending={handleRetryPending}
+            pendingRating={pendingRatings[pendingRatingKey(ratingTarget.category, ratingTarget.derivation.accountAddress)]?.rating}
+            pendingRatings={pendingRatings}
+            ratingActionAvailable={ratingActionAvailable}
+            self={self}
+          />
+        </div>
       ) : null}
       {toast ? (
         <div className="toast" role="status">

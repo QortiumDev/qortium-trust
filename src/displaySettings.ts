@@ -1,6 +1,6 @@
 import { setTranslationLanguage } from './i18n';
 
-export const ACCENT_OPTIONS = ['green', 'blue', 'orange', 'purple', 'red', 'teal', 'cyan', 'pink', 'yellow'] as const;
+export const ACCENT_OPTIONS = ['green', 'blue', 'orange', 'purple', 'red', 'teal', 'cyan', 'pink', 'yellow', 'clay'] as const;
 export const LANGUAGE_VALUES = [
   'ar',
   'de',

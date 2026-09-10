@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getTrustRouteUrl, readTrustRoute } from './trustRoute';
+import { getDeveloperSectionUrl, getTrustRouteUrl, readDeveloperSection, readTrustRoute } from './trustRoute';
 
 describe('Trust routes', () => {
   it('reads account, view, and legacy target links', () => {
@@ -46,8 +46,53 @@ describe('Trust routes', () => {
       { account: null, view: 'accounts' as const },
       { account: null, view: 'changes' as const },
       { account: 'Qdetail', view: 'accounts' as const },
+      { account: null, view: 'developers' as const },
+      { account: 'Qdetail', view: 'developers' as const },
     ]) {
       expect(readTrustRoute(getTrustRouteUrl('https://example.test/app?theme=dark', route))).toEqual(route);
     }
+  });
+
+  it('normalizes the developer/reference aliases to the canonical developers view, but never writes them back', () => {
+    for (const alias of ['developers', 'developer', 'reference']) {
+      expect(readTrustRoute(`https://example.test/app?view=${alias}`)).toEqual({ account: null, view: 'developers' });
+    }
+
+    const url = getTrustRouteUrl('https://example.test/app?view=developer', { account: null, view: 'developers' });
+    expect(url.searchParams.get('view')).toBe('developers');
+  });
+
+  it('preserves repeated query parameters and the URL fragment across a route rewrite', () => {
+    const url = getTrustRouteUrl('https://example.test/app?tag=a&tag=b&view=changes#anchor', {
+      account: 'Qnext',
+      view: 'developers',
+    });
+
+    expect(url.searchParams.getAll('tag')).toEqual(['a', 'b']);
+    expect(url.hash).toBe('#anchor');
+    expect(url.searchParams.get('view')).toBe('developers');
+  });
+
+  it('reads and writes the Developers section anchor independently of the account/view route', () => {
+    expect(readDeveloperSection('https://example.test/app?view=developers')).toBeNull();
+    expect(readDeveloperSection('https://example.test/app?view=developers&section=policy')).toBe('policy');
+
+    const withSection = getDeveloperSectionUrl('https://example.test/app?view=developers&theme=dark', 'bounds');
+    expect(withSection.searchParams.get('section')).toBe('bounds');
+    expect(withSection.searchParams.get('theme')).toBe('dark');
+    expect(withSection.searchParams.get('view')).toBe('developers');
+
+    const cleared = getDeveloperSectionUrl(withSection, null);
+    expect(cleared.searchParams.has('section')).toBe(false);
+  });
+
+  it('leaves an existing section param untouched when the account/view route is rewritten', () => {
+    const url = getTrustRouteUrl('https://example.test/app?view=developers&section=policy', {
+      account: null,
+      view: 'accounts',
+    });
+
+    // General "keep unrecognized query params" policy — trustRoute.ts only owns account/target/view.
+    expect(url.searchParams.get('section')).toBe('policy');
   });
 });

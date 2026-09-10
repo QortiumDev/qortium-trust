@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.4.10 — 2026-09-09
+
+- Add a Developers reference beside Accounts and Changes (`?view=developers`,
+  with `developer`/`reference` aliases): Core read endpoints, live policy and
+  units, role mapping, rating values, bridge capabilities, selected-account/
+  lock/approval, asynchronous submission, the read-only fallback, and
+  directory/activity bounds, always in English/LTR with copyable examples.
+  Navigating to it keeps the selected account, any in-progress rating draft,
+  and the pending-rating queue untouched; its own section links scroll only
+  its own pane, never Home's frame.
+- Add Home's clay accent to the existing accent parser and styling.
+
 ## 1.4.9 — 2026-09-05
 
 - Open the wiki through Home’s new-tab action; use the current gateway origin for
