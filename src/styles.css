@@ -3606,6 +3606,11 @@ html {
   margin-top: 0;
 }
 
+.developers-reference__body p,
+.developers-reference__body code {
+  overflow-wrap: anywhere;
+}
+
 .developers-reference__body section + section {
   border-top: 1px solid var(--line);
   padding-top: 20px;
